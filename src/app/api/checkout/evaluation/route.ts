@@ -27,7 +27,7 @@ export async function POST(req: Request) {
 
     // Parse body safely (no any)
     const ct = req.headers.get("content-type") ?? "";
-    let body: EvalRequestBody = {};
+    const body: EvalRequestBody = {};
     if (ct.includes("application/json")) {
       const json = (await req.json()) as unknown;
       if (isObject(json) && typeof json.listingId === "string") {
