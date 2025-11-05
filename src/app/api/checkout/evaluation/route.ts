@@ -3,23 +3,43 @@ export const runtime = "nodejs";
 
 import { stripe } from "@/lib/stripe";
 import { ensureCustomer } from "@/lib/ensure-customer";
-import { pickEvaluationPriceId } from "@/lib/evaluations/pricing"; // <- use the member vs public logic
+import { pickEvaluationPriceId } from "@/lib/evaluations/pricing";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/types/database.types";
+
+type ListingRow = {
+  id: string;
+  owner_id: string;
+  status: "draft" | "published" | "archived" | string;
+  is_active: boolean;
+};
+
+type EvalRequestBody = { listingId?: string };
 
 export async function POST(req: Request) {
   try {
     const { createClientRSC } = await import("@/../utils/supabase/server");
-    const supabase = await createClientRSC();
+    // Give supabase its concrete type
+    const supabase = (await createClientRSC()) as SupabaseClient<Database>;
 
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return new Response("Unauthorized", { status: 401 });
 
+    // Parse body safely (no any)
     const ct = req.headers.get("content-type") ?? "";
-    const body = ct.includes("application/json")
-      ? await req.json()
-      : Object.fromEntries((await req.formData()).entries());
+    let body: EvalRequestBody = {};
+    if (ct.includes("application/json")) {
+      const json = (await req.json()) as unknown;
+      if (isObject(json) && typeof json.listingId === "string") {
+        body.listingId = json.listingId;
+      }
+    } else {
+      const fd = await req.formData();
+      const v = fd.get("listingId");
+      if (typeof v === "string") body.listingId = v;
+    }
 
-    // We IGNORE client-provided priceId; compute securely server-side
-    const listingId = String(body.listingId ?? "");
+    const listingId = (body.listingId ?? "").trim();
     if (!listingId) return new Response("Missing listingId", { status: 400 });
 
     // Verify listing ownership
@@ -27,7 +47,8 @@ export async function POST(req: Request) {
       .from("business_listings")
       .select("id, owner_id, status, is_active")
       .eq("id", listingId)
-      .maybeSingle();
+      .maybeSingle()
+      .returns<ListingRow | null>();
 
     if (listErr) return new Response("DB error", { status: 500 });
     if (!listing || listing.owner_id !== user.id) return new Response("Forbidden", { status: 403 });
@@ -35,8 +56,8 @@ export async function POST(req: Request) {
       return new Response("Listing is not eligible for evaluation", { status: 400 });
     }
 
-    // Choose the correct evaluation price (member vs public; trial excluded)
-    const priceId = await pickEvaluationPriceId(supabase as any, user.id);
+    // Member vs public price — no `any`
+    const priceId = await pickEvaluationPriceId(supabase, user.id);
 
     // Ensure Stripe customer
     const customerId = await ensureCustomer(user);
@@ -46,8 +67,6 @@ export async function POST(req: Request) {
       process.env.NEXT_PUBLIC_SITE_URL ??
       "http://localhost:3000";
 
-    // Success URL -> redirect helper that sends to BizEquity immediately
-    // You can build the BizEquity link inside that redirect route.
     const successUrl = `${origin}/api/evaluations/redirect?listing_id=${encodeURIComponent(listingId)}`;
     const cancelUrl  = `${origin}/dashboard/listings?eval=canceled`;
 
@@ -56,8 +75,6 @@ export async function POST(req: Request) {
       customer: customerId,
       line_items: [{ price: priceId, quantity: 1 }],
       client_reference_id: user.id,
-
-      // Keep metadata on both session and PI for robust linkage
       metadata: {
         purpose: "evaluation",
         listing_id: listingId,
@@ -70,7 +87,6 @@ export async function POST(req: Request) {
           supabase_user_id: user.id,
         },
       },
-
       allow_promotion_codes: true,
       success_url: successUrl,
       cancel_url: cancelUrl,
@@ -81,4 +97,9 @@ export async function POST(req: Request) {
     console.error("Evaluation checkout error:", err);
     return new Response("Checkout error", { status: 500 });
   }
+}
+
+// tiny helper
+function isObject(v: unknown): v is Record<string, unknown> {
+  return !!v && typeof v === "object";
 }

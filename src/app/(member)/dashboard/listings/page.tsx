@@ -25,8 +25,6 @@ async function startEvaluation(listingId: string){
   const base = `${proto}://${host}`;
   const ck = await cookies();
 
-  const origin = process.env.NEXT_PUBLIC_SITE_URL ?? "https://localhost:3000";
-
   const res = await fetch(`${base}/api/checkout/evaluation`, {
     method: "POST",
     headers: { "content-type": "application/json",
@@ -126,23 +124,6 @@ async function openPortal() {
   const origin = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
   const url = await openBillingPortal(`${origin}/dashboard/listings`);
   redirect(url);
-}
-
-async function deleteListing(listingId: string) {
-  "use server";
-  const { createClientRSC } = await import("@/../utils/supabase/server");
-  const sb = await createClientRSC();
-  const { data: { user } } = await sb.auth.getUser();
-  if (!user) redirect("/login?next=/dashboard/listings");
-
-  const { error } = await sb
-    .from("business_listings")
-    .delete()
-    .eq("id", listingId)
-    .eq("owner_id", user.id);
-
-  if (error) console.error(error);
-  redirect("/dashboard/listings");
 }
 
 // ---- PAGE ----

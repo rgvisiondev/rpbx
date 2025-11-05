@@ -6,7 +6,7 @@ import Image from "next/image";
 import type { Metadata } from "next";
 import { createClientRSC } from "@/../utils/supabase/server";
 import { redirect } from "next/navigation";
-import { AlertCircleIcon, BadgeCheckIcon, CheckIcon } from "lucide-react"
+import { BadgeCheckIcon} from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 
 export const metadata: Metadata = {
