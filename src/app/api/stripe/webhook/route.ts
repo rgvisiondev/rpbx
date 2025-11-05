@@ -6,13 +6,10 @@ import Stripe from "stripe";
 import { NextRequest } from "next/server";
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
 import type { Database, TablesInsert } from "@/types/database.types";
-import { Resend } from "resend";
-import ValuationEmail from "@/emails/ValuationEmail";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!); // (optionally pin apiVersion)
 const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET!;
 const BIZ_EQUITY_BASE = process.env.BIZEQUITY_URL!;
-const resend = new Resend(process.env.RESEND_API_KEY!);
 
 function getAdmin(): SupabaseClient<Database> {
   return createClient<Database>(
@@ -22,7 +19,7 @@ function getAdmin(): SupabaseClient<Database> {
   );
 }
 
-function buildBizEquityLink(listingId: string){
+function buildBizEquityLink(listingId: string) {
   const url = new URL(BIZ_EQUITY_BASE);
   url.searchParams.set("listing_id", listingId);
   return url.toString();
@@ -257,196 +254,208 @@ export async function POST(req: NextRequest) {
   console.log("Stripe event (norm):", type);
 
   try {
-    const admin = getAdmin();
-
     // A) After checkout: map customer -> user and write first sub row
     if (type === "checkout.session.completed") {
-  const sess = event.data.object as Stripe.Checkout.Session;
+      const admin = getAdmin(); // moved inside the branch
+      const sess = event.data.object as Stripe.Checkout.Session;
 
-  // ---- existing: map customer<->user + upsert base subscription snapshot ----
-  const userId = (sess.metadata?.["supabase_user_id"] ?? null) as string | null;
-  const customerId =
-    typeof sess.customer === "string"
-      ? (sess.customer as string)
-      : (sess.customer as Stripe.Customer | null)?.id ?? null;
+      // ---- existing: map customer<->user + upsert base subscription snapshot ----
+      const userId = (sess.metadata?.["supabase_user_id"] ?? null) as string | null;
+      const customerId =
+        typeof sess.customer === "string"
+          ? (sess.customer as string)
+          : (sess.customer as Stripe.Customer | null)?.id ?? null;
 
-  if (userId && customerId) {
-    const { error } = await admin
-      .from("customers")
-      .upsert({ id: userId, stripe_customer_id: customerId });
-    if (error) console.error("customers upsert error:", error);
-  }
-
-  if (sess.mode === "subscription" && sess.subscription) {
-    const subId =
-      typeof sess.subscription === "string"
-        ? (sess.subscription as string)
-        : (sess.subscription as Stripe.Subscription).id;
-
-    const sub = await stripe.subscriptions.retrieve(subId, {
-      expand: ["items.data.price.product", "customer"],
-    });
-    await upsertSubscription(admin, sub);
-  }
-
-  // ---- additions: handle listing promo subs and evaluation one-time payments ----
-  const meta = sess.metadata || {};
-  const purpose = String(meta["purpose"] ?? "");
-  const listingId = String(meta["listing_id"] ?? "");
-
-  // A) Boosted Listing: write/refresh listing_promotions row on successful checkout
-  if (purpose === "listing_promo" && sess.subscription && listingId) {
-    const subId =
-      typeof sess.subscription === "string"
-        ? (sess.subscription as string)
-        : (sess.subscription as Stripe.Subscription).id;
-
-    const sub = await stripe.subscriptions.retrieve(subId, {
-      expand: ["items.data.price", "customer"],
-    });
-
-    // IMPORTANT: do NOT access sub.current_period_* directly; use your helper
-    const mainItem = sub.items?.data?.[0];
-    const { endISO: currentPeriodEnd } = extractPeriodISO(sub, mainItem);
-
-    const { error: promoErr } = await admin.from("listing_promotions").upsert(
-      {
-        listing_id: listingId,
-        stripe_subscription_id: sub.id,
-        status: sub.status,
-        current_period_end: currentPeriodEnd,              // <- safe ISO string
-        cancel_at_period_end: sub.cancel_at_period_end ?? false,
-      },
-      { onConflict: "stripe_subscription_id" }
-    );
-    if (promoErr) console.error("listing_promotions upsert error:", promoErr);
-  }
-
-  // B) Business Evaluation: mark as 'purchased' and store PI id
-  if (purpose === "evaluation" && listingId) {
-    const piId =
-      typeof sess.payment_intent === "string"
-        ? (sess.payment_intent as string)
-        : (sess.payment_intent as Stripe.PaymentIntent | null)?.id ?? null;
-
-    // Until you regenerate Supabase types to include `listing_evaluations`,
-    // cast this call to avoid TS narrowing to existing tables:
-    const adminAny = admin as unknown as {
-      from: (table: string) => {
-        upsert: (values: any, options?: any) => Promise<{ error: any }>;
-        select?: (...args: any[]) => any;
-        eq?: (...args: any[]) => any;
-        maybeSingle?: () => any;
-      };
-    };
-
-    const { error: evalErr } = await adminAny.from("listing_evaluations").upsert(
-      {
-        listing_id: listingId,
-        status: "purchased",
-        stripe_payment_intent_id: piId ?? undefined,
-      },
-      { onConflict: "listing_id" }
-    );
-    if (evalErr) console.error("listing_evaluations upsert error:", evalErr);
-
-    let toEmail: string | null = 
-      (sess.customer_details?.email as string | null) ||
-      (sess.customer_email as string | null) ||
-      null;
-
-    if (!toEmail){
-      const { data: listingRow } = await admin
-        .from("business_listings")
-        .select("contact_email")
-        .eq("id", listingId)
-        .maybeSingle();
-      toEmail = listingRow?.contact_email ?? null
-    }
-
-    if (toEmail){
-      const evaluationLink = buildBizEquityLink(listingId);
-
-      const idemKey = `eval-email:${piId ?? sess.id}`;
-
-      await resend.emails.send(
-        {
-          from: "RioPlex <valuations@rioplexbizx.com",
-          to: toEmail,
-          subject: "Your Business Valuation Link",
-          react: ValuationEmail({ link: evaluationLink })
-        },
-        { idempotencyKey: idemKey }
-      );
-    } else {
-      console.warn("No email found for valuation purchase; skipped email send.")
-    }
-  }
-  return new Response("ok", { status: 200 });
-}
-    // B) Keep subscription in sync
-if (
-  type === "customer.subscription.created" ||
-  type === "customer.subscription.updated" ||
-  type === "customer.subscription.deleted"
-) {
-  const subObj = event.data.object as Stripe.Subscription;
-
-  // Re-retrieve with expansions so our helpers work consistently
-  const sub = await stripe.subscriptions.retrieve(subObj.id, {
-    expand: ["items.data.price.product", "customer"],
-  });
-
-  // Keep your main subscriptions table in sync
-  await upsertSubscription(admin, sub);
-
-  // Optional: keep profiles.user_type aligned (unchanged)
-  const price = sub.items?.data?.[0]?.price;
-  const role = resolveBaseRole(price, sub.metadata);
-  if (role) {
-    const nextType =
-      sub.status === "active" || sub.status === "trialing" ? role : "member";
-    const stripeCustomerId =
-      typeof sub.customer === "string" ? sub.customer : sub.customer?.id;
-
-    if (stripeCustomerId) {
-      const { data: mapRow } = await admin
-        .from("customers")
-        .select("id")
-        .eq("stripe_customer_id", stripeCustomerId)
-        .maybeSingle();
-      const uid = mapRow?.id;
-      if (uid) {
-        const { error: updErr } = await admin
-          .from("profiles")
-          .update({ user_type: nextType })
-          .eq("id", uid);
-        if (updErr) console.error("profiles update error:", updErr);
-        else console.log(`profiles.user_type=${nextType} for user ${uid}`);
+      if (userId && customerId) {
+        const { error } = await admin
+          .from("customers")
+          .upsert({ id: userId, stripe_customer_id: customerId });
+        if (error) console.error("customers upsert error:", error);
       }
+
+      if (sess.mode === "subscription" && sess.subscription) {
+        const subId =
+          typeof sess.subscription === "string"
+            ? (sess.subscription as string)
+            : (sess.subscription as Stripe.Subscription).id;
+
+        const sub = await stripe.subscriptions.retrieve(subId, {
+          expand: ["items.data.price.product", "customer"],
+        });
+        await upsertSubscription(admin, sub);
+      }
+
+      // ---- additions: handle listing promo subs and evaluation one-time payments ----
+      const meta = sess.metadata || {};
+      const purpose = String(meta["purpose"] ?? "");
+      const listingId = String(meta["listing_id"] ?? "");
+
+      // A) Boosted Listing: write/refresh listing_promotions row on successful checkout
+      if (purpose === "listing_promo" && sess.subscription && listingId) {
+        const subId =
+          typeof sess.subscription === "string"
+            ? (sess.subscription as string)
+            : (sess.subscription as Stripe.Subscription).id;
+
+        const sub = await stripe.subscriptions.retrieve(subId, {
+          expand: ["items.data.price", "customer"],
+        });
+
+        // IMPORTANT: do NOT access sub.current_period_* directly; use your helper
+        const mainItem = sub.items?.data?.[0];
+        const { endISO: currentPeriodEnd } = extractPeriodISO(sub, mainItem);
+
+        const { error: promoErr } = await admin.from("listing_promotions").upsert(
+          {
+            listing_id: listingId,
+            stripe_subscription_id: sub.id,
+            status: sub.status,
+            current_period_end: currentPeriodEnd, // safe ISO
+            cancel_at_period_end: sub.cancel_at_period_end ?? false,
+          },
+          { onConflict: "stripe_subscription_id" }
+        );
+        if (promoErr) console.error("listing_promotions upsert error:", promoErr);
+      }
+
+      // B) Business Evaluation: mark as 'purchased' and email BizEquity link
+      if (purpose === "evaluation" && listingId) {
+        const piId =
+          typeof sess.payment_intent === "string"
+            ? (sess.payment_intent as string)
+            : (sess.payment_intent as Stripe.PaymentIntent | null)?.id ?? null;
+
+        // Until you regenerate Supabase types to include `listing_evaluations`,
+        // cast this call to avoid TS narrowing to existing tables:
+        const adminAny = admin as unknown as {
+          from: (table: string) => {
+            upsert: (values: any, options?: any) => Promise<{ error: any }>;
+            select?: (...args: any[]) => any;
+            eq?: (...args: any[]) => any;
+            maybeSingle?: () => any;
+          };
+        };
+
+        const { error: evalErr } = await adminAny.from("listing_evaluations").upsert(
+          {
+            listing_id: listingId,
+            status: "purchased",
+            stripe_payment_intent_id: piId ?? undefined,
+          },
+          { onConflict: "listing_id" }
+        );
+        if (evalErr) console.error("listing_evaluations upsert error:", evalErr);
+
+        // Resolve recipient
+        let toEmail: string | null =
+          (sess.customer_details?.email as string | null) ||
+          (sess.customer_email as string | null) ||
+          null;
+
+        if (!toEmail) {
+          const { data: listingRow } = await admin
+            .from("business_listings")
+            .select("contact_email")
+            .eq("id", listingId)
+            .maybeSingle();
+          toEmail = listingRow?.contact_email ?? null;
+        }
+
+        if (toEmail) {
+          const evaluationLink = buildBizEquityLink(listingId);
+          const idemKey = `eval-email:${piId ?? sess.id}`;
+
+          // Lazy import Resend + email TSX so other events don't pay cost or crash on module load
+          const { Resend } = await import("resend");
+          const { default: ValuationEmail } = await import("@/emails/ValuationEmail");
+          const resend = new Resend(process.env.RESEND_API_KEY!);
+
+          try {
+            await resend.emails.send(
+              {
+                from: "RioPlex <valuations@rioplexbizx.com>",
+                to: toEmail,
+                subject: "Your Business Valuation Link",
+                react: ValuationEmail({ link: evaluationLink }),
+              },
+              { idempotencyKey: idemKey }
+            );
+          } catch (mailErr) {
+            console.error("Resend send error:", mailErr);
+            // Optionally: return new Response("Email error", { status: 500 }); // if you want Stripe to retry
+          }
+        } else {
+          console.warn("No email found for valuation purchase; skipped email send.");
+        }
+      }
+
+      return new Response("ok", { status: 200 });
     }
-  }
 
-  // NEW: keep listing_promotions fresh for boosted-listing subs
-  // We only touch promos if this subscription was created via listing_promo
-  if ((sub.metadata?.purpose ?? "") === "listing_promo") {
-    const mainItem = sub.items?.data?.[0];
-    const { endISO: currentPeriodEnd } = extractPeriodISO(sub, mainItem);
+    // B) Keep subscription in sync
+    if (
+      type === "customer.subscription.created" ||
+      type === "customer.subscription.updated" ||
+      type === "customer.subscription.deleted"
+    ) {
+      const admin = getAdmin(); // moved inside the branch
+      const subObj = event.data.object as Stripe.Subscription;
 
-    const { error: promoUpdErr } = await admin
-      .from("listing_promotions")
-      .update({
-        status: sub.status,
-        current_period_end: currentPeriodEnd,          // safe ISO via helper
-        cancel_at_period_end: sub.cancel_at_period_end ?? false,
-      })
-      .eq("stripe_subscription_id", sub.id);
+      // Re-retrieve with expansions so our helpers work consistently
+      const sub = await stripe.subscriptions.retrieve(subObj.id, {
+        expand: ["items.data.price.product", "customer"],
+      });
 
-    if (promoUpdErr) console.error("listing_promotions update error:", promoUpdErr);
-  }
+      // Keep your main subscriptions table in sync
+      await upsertSubscription(admin, sub);
 
-  return new Response("ok", { status: 200 });
-}
+      // Optional: keep profiles.user_type aligned (unchanged)
+      const price = sub.items?.data?.[0]?.price;
+      const role = resolveBaseRole(price, sub.metadata);
+      if (role) {
+        const nextType =
+          sub.status === "active" || sub.status === "trialing" ? role : "member";
+        const stripeCustomerId =
+          typeof sub.customer === "string" ? sub.customer : sub.customer?.id;
+
+        if (stripeCustomerId) {
+          const { data: mapRow } = await admin
+            .from("customers")
+            .select("id")
+            .eq("stripe_customer_id", stripeCustomerId)
+            .maybeSingle();
+          const uid = mapRow?.id;
+          if (uid) {
+            const { error: updErr } = await admin
+              .from("profiles")
+              .update({ user_type: nextType })
+              .eq("id", uid);
+            if (updErr) console.error("profiles update error:", updErr);
+            else console.log(`profiles.user_type=${nextType} for user ${uid}`);
+          }
+        }
+      }
+
+      // NEW: keep listing_promotions fresh for boosted-listing subs
+      // We only touch promos if this subscription was created via listing_promo
+      if ((sub.metadata?.purpose ?? "") === "listing_promo") {
+        const mainItem = sub.items?.data?.[0];
+        const { endISO: currentPeriodEnd } = extractPeriodISO(sub, mainItem);
+
+        const { error: promoUpdErr } = await admin
+          .from("listing_promotions")
+          .update({
+            status: sub.status,
+            current_period_end: currentPeriodEnd, // safe ISO via helper
+            cancel_at_period_end: sub.cancel_at_period_end ?? false,
+          })
+          .eq("stripe_subscription_id", sub.id);
+
+        if (promoUpdErr) console.error("listing_promotions update error:", promoUpdErr);
+      }
+
+      return new Response("ok", { status: 200 });
+    }
 
     // C) Invoice events: refresh period/status after billing
     if (
@@ -454,6 +463,7 @@ if (
       type === "invoice.payment_failed" ||
       type === "invoice.paid" // legacy dot style
     ) {
+      const admin = getAdmin(); // moved inside the branch
       const inv = event.data.object as Stripe.Invoice;
 
       // Derive subscription id from whatever your account exposes
@@ -471,6 +481,7 @@ if (
       return new Response("ok", { status: 200 });
     }
 
+    // Unknown but valid events: acknowledge
     return new Response("ok", { status: 200 });
   } catch (e) {
     console.error("Unhandled webhook error:", e);
