@@ -6,9 +6,13 @@ import Stripe from "stripe";
 import { NextRequest } from "next/server";
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
 import type { Database, TablesInsert } from "@/types/database.types";
+import { Resend } from "resend";
+import ValuationEmail from "@/emails/ValuationEmail";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!); // (optionally pin apiVersion)
 const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET!;
+const BIZ_EQUITY_BASE = process.env.BIZEQUITY_URL!;
+const resend = new Resend(process.env.RESEND_API_KEY!);
 
 function getAdmin(): SupabaseClient<Database> {
   return createClient<Database>(
@@ -16,6 +20,12 @@ function getAdmin(): SupabaseClient<Database> {
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
     { auth: { persistSession: false } }
   );
+}
+
+function buildBizEquityLink(listingId: string){
+  const url = new URL(BIZ_EQUITY_BASE);
+  url.searchParams.set("listing_id", listingId);
+  return url.toString();
 }
 
 // Normalize Stripe event types so we handle both new underscore and classic dot styles.
@@ -324,6 +334,9 @@ export async function POST(req: NextRequest) {
     const adminAny = admin as unknown as {
       from: (table: string) => {
         upsert: (values: any, options?: any) => Promise<{ error: any }>;
+        select?: (...args: any[]) => any;
+        eq?: (...args: any[]) => any;
+        maybeSingle?: () => any;
       };
     };
 
@@ -337,18 +350,40 @@ export async function POST(req: NextRequest) {
     );
     if (evalErr) console.error("listing_evaluations upsert error:", evalErr);
 
-    // Optional: enqueue email with BizEquity link (don’t block the webhook)
-    // const { data: l } = await admin
-    //   .from("business_listings")
-    //   .select("contact_email")
-    //   .eq("id", listingId)
-    //   .maybeSingle();
-    // if (l?.contact_email) enqueueEmail(l.contact_email, BIZ_EQUITY_LINK);
-  }
+    let toEmail: string | null = 
+      (sess.customer_details?.email as string | null) ||
+      (sess.customer_email as string | null) ||
+      null;
 
+    if (!toEmail){
+      const { data: listingRow } = await admin
+        .from("business_listings")
+        .select("contact_email")
+        .eq("id", listingId)
+        .maybeSingle();
+      toEmail = listingRow?.contact_email ?? null
+    }
+
+    if (toEmail){
+      const evaluationLink = buildBizEquityLink(listingId);
+
+      const idemKey = `eval-email:${piId ?? sess.id}`;
+
+      await resend.emails.send(
+        {
+          from: "RioPlex <valuations@rioplexbizx.com",
+          to: toEmail,
+          subject: "Your Business Valuation Link",
+          react: ValuationEmail({ link: evaluationLink })
+        },
+        { idempotencyKey: idemKey }
+      );
+    } else {
+      console.warn("No email found for valuation purchase; skipped email send.")
+    }
+  }
   return new Response("ok", { status: 200 });
 }
-
     // B) Keep subscription in sync
 if (
   type === "customer.subscription.created" ||
