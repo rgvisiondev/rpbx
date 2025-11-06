@@ -1,38 +1,36 @@
 // app/checkout/success/page.tsx
 import Stripe from "stripe";
 
-export const runtime = "nodejs"; // server-only
+export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!); // server env only
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
 function getCustomerEmail(
-    customer: string | Stripe.Customer | Stripe.DeletedCustomer | null
+  customer: string | Stripe.Customer | Stripe.DeletedCustomer | null
 ): string | null {
-    if (!customer || typeof customer === "string") return null;
-
-    if ("deleted" in customer && customer.deleted) return null;
-    return customer.email ?? null;
+  if (!customer || typeof customer === "string") return null;
+  if ("deleted" in customer && customer.deleted) return null;
+  return customer.email ?? null;
 }
 
 export default async function SuccessPage({
   searchParams,
 }: {
-  searchParams: { session_id?: string };
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const sessionId = searchParams.session_id;
+  const params = await searchParams;
+  const raw = params?.session_id;
+  const sessionId = Array.isArray(raw) ? raw[0] : raw;
 
-  // Optional: show the buyer's email for reassurance
   let buyerEmail: string | null = null;
   if (sessionId) {
     try {
       const s = await stripe.checkout.sessions.retrieve(sessionId, {
         expand: ["customer", "customer_details"],
       });
-      buyerEmail =
-        s.customer_details?.email ?? getCustomerEmail(s.customer);
+      buyerEmail = s.customer_details?.email ?? getCustomerEmail(s.customer);
     } catch (e) {
-      // Swallow quietly; page still renders
       console.warn("Could not retrieve session", e);
     }
   }
@@ -54,7 +52,6 @@ export default async function SuccessPage({
         Didn’t get the email? Check your spam folder, or click the button below to resend.
       </p>
 
-      {/* Optional: Resend button posts to a small API route */}
       <form action="/api/evaluations/resend" method="post" className="mt-4">
         <input type="hidden" name="session_id" value={sessionId ?? ""} />
         <button
