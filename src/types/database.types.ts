@@ -29,7 +29,6 @@ export type Database = {
           id: string
           industry: string
           is_active: boolean | null
-          is_promoted: boolean | null
           listing_image_alt: string | null
           listing_image_h: number | null
           listing_image_path: string | null
@@ -56,7 +55,6 @@ export type Database = {
           id?: string
           industry: string
           is_active?: boolean | null
-          is_promoted?: boolean | null
           listing_image_alt?: string | null
           listing_image_h?: number | null
           listing_image_path?: string | null
@@ -83,7 +81,6 @@ export type Database = {
           id?: string
           industry?: string
           is_active?: boolean | null
-          is_promoted?: boolean | null
           listing_image_alt?: string | null
           listing_image_h?: number | null
           listing_image_path?: string | null
@@ -263,6 +260,48 @@ export type Database = {
         }
         Relationships: []
       }
+      listing_evaluations: {
+        Row: {
+          created_at: string
+          id: number
+          listing_id: string
+          status: string
+          stripe_payment_intent_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: number
+          listing_id: string
+          status: string
+          stripe_payment_intent_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: number
+          listing_id?: string
+          status?: string
+          stripe_payment_intent_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "listing_evaluations_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "business_listings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "listing_evaluations_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "v_business_listings_with_promo"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       listing_promotions: {
         Row: {
           cancel_at_period_end: boolean | null
@@ -297,6 +336,13 @@ export type Database = {
             columns: ["listing_id"]
             isOneToOne: false
             referencedRelation: "business_listings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "listing_promotions_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "v_business_listings_with_promo"
             referencedColumns: ["id"]
           },
         ]
@@ -447,6 +493,90 @@ export type Database = {
       }
     }
     Views: {
+      v_business_listings_with_promo: {
+        Row: {
+          annual_revenue_range: string | null
+          book_value_range: string | null
+          can_provide_financials: boolean | null
+          can_provide_tax_returns: boolean | null
+          contact_email: string | null
+          county: string | null
+          created_at: string | null
+          description: string | null
+          ebitda_range: string | null
+          employee_count_range: string | null
+          id: string | null
+          industry: string | null
+          is_active: boolean | null
+          is_promoted_effective: boolean | null
+          listing_image_alt: string | null
+          listing_image_h: number | null
+          listing_image_path: string | null
+          listing_image_w: number | null
+          location_city: string | null
+          owner_id: string | null
+          ownership_percentage: number | null
+          status: string | null
+          title: string | null
+          updated_at: string | null
+          years_in_business: string | null
+        }
+        Insert: {
+          annual_revenue_range?: string | null
+          book_value_range?: string | null
+          can_provide_financials?: boolean | null
+          can_provide_tax_returns?: boolean | null
+          contact_email?: string | null
+          county?: string | null
+          created_at?: string | null
+          description?: string | null
+          ebitda_range?: string | null
+          employee_count_range?: string | null
+          id?: string | null
+          industry?: string | null
+          is_active?: boolean | null
+          is_promoted_effective?: never
+          listing_image_alt?: string | null
+          listing_image_h?: number | null
+          listing_image_path?: string | null
+          listing_image_w?: number | null
+          location_city?: string | null
+          owner_id?: string | null
+          ownership_percentage?: number | null
+          status?: string | null
+          title?: string | null
+          updated_at?: string | null
+          years_in_business?: string | null
+        }
+        Update: {
+          annual_revenue_range?: string | null
+          book_value_range?: string | null
+          can_provide_financials?: boolean | null
+          can_provide_tax_returns?: boolean | null
+          contact_email?: string | null
+          county?: string | null
+          created_at?: string | null
+          description?: string | null
+          ebitda_range?: string | null
+          employee_count_range?: string | null
+          id?: string | null
+          industry?: string | null
+          is_active?: boolean | null
+          is_promoted_effective?: never
+          listing_image_alt?: string | null
+          listing_image_h?: number | null
+          listing_image_path?: string | null
+          listing_image_w?: number | null
+          location_city?: string | null
+          owner_id?: string | null
+          ownership_percentage?: number | null
+          status?: string | null
+          title?: string | null
+          updated_at?: string | null
+          years_in_business?: string | null
+        }
+        Relationships: []
+      }
       v_user_listing_entitlements: {
         Row: {
           allowed_active_listings: number | null
@@ -462,38 +592,8 @@ export type Database = {
           email: string
         }[]
       }
-      gtrgm_compress: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      gtrgm_decompress: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      gtrgm_in: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      gtrgm_options: {
-        Args: { "": unknown }
-        Returns: undefined
-      }
-      gtrgm_out: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      set_limit: {
-        Args: { "": number }
-        Returns: number
-      }
-      show_limit: {
-        Args: Record<PropertyKey, never>
-        Returns: number
-      }
-      show_trgm: {
-        Args: { "": string }
-        Returns: string[]
-      }
+      show_limit: { Args: never; Returns: number }
+      show_trgm: { Args: { "": string }; Returns: string[] }
     }
     Enums: {
       pricing_plan_interval: "day" | "week" | "month" | "year"

@@ -145,23 +145,31 @@ export default async function Dashboard() {
               className="flex-1 flex flex-col items-center p-5 bg-[#60A1BC] rounded-2xl hover:opacity-90 transition"
             >
               <p className="text-white">
-                {userType === "business" ? "View Listing Info" : "Update Profile Info"}
+                {userType === "business" ? "View Listings" : "Update Profile Info"}
               </p>
             </Link>
             <Link
-              href={userType === "business" ? "/valuation" : "/listings/saved"}
+              href={userType === "business" ? "/dashboard/promote" : "/listings/saved"}
               className="flex-1 flex flex-col items-center p-5 bg-[#60BC9B] rounded-2xl hover:opacity-90 transition"
             >
               <p className="text-white">
-                {userType === "business" ? "Request Valuation" : "Saved Listings"}
+                {userType === "business" ? "Promote a Listing" : "Saved Listings"}
               </p>
             </Link>
             <Link
-              href={userType === "business" ? "/promote" : "/profile/edit"}
-              className="flex-1 flex flex-col items-center p-5 bg-[#E79F3C] rounded-2xl hover:opacity-90 transition"
+              href={userType === "business" ? "/dashboard/evaluation" : ""}
+              className={userType === "business" ? "flex-1 flex flex-col items-center p-5 bg-[#E79F3C] rounded-2xl hover:opacity-90 transition" : ""}
             >
               <p className="text-white">
-                {userType === "business" ? "Promote Listing" : "Edit Profile"}
+                {userType === "business" ? "Evaluate a Listing" : ""}
+              </p>
+            </Link>
+            <Link
+              href= "/dashboard/billing"
+              className= "flex-1 flex flex-col items-center p-5 bg-[#60BC9B] rounded-2xl hover:opacity-90 transition"
+            >
+              <p className="text-white">
+                Manage Subscription
               </p>
             </Link>
           </div>

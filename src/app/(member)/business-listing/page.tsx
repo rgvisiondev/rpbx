@@ -6,6 +6,8 @@ import Image from "next/image";
 import type { Metadata } from "next";
 import { createClientRSC } from "@/../utils/supabase/server";
 import { redirect } from "next/navigation";
+import { BadgeCheckIcon} from "lucide-react"
+import { Badge } from "@/components/ui/badge"
 
 export const metadata: Metadata = {
   title: "Business Listings | RioPlex Business Exchange",
@@ -116,7 +118,7 @@ export default async function Businesses({
 
   // base query (published & active only)
   let query = supabase
-    .from("business_listings")
+    .from("v_business_listings_with_promo")
     .select(`
       id,
       title,
@@ -126,7 +128,8 @@ export default async function Businesses({
       annual_revenue_range,
       ebitda_range,
       listing_image_path,
-      updated_at
+      updated_at,
+      is_promoted_effective
     `, { count: "exact" })
     .eq("status", "published")
     .eq("is_active", true);
@@ -139,7 +142,10 @@ export default async function Businesses({
   if (county)   query = query.eq("county", county);
 
   // sorting — stick to "date" (updated_at desc). (You can add others later.)
-  query = query.order("updated_at", { ascending: false }).range(from, to);
+  query = query
+  .order("is_promoted_effective", { ascending: false, nullsFirst: false})
+  .order("updated_at", { ascending: false })
+  .range(from, to);
 
   const { data: rows, count, error } = await query;
   if (error) {
@@ -281,8 +287,14 @@ export default async function Businesses({
                   )}
 
                   <div className="p-5">
+                    <div className="flex items-left gap-5">
                     <h4 className="large">{r.industry + " Business" || "Business"}</h4>
-
+                    {r.is_promoted_effective && (
+                      <Badge variant="secondary" className="bg-[#9ed3c3] hover:bg-[#7fb8a9] text-black flex items-center gap-1">
+                        <BadgeCheckIcon />
+                      </Badge>
+                    )}
+                    </div>
                     <div className="flex justify-between mt-2">
                       <div>
                         <p className="font-semibold">Annual Revenue</p>

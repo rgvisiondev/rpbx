@@ -5,6 +5,8 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import type { Metadata } from "next";
 import { createClientRSC } from "@/../utils/supabase/server";
+import { BadgeCheckIcon } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
 
 // Optional: dynamic metadata from the listing
 export async function generateMetadata(
@@ -18,7 +20,7 @@ export async function generateMetadata(
     .eq("id", id)
     .maybeSingle();
 
-  const title = data?.title || "Business Listing";
+  const title = data?.industry || "Business Listing";
   const published = data?.status === "published" && data?.is_active === true;
 
   return {
@@ -78,7 +80,7 @@ export default async function ListingPage({
 
   // Fetch listing by id
   const { data: listing } = await supabase
-    .from("business_listings")
+    .from("v_business_listings_with_promo")
     .select(`
       id,
       owner_id,
@@ -96,7 +98,8 @@ export default async function ListingPage({
       listing_image_path,
       contact_email,
       can_provide_financials,
-      can_provide_tax_returns
+      can_provide_tax_returns,
+      is_promoted_effective
     `)
     .eq("id", id)
     .maybeSingle();
@@ -129,6 +132,11 @@ export default async function ListingPage({
           <h1 className="text-2xl lg:text-3xl font-bold text-left pb-5">
             { listing.industry + " Business" || "Business Listing"}
           </h1>
+          {listing.is_promoted_effective && (
+            <Badge variant="secondary" className="bg-[#9ed3c3] hover:bg-[#7fb8a9] text-black flex items-center gap-1">
+              <BadgeCheckIcon />
+            </Badge>
+          )}
 
           <div className="flex flex-col lg:flex-row gap-5">
             {/* Left: image + description */}

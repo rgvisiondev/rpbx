@@ -1,43 +1,51 @@
 // app/owner/listings/page.tsx
 export const dynamic = "force-dynamic";
 
-import { createClientRSC } from "@/../utils/supabase/server";
-import { redirect } from "next/navigation";
+import Image from "next/image";
 import Link from "next/link";
-import { ConfirmOnSubmit } from "./_client/ListingActions";
+import { redirect } from "next/navigation";
+import { createClientRSC } from "@/../utils/supabase/server";
+import { headers, cookies } from "next/headers" 
+import { getListingBadges } from "@/lib/listings/badges";
+import { Badge } from "lucide-react";
 
-type Promotion = {
-  listing_id: string;
-  status: string;
-  cancel_at_period_end: boolean | null;
-  current_period_end: string | null;
-};
+// ---- SERVER ACTIONS (unchanged behaviors, just colocated) ----
+async function startEvaluation(listingId: string){
+  "use server";
 
-export default async function OwnerListings() {
-  const supabase = await createClientRSC();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect("/login?next=/dashboard/listings");
+  const h = await headers();
+  const proto = (await h).get("x-fowarded-proto") ?? "http";
+  const host = (await h).get("x-forwarded-host") ?? (await h).get("host");
 
-  // Fetch listings
-  const { data: listings } = await supabase
-    .from("business_listings")
-    .select("id, title, industry, updated_at, is_promoted")
-    .eq("owner_id", user.id)
-    .order("updated_at", { ascending: false });
-
-  // Fetch active/trialing/past_due promos for these listings (optional: narrow to active only)
-  const ids = (listings ?? []).map(l => l.id);
-  let promos: Promotion[] = [];
-  if (ids.length) {
-    const { data } = await supabase
-      .from("listing_promotions")
-      .select("listing_id, status, cancel_at_period_end, current_period_end")
-      .in("listing_id", ids);
-    promos = data ?? [];
+  if(!host) {
+    console.error("Missing host header")
+    return redirect("/dashboard/listings?err=no_host")
   }
 
-  // ---- SERVER ACTIONS ----
-// app/owner/listings/page.tsx  (only the server action changed)
+  const base = `${proto}://${host}`;
+  const ck = await cookies();
+
+  const res = await fetch(`${base}/api/checkout/evaluation`, {
+    method: "POST",
+    headers: { "content-type": "application/json",
+      cookie: ck.toString(),
+     },
+    body: JSON.stringify({ listingId }),
+
+    cache: "no-store",
+  });
+
+  if (!res.ok){
+    console.error("Failed to create evaluation checkout session")
+    return redirect("/dashboard/listings?err=eval_checkout")
+  }
+
+  const { url } = await res.json();
+  if (!url) return redirect("/dashboard/listings?err=no_eval_url");
+
+  redirect(url);
+}
+
 async function startBoost(listingId: string) {
   "use server";
 
@@ -45,6 +53,16 @@ async function startBoost(listingId: string) {
   const supabase = await createClientRSC();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login?next=/dashboard/listings");
+
+  // Verify if profile is a business owner"
+
+  const { data: profile } = await supabase.from("profiles")
+    .select("user_type")
+    .eq("id", user.id)
+    .maybeSingle();
+  if (!profile || profile.user_type !== "business"){
+    return redirect ("/dashboard")
+  }
 
   // Verify listing ownership
   const { data: listing, error: listErr } = await supabase
@@ -76,7 +94,7 @@ async function startBoost(listingId: string) {
     customer: customerId,
     line_items: [{ price: promoPriceId, quantity: 1 }],
     success_url: `${origin}/dashboard/listings?promoted=${listingId}`,
-    cancel_url:  `${origin}/dashboard/listings`,
+    cancel_url: `${origin}/dashboard/listings`,
     subscription_data: {
       metadata: {
         supabase_user_id: user.id,
@@ -92,125 +110,183 @@ async function startBoost(listingId: string) {
     allow_promotion_codes: true,
   });
 
-  // ✅ Type-narrowing guard so redirect gets a definite string
   if (!session.url) {
     console.error("Stripe returned no session.url", { sessionId: session.id });
     redirect("/dashboard/listings?err=no_session_url");
   }
 
-  redirect(session.url); // session.url is now string, TS happy
+  redirect(session.url);
 }
 
-  async function openPortal() {
-    "use server";
-    const { openBillingPortal } = await import("@/app/server/billing");
-    const origin = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
-    const url = await openBillingPortal(`${origin}/dashboard/listings`);
-    redirect(url);
-  }
+async function openPortal() {
+  "use server";
+  const { openBillingPortal } = await import("@/app/server/billing");
+  const origin = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+  const url = await openBillingPortal(`${origin}/dashboard/listings`);
+  redirect(url);
+}
 
-  async function deleteListing(listingId: string) {
-    "use server";
-    const { createClientRSC } = await import("@/../utils/supabase/server");
-    const sb = await createClientRSC();
-    const { data: { user } } = await sb.auth.getUser();
-    if (!user) redirect("/login?next=/dashboard/listings");
+// ---- PAGE ----
+export default async function OwnerListings() {
+  const supabase = await createClientRSC();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect("/login?next=/dashboard/listings");
 
-    // Hard delete (only if you really want to allow this without Stripe portal)
-    const { error } = await sb
-      .from("business_listings")
-      .delete()
-      .eq("id", listingId)
-      .eq("owner_id", user.id);
-    if (error) console.error(error);
-    redirect("/dashboard/listings");
-  }
+  // 1) Fetch listings
+  const { data: rows } = await supabase
+    .from("business_listings")
+    .select("id, title, industry, listing_image_path, status, is_active, updated_at")
+    .eq("owner_id", user.id)
+    .order("updated_at", { ascending: false });
 
-  const promoByListing = new Map<string, Promotion[]>();
-  for (const p of promos) {
-    promoByListing.set(p.listing_id, [...(promoByListing.get(p.listing_id) ?? []), p]);
+  const listingIds = (rows ?? []).map(r => r.id);
+
+  // 2) Centralize badges (boost + evaluation) via shared helper
+  const { boosted, evalStatus } = await getListingBadges(supabase, listingIds);
+
+  // 3) Signed URLs for thumbnails
+  const signedUrls = new Map<string, string>();
+  for (const r of rows ?? []) {
+    if (r.listing_image_path) {
+      const { data: s } = await supabase
+        .storage
+        .from("listings")
+        .createSignedUrl(r.listing_image_path, 60);
+      if (s?.signedUrl) signedUrls.set(r.id, s.signedUrl);
+    }
   }
 
   return (
-    <main className="w-full lg:w-[1140px] mx-auto p-6">
-      <h1 className="text-2xl font-semibold mb-4">Your Listings</h1>
+    <div className="w-full lg:w-[1140px] mx-auto py-10 px-5 lg:px-0">
+      <h1 className="mb-5">Your Listings</h1>
 
-      {!listings?.length ? (
-        <p className="text-neutral-600">You don’t have any listings yet.</p>
+      {(!rows || rows.length === 0) ? (
+        <p>You don’t have any listings yet.</p>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {listings.map((l) => {
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          {rows.map((l) => {
             const updated = l.updated_at ? new Date(l.updated_at).toLocaleString() : "—";
-            const lp = promoByListing.get(l.id) ?? [];
-            const hasActivePromo = lp.some(p => p.status === "active" || p.status === "trialing");
-            const scheduledCancel = lp.find(p => p.cancel_at_period_end);
+            const isBoosted = boosted.has(l.id);
+            const evalState = evalStatus.get(l.id); // 'purchased' | 'in_progress' | 'completed' | undefined
 
             return (
-              <div key={l.id} className="rounded-xl border p-4 bg-white shadow-sm">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <h3 className="font-medium">{l.title ?? "Untitled Listing"}</h3>
-                    <p className="text-sm text-neutral-600">Industry: {l.industry ?? "—"}</p>
-                    <p className="text-xs text-neutral-500 mt-1">Updated: {updated}</p>
-                    {(hasActivePromo || l.is_promoted) && (
-                      <span className="inline-block mt-2 rounded-full border px-2 py-0.5 text-xs">
-                        PROMOTED
-                      </span>
-                    )}
-                    {scheduledCancel?.current_period_end && (
-                      <p className="text-xs text-amber-600 mt-1">
-                        Boost cancels on {new Date(scheduledCancel.current_period_end).toLocaleDateString()}
-                      </p>
-                    )}
-                  </div>
+              <div key={l.id} className="bg-white rounded-xl shadow p-4 border">
+                {/* Thumbnail */}
+                <div className="relative h-40 w-full mb-3">
+                  {signedUrls.get(l.id) ? (
+                    <img
+                      src={signedUrls.get(l.id)!}
+                      className="rounded-lg object-cover w-full h-full"
+                      alt={l.title ?? "Listing"}
+                    />
+                  ) : (
+                    <Image
+                      src="/images/businesses/home-services.jpg"
+                      alt="Listing"
+                      fill
+                      className="rounded-lg object-cover"
+                    />
+                  )}
                 </div>
 
-                <div className="mt-4 flex flex-wrap gap-2">
-                  <Link
-                    href={`/dashboard/listings/${l.id}/edit`}
-                    className="inline-flex items-center px-3 py-2 rounded-xl text-white"
-                    style={{ backgroundColor: "#9ed3c3" }}
-                  >
+                {/* Title + meta */}
+                <h3 className="text-lg font-semibold">{l.title ?? "Untitled Listing"}</h3>
+                <p className="text-sm text-gray-600">{l.industry ?? "—"}</p>
+                <p className="text-xs text-neutral-500 mt-1">Updated: {updated}</p>
+
+                {/* Badges */}
+                <div className="flex flex-wrap gap-2 mt-3">
+                  {isBoosted && (
+                    <span className="px-2 py-1 text-xs rounded-full bg-amber-100 text-amber-700">
+                      Boosted
+                    </span>
+                  )}
+                  {evalState === "purchased" && (
+                    <span className="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-700">
+                      Evaluation: Purchased
+                    </span>
+                  )}
+                  {evalState === "in_progress" && (
+                    <span className="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-700">
+                      Evaluation: In Progress
+                    </span>
+                  )}
+                  {evalState === "completed" && (
+                    <span className="px-2 py-1 text-xs rounded-full bg-green-100 text-green-700">
+                      Evaluation: Completed
+                    </span>
+                  )}
+                </div>
+
+                {/* Links row */}
+                <div className="flex gap-3 mt-4">
+                  <Link href={`/business-listing/${l.id}`} className="underline">
+                    Preview
+                  </Link>
+                  <Link href={`/onboarding/business/review`} className="underline">
                     Edit
                   </Link>
+                </div>
 
-                  {!hasActivePromo ? (
+                {/* Actions row */}
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {!isBoosted ? (
                     <form action={startBoost.bind(null, l.id)}>
-                      <button type="submit" className="inline-flex items-center px-3 py-2 rounded-xl border">
+                      <button
+                        type="submit"
+                        className="inline-flex items-center px-3 py-2 rounded-xl border"
+                      >
                         Promote
                       </button>
                     </form>
                   ) : (
                     <form action={openPortal}>
-                      <button type="submit" className="inline-flex items-center px-3 py-2 rounded-xl border">
+                      <button
+                        type="submit"
+                        className="inline-flex items-center px-3 py-2 rounded-xl border"
+                      >
                         Manage Boost
                       </button>
                     </form>
                   )}
 
-                  {/* Base-plan cancel/changes also go through portal */}
+                  {/* Base plan management through portal */}
                   <form action={openPortal}>
-                    <ConfirmOnSubmit message="Open Billing to manage your plan?">
-                      <button type="submit" className="inline-flex items-center px-3 py-2 rounded-xl border">
-                        Manage Plan
-                      </button>
-                    </ConfirmOnSubmit>
+                    <button
+                      type="submit"
+                      className="inline-flex items-center px-3 py-2 rounded-xl border"
+                      title="Manage your plan in the Billing Portal"
+                    >
+                      Manage Plan
+                    </button>
                   </form>
 
-                  {/* Optional: direct delete (kept here; you may prefer hiding this if plan is active) */}
-                  <form action={deleteListing.bind(null, l.id)}>
-                    <ConfirmOnSubmit message="Delete this listing? This cannot be undone.">
-                      <button type="submit" className="inline-flex items-center px-3 py-2 rounded-xl border border-red-300 text-red-600">
-                        Delete
+                  {/* Evaluation CTA */}
+                  {evalState === "completed" ? (
+                    <span
+                    className="inline-flex items-center gap-2 px-3 py-2 rounded-xl border bg-green-50 text-green-700"
+                    title="This listing has been valuated"
+                    >
+                      {/* Relplace with custom icon */}
+                      <Badge></Badge>
+                    </span>
+                  ) : (
+                    <form action={startEvaluation.bind(null, l.id)}>
+                      <button
+                      type="submit"
+                      className="inline-flex items-center px-3 py-2 rounded-xl border"
+                      title="Purchase a Professional Valuation"
+                      >
+                        Get Valuation
                       </button>
-                    </ConfirmOnSubmit>
-                  </form>
+                    </form>
+                  )}
                 </div>
               </div>
             );
           })}
         </div>
       )}
-    </main>
+    </div>
   );
 }
