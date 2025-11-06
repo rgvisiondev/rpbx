@@ -9,9 +9,10 @@ const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
 export default async function ClaimPage({
   searchParams,
 }: {
-  searchParams: { session_id?: string }
+  searchParams: Promise<{ session_id?: string }>
 }) {
-  const sessionId = searchParams?.session_id;
+  const sp = await searchParams
+  const sessionId = sp?.session_id;
   if (!sessionId) redirect("/dashboard/listings?err=no_session");
 
   // 1) Get the Checkout Session and Subscription id
