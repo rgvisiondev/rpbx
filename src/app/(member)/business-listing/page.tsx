@@ -7,7 +7,11 @@ import type { Metadata } from "next";
 import { createClientRSC } from "@/../utils/supabase/server";
 import { redirect } from "next/navigation";
 import { BadgeCheckIcon} from "lucide-react"
-import { Badge } from "@/components/ui/badge"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger
+} from "@/components/ui/tooltip";
 
 export const metadata: Metadata = {
   title: "Business Listings | RioPlex Business Exchange",
@@ -290,9 +294,17 @@ export default async function Businesses({
                     <div className="flex items-left gap-5">
                     <h4 className="large">{r.industry + " Business" || "Business"}</h4>
                     {r.is_promoted_effective && (
-                      <Badge variant="secondary" className="bg-[#9ed3c3] hover:bg-[#7fb8a9] text-black flex items-center gap-1">
-                        <BadgeCheckIcon />
-                      </Badge>
+                      <Tooltip>                    
+                        <TooltipTrigger>
+                          <div className="bg-[#9ed3c3] hover:bg-[#7fb8a9] text-black p-[2px] flex rounded-full items-center justify-center">
+                            <BadgeCheckIcon size={15} strokeWidth={2.5} className="text-white"/>
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          {`Boosted Listing Active`}
+                        </TooltipContent>
+                      </Tooltip>
+
                     )}
                     </div>
                     <div className="flex justify-between mt-2">
