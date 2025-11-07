@@ -6,7 +6,11 @@ import { notFound, redirect } from "next/navigation";
 import type { Metadata } from "next";
 import { createClientRSC } from "@/../utils/supabase/server";
 import { BadgeCheckIcon } from "lucide-react"
-import { Badge } from "@/components/ui/badge"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger
+} from "@/components/ui/tooltip";
 
 // Optional: dynamic metadata from the listing
 export async function generateMetadata(
@@ -128,16 +132,27 @@ export default async function ListingPage({
       <NavGate />
 
       <div className="w-full lg:w-[1140px] mx-auto py-10 gap-10 px-5 lg:px-0">
-        <div className="bg-white rounded-lg shadow-lg overflow-hidden border p-6 lg:p-10">
-          <h1 className="text-2xl lg:text-3xl font-bold text-left pb-5">
+        <div className="bg-white rounded-lg shadow-lg overflow-hidden border p-6 lg:p-10 ">
+          <div className="flex flex-row items-center gap-5  pb-5">
+          <h1 className="text-2xl lg:text-3xl font-bold text-left flex ">
             { listing.industry + " Business" || "Business Listing"}
           </h1>
           {listing.is_promoted_effective && (
-            <Badge variant="secondary" className="bg-[#9ed3c3] hover:bg-[#7fb8a9] text-black flex items-center gap-1">
-              <BadgeCheckIcon />
-            </Badge>
+            <div className="flex">
+                      <Tooltip>                    
+                        <TooltipTrigger>
+                          <div className="bg-[#9ed3c3] hover:bg-[#7fb8a9] text-black px-3 py-1 gap-3 flex rounded-full items-center justify-centern ">
+                            <BadgeCheckIcon size={18} strokeWidth={2.5} className="text-white"/>
+                            <p className="text-white">Boosted</p>
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          {`Boosted Listing Active`}
+                        </TooltipContent>
+                      </Tooltip>
+            </div>
           )}
-
+          </div>
           <div className="flex flex-col lg:flex-row gap-5">
             {/* Left: image + description */}
             <div className="flex flex-col w-full lg:w-2/3">

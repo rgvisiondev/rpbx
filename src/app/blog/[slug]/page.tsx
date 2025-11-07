@@ -55,7 +55,7 @@ export default async function PostPage({ params }: PostPageProps) {
 
 
     
-    <div className="flex flex-col w-full lg:w-[1140px] mx-auto py-10 gap-3 px-5 lg:px-0">
+    <div className="flex flex-col w-full lg:w-[1140px] mx-auto py-10 gap-3 px-5 lg:px-0 min-h-screen">
 
       <h1 className="text-4xl font-bold mb-2">{post.title}</h1>
 

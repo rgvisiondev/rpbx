@@ -15,7 +15,7 @@ export default async function PricingPage() {
 
   return (
     <div>
-      <div className="flex flex-col bg-[url('/images/backgrounds/white-bg.png')] bg-repeat bg-center min-h-[850px]">
+      <div className="flex flex-col bg-[url('/images/backgrounds/white-bg.png')] bg-repeat bg-center min-h-screen">
         <div>
           <NavGate />
         </div>

@@ -81,10 +81,10 @@ export default async function PostPage({ params }: PostPageProps) {
     : "";
 
   return (
-    <div className="flex flex-col bg-[url('/images/backgrounds/white-bg.png')] bg-repeat bg-top">
+    <div className="flex flex-col bg-[url('/images/backgrounds/white-bg.png')] bg-repeat bg-top ">
       <div><NavGate /></div>
 
-      <div className="flex flex-col w-full lg:w-[1140px] mx-auto py-10 gap-3 px-5 lg:px-0">
+      <div className="flex flex-col w-full lg:w-[1140px] mx-auto py-10 gap-3 px-5 lg:px-0 min-h-screen">
         <h1 className="text-4xl font-bold">{post.title}</h1>
 
         {/* Event Meta styled like Published section */}
