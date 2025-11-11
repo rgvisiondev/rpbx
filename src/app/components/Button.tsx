@@ -27,7 +27,7 @@ export type ButtonProps = ButtonAsButtonProps | ButtonAsLinkProps;
 export default function Button(props: ButtonProps) {
   const { variant = "primary", disabled = false, className = "", children, ...rest } = props;
 
-  const baseStyles = "px-6 py-2 rounded-full font-medium transition inline-flex items-center justify-center";
+  const baseStyles = "px-6 py-2 rounded-full font-medium transition inline-flex items-center justify-center hover:cursor-pointer";
   const variantStyles: Record<Variant, string> = {
     primary: "bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] hover:border-[var(--color-primary-hover)] text-white",
     secondary: "bg-gray-700 hover:bg-[var(--color-primary-hover)] hover:border-[var(--color-primary-hover)] text-white",

@@ -39,7 +39,7 @@ export default async function Events() {
 
   return (
     <div>
-      <div className="flex flex-col bg-[url('/images/backgrounds/white-bg.png')] bg-repeat bg-top">
+      <div className="flex flex-col bg-[url('/images/backgrounds/white-bg.png')] bg-repeat bg-top min-h-screen">
         <div>
           <NavGate />
         </div>
