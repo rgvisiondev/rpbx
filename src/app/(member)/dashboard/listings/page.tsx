@@ -258,7 +258,7 @@ export default async function OwnerListings() {
                 <Link href={`/business-listing/${l.id}`} className="underline">
                   Preview
                 </Link>
-                <Link href={`/onboarding/business/review`} className="underline">
+                <Link href={`/dashboard/listings/${l.id}/edit`} className="underline">
                   Edit
                 </Link>
               </div>

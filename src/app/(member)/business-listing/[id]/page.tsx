@@ -210,7 +210,7 @@ export default async function ListingPage({
 
               {/* If you want owners to see an Edit link: */}
               {isOwner && (
-                <Link href={`/onboarding/business/review`} className="mt-3 inline-block underline text-center">
+                <Link href={`/dashboard/listings/${listing.id}/edit`} className="mt-3 inline-block underline text-center">
                   Edit this listing
                 </Link>
               )}
