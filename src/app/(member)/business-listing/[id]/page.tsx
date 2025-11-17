@@ -12,6 +12,8 @@ import {
   TooltipTrigger
 } from "@/components/ui/tooltip";
 
+import { imageUrl } from "@/lib/industryImages";
+
 // Optional: dynamic metadata from the listing
 export async function generateMetadata(
   { params }: { params: Promise<{ id: string }> }
@@ -93,13 +95,13 @@ export default async function ListingPage({
       title,
       industry,
       county,
-      location_city,
+      city,
       description,
       annual_revenue_range,
       ebitda_range,
       years_in_business,
       employee_count_range,
-      listing_image_path,
+      listing_image_choice,
       contact_email,
       can_provide_financials,
       can_provide_tax_returns,
@@ -118,14 +120,10 @@ export default async function ListingPage({
     notFound();
   }
 
-  // Signed URL for private bucket image
-  let coverUrl: string | null = null;
-  if (listing.listing_image_path) {
-    const { data: signed } = await supabase.storage
-      .from("listings")
-      .createSignedUrl(listing.listing_image_path, 60);
-    coverUrl = signed?.signedUrl ?? null;
-  }
+  const catalogKey = listing.listing_image_choice as string | null;
+  const imgSrc = catalogKey
+    ? imageUrl(catalogKey)
+    : null;
 
   return (
     <div className="flex flex-col bg-[url('/images/backgrounds/white-bg.png')] bg-repeat bg-top min-h-screen">
@@ -156,10 +154,10 @@ export default async function ListingPage({
           <div className="flex flex-col lg:flex-row gap-5">
             {/* Left: image + description */}
             <div className="flex flex-col w-full lg:w-2/3">
-              {coverUrl ? (
+              {imgSrc ? (
                 // Use <img> for signed URLs; Next/Image domain config not required
                 <img
-                  src={coverUrl}
+                  src={imgSrc}
                   alt={listing.industry ?? "Business"}
                   className="w-full h-auto object-cover rounded-lg mb-5"
                 />
@@ -185,7 +183,7 @@ export default async function ListingPage({
                 { label: "Company EBITDA", value: fmt(listing.ebitda_range, LABELS.ebitda) },
                 { label: "Years in Business", value: fmt(listing.years_in_business, LABELS.years) },
                 { label: "Employees", value: fmt(listing.employee_count_range, LABELS.emp) },
-                { label: "Location", value: [listing.county, listing.location_city].filter(Boolean).join(", ") || "—" },
+                { label: "Location", value: [listing.county, listing.city].filter(Boolean).join(", ") || "—" },
                 { label: "Financial Statements Available on Request", value: listing.can_provide_financials ? "Yes" : "No" },
                 { label: "Tax Returns Available on Request", value: listing.can_provide_tax_returns ? "Yes" : "No" },
               ].map((item, i) => (
@@ -210,7 +208,7 @@ export default async function ListingPage({
 
               {/* If you want owners to see an Edit link: */}
               {isOwner && (
-                <Link href={`/onboarding/business/review`} className="mt-3 inline-block underline text-center">
+                <Link href={`/dashboard/listings/${listing.id}/edit`} className="mt-3 inline-block underline text-center">
                   Edit this listing
                 </Link>
               )}

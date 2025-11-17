@@ -12,6 +12,7 @@ import {
   TooltipContent,
   TooltipTrigger
 } from "@/components/ui/tooltip";
+import { imageUrl } from "@/lib/industryImages";
 
 export const metadata: Metadata = {
   title: "Business Listings | RioPlex Business Exchange",
@@ -128,10 +129,10 @@ export default async function Businesses({
       title,
       industry,
       county,
-      location_city,
+      city,
       annual_revenue_range,
       ebitda_range,
-      listing_image_path,
+      listing_image_choice,
       updated_at,
       is_promoted_effective
     `, { count: "exact" })
@@ -159,16 +160,11 @@ export default async function Businesses({
 
   // signed URLs for covers (private bucket)
   const covers: Record<string, string | null> = {};
-  if (rows?.length) {
-    for (const r of rows) {
-      if (r.listing_image_path) {
-        const { data: signed } = await supabase.storage
-          .from("listings")
-          .createSignedUrl(r.listing_image_path, 60);
-        covers[r.id] = signed?.signedUrl ?? null;
-      } else {
-        covers[r.id] = null;
-      }
+  if (rows?.length){
+    for (const r of rows){
+      covers[r.id] = r.listing_image_choice
+        ? imageUrl(r.listing_image_choice)
+        : null;
     }
   }
 

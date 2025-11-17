@@ -171,6 +171,15 @@ export async function POST(req: Request) {
         return Response.json({ url: portal.url });
       }
     }
+    if (finalPurpose === "listing_plan"){
+
+      if (priceUserType !== "business"){
+        return new Response("Invalid price for listing_plan (requires business user_type", { status: 400 });
+      }
+      if (pricePurpose === "listing_promo"){
+        return new Response("Invalid price for listing_plan (got listing_promo)", { status: 400 });
+      }
+    }
 
     // Build origin for redirects
     const origin =

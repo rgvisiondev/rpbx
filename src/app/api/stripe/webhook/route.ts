@@ -270,6 +270,60 @@ export async function POST(req: NextRequest) {
       const purpose = String(meta["purpose"] ?? "");
       const listingId = String(meta["listing_id"] ?? "");
 
+      if (purpose === "listing_plan" && sess.subscription) {
+  const subId = typeof sess.subscription === "string"
+    ? sess.subscription
+    : (sess.subscription as Stripe.Subscription).id;
+
+  // fetch sub with expand so we have everything we need
+  const sub = await stripe.subscriptions.retrieve(subId, {
+    expand: ["items.data.price.product", "customer"],
+  });
+
+  const userId = (sess.metadata?.["supabase_user_id"] ?? null) as string | null;
+  if (!userId) {
+    console.error("Missing supabase_user_id on listing_plan session");
+    return new Response("ok", { status: 200 });
+  }
+
+  // If listing_id already present, skip creation (idempotency)
+  const existingListingId = (sub.metadata?.["listing_id"] ?? "") as string;
+
+  let listingId = existingListingId;
+  if (!listingId) {
+    // Create the draft listing now (post-payment)
+    const { data: newDraft, error: draftErr } = await admin
+      .from("business_listings")
+      .insert({
+        owner_id: userId,
+        title: "Untitled Listing",
+        industry: "Unspecified",
+        status: "draft",
+        is_active: false,
+      })
+      .select("id")
+      .maybeSingle();
+
+    if (draftErr || !newDraft?.id) {
+      console.error("Failed to create draft listing post-payment", draftErr);
+      return new Response("ok", { status: 200 });
+    }
+
+    listingId = newDraft.id;
+
+    // Stamp listing_id onto the Stripe subscription metadata
+    const mergedMeta = { ...(sub.metadata ?? {}), listing_id: listingId };
+    await stripe.subscriptions.update(sub.id, { metadata: mergedMeta });
+  }
+
+  // Re-upsert subscription so subscriptions.metadata includes listing_id
+  const refreshed = await stripe.subscriptions.retrieve(sub.id, {
+    expand: ["items.data.price.product", "customer"],
+  });
+  await upsertSubscription(admin, refreshed);
+}
+
+
       // Boosted Listing
       if (purpose === "listing_promo" && sess.subscription && listingId) {
         const subId =
