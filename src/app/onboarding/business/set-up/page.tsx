@@ -5,6 +5,7 @@ import Button from "../../../components/Button";
 import { Progress } from "@/components/ui/progress"
 import { INDUSTRY_SLUGS } from '@/lib/industryImages';
 import IndustryImagePicker from '../../components/IndustryImagePicker';
+import { geocodeAddresssTomTom } from '@/lib/geocode';
 
 export default async function Setup() {
   const supabase = await createClientRSC()
@@ -31,9 +32,18 @@ export default async function Setup() {
 
     const title    = String(formData.get('title') ?? '').trim()
     const industry = String(formData.get('industry') ?? '').trim()
-    const county   = String(formData.get('county') ?? '').trim()
-    const city     = String(formData.get('city') ?? '').trim()
+    const address = String(formData.get('address') ?? "").trim()
     const listing_image_choice = String(formData.get('listing_image_choice') ?? '').trim() || null
+
+    const geo = address ? await geocodeAddresssTomTom(address) : null;
+
+    const city = 
+      geo?.city ||
+      null;
+
+    const county = 
+      geo?.county ||
+      null;
 
     const payload = {
       owner_id: user.id,
@@ -43,7 +53,15 @@ export default async function Setup() {
       county,
       city: city || null,
       contact_email: user.email ?? null,
-      listing_image_choice
+      listing_image_choice,
+      country_code: geo?.countryCode ?? "US",
+      state_code: geo?.stateCode ?? null,
+      postal_code: geo?.postalCode ?? null,
+      geocoded_lat: geo?.lat ?? null,
+      geocoded_lng: geo?.lng ?? null,
+      geocode_place_id: geo?.placeId ?? null,
+      geocode_confidence: geo?.confidence ?? null,
+      geocoded_at: geo ? new Date().toISOString() : null,
     }
 
     // Ensure we have a listing id
@@ -102,32 +120,17 @@ export default async function Setup() {
         defaultImageKey={draft?.listing_image_choice ?? ''}
       ></IndustryImagePicker>
 
-      <label className="block pt-4">
-        <span>County</span>
-        <select
-          name="county"
-          required
-          defaultValue={draft?.county ?? ''}
-          className="mt-1 w-full border rounded px-3 py-2 hover:cursor-pointer"
-        >
-          <option value="" disabled>Choose a county</option>
-          <option value="Hidalgo County">Hidalgo</option>
-          <option value="Cameron County">Cameron</option>
-          <option value="Starr County">Starr</option>
-          <option value="Willacy County">Willacy</option>
-        </select>
+      <label className="block pt-4 pt-4">
+        <span>Business Address</span>
+        <input
+          name="address"
+          placeholder="123 Main St, McAllen, TX 78501"
+          className="mt-1 w-full border rounded px-3 py-2"
+        />
+        <p className="text-xs text-gray-500 mt-1">
+          We'll only use this to aut-fill city and county. Your exact address is <strong>never</strong> shown to investors.
+        </p>
       </label>
-
-      <div className="grid grid-cols-2 gap-3">
-        <label className="block pt-4">
-          <span>City</span>
-          <input
-            name="city"
-            defaultValue={draft?.city ?? ''}
-            className="mt-1 w-full border rounded px-3 py-2"
-          />
-        </label>
-      </div>
       <div className="mt-4 flex gap-3">
         <Button className="w-full">Save & Continue</Button>
       </div>

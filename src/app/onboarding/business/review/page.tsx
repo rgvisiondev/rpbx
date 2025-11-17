@@ -21,8 +21,9 @@ export default async function ReviewStep() {
       id,
       title,
       industry,
+      address,
       county,
-      location_city,
+      city,
       contact_email,
       ownership_percentage,
       annual_revenue_range,
@@ -31,20 +32,23 @@ export default async function ReviewStep() {
       years_in_business,
       employee_count_range,
       description,
-      listing_image_path
+      listing_image_choice
     `)
     .eq('owner_id', user.id)
     .eq('status', 'draft')
     .maybeSingle()
 
-  if (!draft) redirect('/onboarding/business/set-up')
+  if (!draft){
+    console.log("no draft error")
+   redirect('/onboarding/business/set-up') 
+  }
 
   // Signed URL for cover image (private bucket)
   let coverUrl: string | null = null
-  if (draft.listing_image_path) {
+  if (draft.listing_image_choice) {
     const { data: signed } = await supabase.storage
       .from('listings')
-      .createSignedUrl(draft.listing_image_path, 60)
+      .createSignedUrl(draft.listing_image_choice, 60)
     coverUrl = signed?.signedUrl ?? null
   }
 
@@ -159,8 +163,11 @@ export default async function ReviewStep() {
         )}
         <div><b>Title:</b> {draft.title ?? '—'}</div>
         <div><b>Industry:</b> {draft.industry ?? '—'}</div>
+          {draft.address && (
+          <div><b>Address:</b> {draft.address}</div>
+        )}
         <div><b>County:</b> {draft.county ?? '—'}</div>
-        <div><b>City:</b> {draft.location_city ?? '—'}</div>
+        <div><b>City:</b> {draft.city ?? '—'}</div>
         <div><b>Contact:</b> {draft.contact_email ?? '—'}</div>
         <hr className="mb-3 mt-4" />
         <div><b>Ownership %:</b> {draft.ownership_percentage ?? '—'}</div>

@@ -6,6 +6,7 @@ import Button from '@/app/components/Button' // or your shared Button
 import { Progress } from '@/components/ui/progress'
 import { INDUSTRY_SLUGS } from '@/lib/industryImages'
 import IndustryImagePicker from '@/app/onboarding/components/IndustryImagePicker'
+import { geocodeAddresssTomTom } from '@/lib/geocode'
 
 
 type Params = { listingId: string }
@@ -48,10 +49,9 @@ export default async function EditListingPage({ params }: PageProps) {
     // Basics
     const title    = String(formData.get('title') ?? '').trim()
     const industry = String(formData.get('industry') ?? '').trim()
-    const county   = String(formData.get('county') ?? '').trim()
-    const city     = String(formData.get('city') ?? '').trim()
     const contact_email = String(formData.get('contact_email') ?? '').trim()
     const listing_image_choice = String(formData.get('listing_image_choice') ?? '').trim() || null
+
 
     // Details
     const ownership_percentage =
@@ -65,9 +65,20 @@ export default async function EditListingPage({ params }: PageProps) {
     const years    = String(formData.get('years_in_business') ?? '')
     const empCount = String(formData.get('employee_count_range') ?? '')
     const description = (String(formData.get('description') ?? '').trim()) || null
+    const address = String(formData.get('address') ?? "").trim()
 
     const can_provide_financials = formData.get('can_provide_financials') === 'on'
     const can_provide_tax_returns = formData.get('can_provide_tax_returns') === 'on'
+
+    const geo = address ? await geocodeAddresssTomTom(address) : null;
+
+    const city = 
+      geo?.city || 
+      null;
+
+    const county = 
+      geo?.county || 
+      null;
 
     // Keep the same allow-lists you used in onboarding
     const ALLOWED = {
@@ -96,6 +107,15 @@ export default async function EditListingPage({ params }: PageProps) {
 
       can_provide_financials,
       can_provide_tax_returns,
+
+      country_code: geo?.countryCode ?? "US",
+      state_code: geo?.stateCode ?? null,
+      postal_code: geo?.postalCode ?? null,
+      geocoded_lat: geo?.lat ?? null,
+      geocoded_lng: geo?.lng ?? null,
+      geocode_place_id: geo?.placeId ?? null,
+      geocode_confidence: geo?.confidence ?? null,
+      geocoded_at: geo ? new Date().toISOString() : null,
     }
 
     // Update core fields first
@@ -189,18 +209,17 @@ export default async function EditListingPage({ params }: PageProps) {
               <option value="Willacy County">Willacy</option>
             </select>
           </label>
-
-          <div className="grid grid-cols-2 gap-3">
-            <label className="block pt-4">
-              <span>City</span>
-              <input name="city" defaultValue={listing.city ?? ''} className="mt-1 w-full border rounded px-3 py-2" />
-            </label>
-            <label className="block pt-4">
-              <span>Contact email</span>
-              <input name="contact_email" type="email" defaultValue={listing.contact_email ?? ''} className="mt-1 w-full border rounded px-3 py-2" />
-            </label>
-          </div>
-
+          <label className="block pt-4 pt-4">
+          <span>Business Address</span>
+          <input
+            name="address"
+            placeholder="123 Main St, McAllen, TX 78501"
+            className="mt-1 w-full border rounded px-3 py-2"
+          />
+          <p className="text-xs text-gray-500 mt-1">
+            We'll only use this to aut-fill city and county. Your exact address is <strong>never</strong> shown to investors.
+          </p>
+          </label>
           {/* Contact flags */}
           <label className="flex items-center gap-2 pt-4">
             <input type="checkbox" name="can_provide_financials" defaultChecked={!!listing.can_provide_financials} />
