@@ -26,7 +26,7 @@ export default async function EditListingPage({ params }: PageProps) {
       title, industry, county, city, contact_email,
       ownership_percentage, annual_revenue_range, book_value_range, ebitda_range,
       years_in_business, employee_count_range, description, listing_image_choice,
-      can_provide_financials, can_provide_tax_returns
+      can_provide_financials, can_provide_tax_returns, address
     `)
     .eq('id', listingId)
     .eq('owner_id', user.id)
@@ -116,6 +116,7 @@ export default async function EditListingPage({ params }: PageProps) {
       geocode_place_id: geo?.placeId ?? null,
       geocode_confidence: geo?.confidence ?? null,
       geocoded_at: geo ? new Date().toISOString() : null,
+      address
     }
 
     // Update core fields first
@@ -198,26 +199,16 @@ export default async function EditListingPage({ params }: PageProps) {
                 defaultImageKey={listing?.listing_image_choice ?? ''}
             ></IndustryImagePicker>
           </label>
-
-          <label className="block pt-4">
-            <span>County</span>
-            <select name="county" defaultValue={listing.county ?? ''} className="mt-1 w-full border rounded px-3 py-2 hover:cursor-pointer">
-              <option value="" disabled>Choose a county</option>
-              <option value="Hidalgo County">Hidalgo</option>
-              <option value="Cameron County">Cameron</option>
-              <option value="Starr County">Starr</option>
-              <option value="Willacy County">Willacy</option>
-            </select>
-          </label>
           <label className="block pt-4 pt-4">
           <span>Business Address</span>
           <input
             name="address"
+            defaultValue={listing.address ?? ''}
             placeholder="123 Main St, McAllen, TX 78501"
             className="mt-1 w-full border rounded px-3 py-2"
           />
           <p className="text-xs text-gray-500 mt-1">
-            We'll only use this to aut-fill city and county. Your exact address is <strong>never</strong> shown to investors.
+            We'll only use this to auto-fill city and county. Your exact address is <strong>never</strong> shown to investors.
           </p>
           </label>
           {/* Contact flags */}

@@ -16,7 +16,7 @@ export default async function Setup() {
   // Prefill draft
   const { data: draft } = await supabase
     .from('business_listings')
-    .select('id, title, industry, county, city, contact_email, listing_image_choice')
+    .select('id, title, industry, county, city, contact_email, listing_image_choice, address')
     .eq('owner_id', userId)
     .eq('status', 'draft')
     .maybeSingle()
@@ -54,6 +54,7 @@ export default async function Setup() {
       city: city || null,
       contact_email: user.email ?? null,
       listing_image_choice,
+      address,
       country_code: geo?.countryCode ?? "US",
       state_code: geo?.stateCode ?? null,
       postal_code: geo?.postalCode ?? null,

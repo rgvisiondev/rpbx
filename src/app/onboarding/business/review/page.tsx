@@ -32,7 +32,8 @@ export default async function ReviewStep() {
       years_in_business,
       employee_count_range,
       description,
-      listing_image_choice
+      listing_image_choice,
+      address
     `)
     .eq('owner_id', user.id)
     .eq('status', 'draft')
