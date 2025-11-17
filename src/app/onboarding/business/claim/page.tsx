@@ -1,5 +1,4 @@
 import { redirect } from "next/navigation";
-import { headers } from "next/headers";
 import { stripe } from "@/lib/stripe";
 import { createClientRSC } from "@/../utils/supabase/server";
 
@@ -22,7 +21,7 @@ export default async function ClaimPage({
 
   const subId = typeof cs.subscription === "string"
     ? cs.subscription
-    : (cs.subscription as any)?.id;
+    : cs.subscription?.id;
 
   if (!subId) redirect("/dashboard/listings?err=no_sub");
 

@@ -208,7 +208,7 @@ export default async function EditListingPage({ params }: PageProps) {
             className="mt-1 w-full border rounded px-3 py-2"
           />
           <p className="text-xs text-gray-500 mt-1">
-            We'll only use this to auto-fill city and county. Your exact address is <strong>never</strong> shown to investors.
+            We&apos;ll only use this to auto-fill city and county. Your exact address is <strong>never</strong> shown to investors.
           </p>
           </label>
           {/* Contact flags */}
