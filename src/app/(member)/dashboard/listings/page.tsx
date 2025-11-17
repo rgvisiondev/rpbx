@@ -8,6 +8,7 @@ import { createClientRSC } from "@/../utils/supabase/server";
 import { headers, cookies } from "next/headers" 
 import { getListingBadges } from "@/lib/listings/badges";
 import { Badge } from "lucide-react";
+import { imageUrl } from "@/lib/industryImages";
 
 const PRICE_LISTING_MONTHLY = process.env.NEXT_PUBLIC_STRIPE_PRICE_BUSINESS_MONTHLY!;
 const PRICE_LISTING_YEARLY = process.env.NEXT_PUBLIC_STRIPE_PRICE_BUSINESS_YEARLY!;
@@ -172,7 +173,7 @@ export default async function OwnerListings() {
   // 1) Fetch listings
   const { data: rows } = await supabase
     .from("business_listings")
-    .select("id, title, industry, listing_image_path, status, is_active, updated_at")
+    .select("id, title, industry, listing_image_choice, status, is_active, updated_at")
     .eq("owner_id", user.id)
     .order("updated_at", { ascending: false });
 
@@ -180,15 +181,14 @@ export default async function OwnerListings() {
 
   // 2) Centralize badges (boost + evaluation) via shared helper
   const { boosted, evalStatus } = await getListingBadges(supabase, listingIds);
-
   // 3) Signed URLs for thumbnails
   const signedUrls = new Map<string, string>();
   for (const r of rows ?? []) {
-    if (r.listing_image_path) {
+    if (r.listing_image_choice) {
       const { data: s } = await supabase
         .storage
         .from("listings")
-        .createSignedUrl(r.listing_image_path, 60);
+        .createSignedUrl(r.listing_image_choice, 60);
       if (s?.signedUrl) signedUrls.set(r.id, s.signedUrl);
     }
   }
@@ -202,19 +202,19 @@ export default async function OwnerListings() {
         {rows && rows.length > 0 && rows.map((l) => {
           const updated = l.updated_at ? new Date(l.updated_at).toLocaleString() : "—";
           const isBoosted = boosted.has(l.id);
-          const evalState = evalStatus.get(l.id); // 'purchased' | 'in_progress' | 'completed' | undefined
+          const evalState = evalStatus.get(l.id); // 'purchased' | 'in_progress' | 'completed' | undefined;
+          const catalogKey = l.listing_image_choice as string | null;
+          const imgSrc = catalogKey
+            ? imageUrl(catalogKey)
+            : null;
 
           return (
             <div key={l.id} className="bg-white rounded-xl shadow p-4 border">
               {/* Thumbnail */}
               <div className="relative h-40 w-full mb-3">
-                {signedUrls.get(l.id) ? (
-                  <img
-                    src={signedUrls.get(l.id)!}
-                    className="rounded-lg object-cover w-full h-full"
-                    alt={l.title ?? "Listing"}
-                  />
-                ) : (
+                {imgSrc ? (
+                <img src={imgSrc} alt="" className="rounded-lg w-full h-full object-cover" />
+              ) : (
                   <Image
                     src="/images/businesses/home-services.jpg"
                     alt="Listing"

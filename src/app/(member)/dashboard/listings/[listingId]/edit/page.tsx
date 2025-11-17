@@ -4,6 +4,9 @@ import { notFound, redirect } from 'next/navigation'
 import Link from 'next/link'
 import Button from '@/app/components/Button' // or your shared Button
 import { Progress } from '@/components/ui/progress'
+import { INDUSTRY_SLUGS } from '@/lib/industryImages'
+import IndustryImagePicker from '@/app/onboarding/components/IndustryImagePicker'
+
 
 type Params = { listingId: string }
 type PageProps = { params: Promise<Params> }
@@ -19,9 +22,9 @@ export default async function EditListingPage({ params }: PageProps) {
     .from('business_listings')
     .select(`
       id, owner_id, status, is_active,
-      title, industry, county, location_city, contact_email,
+      title, industry, county, city, contact_email,
       ownership_percentage, annual_revenue_range, book_value_range, ebitda_range,
-      years_in_business, employee_count_range, description, listing_image_path,
+      years_in_business, employee_count_range, description, listing_image_choice,
       can_provide_financials, can_provide_tax_returns
     `)
     .eq('id', listingId)
@@ -30,15 +33,7 @@ export default async function EditListingPage({ params }: PageProps) {
 
   if (!listing) notFound()
 
-  // Signed cover preview (private bucket)
-  let coverUrl: string | null = null
-  if (listing.listing_image_path) {
-    const { data: signed } = await supabase
-      .storage
-      .from('listings')
-      .createSignedUrl(listing.listing_image_path, 60)
-    coverUrl = signed?.signedUrl ?? null
-  }
+    const INDUSTRIES = Object.keys(INDUSTRY_SLUGS)
 
   async function updateListing(formData: FormData) {
     'use server'
@@ -56,6 +51,7 @@ export default async function EditListingPage({ params }: PageProps) {
     const county   = String(formData.get('county') ?? '').trim()
     const city     = String(formData.get('city') ?? '').trim()
     const contact_email = String(formData.get('contact_email') ?? '').trim()
+    const listing_image_choice = String(formData.get('listing_image_choice') ?? '').trim() || null
 
     // Details
     const ownership_percentage =
@@ -86,8 +82,9 @@ export default async function EditListingPage({ params }: PageProps) {
       title,
       industry,
       county,
-      location_city: city || null,
+      city: city || null,
       contact_email: contact_email || null,
+      listing_image_choice,
 
       ownership_percentage,
       annual_revenue_range: ALLOWED.annual.has(annual) ? annual : null,
@@ -175,20 +172,11 @@ export default async function EditListingPage({ params }: PageProps) {
           </label>
 
           <label className="block pt-4">
-            <span>Industry</span>
-            <select name="industry" defaultValue={listing.industry ?? ''} className="mt-1 w-full border rounded px-3 py-2 hover:cursor-pointer">
-              <option value="" disabled>Choose an industry…</option>
-              <option value="Manufacturing">Manufacturing</option>
-              <option value="Retail">Retail</option>
-              <option value="Hospitality">Hospitality</option>
-              <option value="Construction">Construction</option>
-              <option value="Professional_services">Professional Services</option>
-              <option value="Healthcare">Healthcare</option>
-              <option value="Real_estate">Real Estate</option>
-              <option value="Transportation_logistics">Transportation & Logistics</option>
-              <option value="Technology">Technology</option>
-              <option value="Other">Other</option>
-            </select>
+            <IndustryImagePicker
+                allIndustries={INDUSTRIES}
+                defaultIndustry={listing?.industry ?? ''}
+                defaultImageKey={listing?.listing_image_choice ?? ''}
+            ></IndustryImagePicker>
           </label>
 
           <label className="block pt-4">
@@ -205,7 +193,7 @@ export default async function EditListingPage({ params }: PageProps) {
           <div className="grid grid-cols-2 gap-3">
             <label className="block pt-4">
               <span>City</span>
-              <input name="city" defaultValue={listing.location_city ?? ''} className="mt-1 w-full border rounded px-3 py-2" />
+              <input name="city" defaultValue={listing.city ?? ''} className="mt-1 w-full border rounded px-3 py-2" />
             </label>
             <label className="block pt-4">
               <span>Contact email</span>
@@ -288,13 +276,6 @@ export default async function EditListingPage({ params }: PageProps) {
               <option value="gt_100">100+</option>
             </select>
           </label>
-
-          <label className="block pt-4">
-            <span>Listing Image (replace)</span>
-            <input name="cover" type="file" accept="image/*" className="mt-1 w-full border rounded border-neutral-200 px-3 py-2 hover:cursor-pointer" />
-            {coverUrl && <img src={coverUrl} alt="Listing cover" className="mt-2 h-40 w-full object-cover rounded border" />}
-          </label>
-
           <label className="block pt-4">
             <span>Description</span>
             <textarea name="description" rows={5} defaultValue={listing.description ?? ''} className="mt-1 w-full border rounded px-3 py-2" />
