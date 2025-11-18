@@ -206,11 +206,6 @@ export async function POST(req: Request) {
       }
     }
 
-    // ---- Build idempotency key & metadata ----
-    const idempotencyKey = `chk_${user.id}_${priceId}_${quantity}_${
-      listingId ?? "nolisting"
-    }_${finalPurpose}`;
-
     const commonMeta: Record<string, string> = {
       supabase_user_id: user.id,
       purpose: finalPurpose,
@@ -253,12 +248,23 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ url: session.url });
   } catch (err: any) {
-    console.error("Checkout error", {
-      message: err?.message,
-      type: err?.type,
-      stack: err?.stack,
-      raw: err,
-    });
+    // Safe narrowing (no implicit any)
+  const error =
+    err instanceof Error
+      ? err
+      : new Error("Unknown error in checkout route");
+
+  // Stripe errors often include additional fields like type or raw
+  const stripeError =
+    typeof err === "object" && err !== null ? (err as Record<string, unknown>) : {};
+
+  console.error("Checkout error", {
+    message: error.message,
+    type: stripeError["type"],
+    stack: error.stack,
+    raw: err,
+  });
+
 
     return NextResponse.json(
       { error: "Checkout error", message: err?.message ?? null },
