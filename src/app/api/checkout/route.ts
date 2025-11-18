@@ -1,11 +1,17 @@
 // app/api/checkout/route.ts
 export const runtime = "nodejs";
 
+import { NextResponse } from "next/server";
 import { stripe } from "@/lib/stripe";
 import { ensureCustomer } from "@/lib/ensure-customer";
+
+const ORIGIN = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+
 /**
- * Supports base plans (business monthly/yearly/trial, investor monthly/yearly)
- * and (optionally) listing promo. Enforces via Stripe Price metadata:
+ * Supports base plans (business monthly/yearly/trial, investor monthly/yearly),
+ * listing promos, and listing plans.
+ *
+ * Enforces via Stripe Price metadata:
  *  - Base membership prices must have metadata.user_type = 'business' | 'investor'
  *  - Listing promo prices must have metadata.purpose = 'listing_promo' and a listingId
  *  - Optional trial days via price.metadata.trial_days (numeric)
@@ -20,7 +26,9 @@ export async function POST(req: Request) {
       data: { user },
       error,
     } = await supabase.auth.getUser();
-    if (error || !user) return new Response("Unauthorized", { status: 401 });
+    if (error || !user) {
+      return new Response("Unauthorized", { status: 401 });
+    }
 
     const ct = req.headers.get("content-type") ?? "";
 
@@ -44,10 +52,11 @@ export async function POST(req: Request) {
       rawMeta = body.metadata;
       successUrl = body.successUrl;
       cancelUrl = body.cancelUrl;
-      listingId = body.listingId;
+      listingId = body.listId ?? body.listingId; // tolerate either
       purpose = body.purpose;
       const td = Number(body.trialDays);
-      trialDaysFromClient = Number.isFinite(td) && td > 0 ? Math.floor(td) : undefined;
+      trialDaysFromClient =
+        Number.isFinite(td) && td > 0 ? Math.floor(td) : undefined;
     } else {
       const form = await req.formData();
       priceId = String(form.get("priceId") ?? "");
@@ -55,25 +64,33 @@ export async function POST(req: Request) {
       quantity = Number.isFinite(q) && q > 0 ? Math.floor(q) : 1;
       listingId = form.get("listingId")?.toString();
       const p = form.get("purpose")?.toString();
-      if (p === "listing_promo" || p === "listing_plan" || p === "base_membership")
+      if (p === "listing_promo" || p === "listing_plan" || p === "base_membership") {
         purpose = p;
+      }
       const td = Number(form.get("trialDays"));
-      trialDaysFromClient = Number.isFinite(td) && td > 0 ? Math.floor(td) : undefined
+      trialDaysFromClient =
+        Number.isFinite(td) && td > 0 ? Math.floor(td) : undefined;
     }
 
+    if (!priceId) {
+      return new Response("Missing priceId", { status: 400 });
+    }
 
-    if (!priceId) return new Response("Missing priceId", { status: 400 });
-
-    // If tied to a listing, verify ownership (kept for future listing promos)
+    // If tied to a listing, verify ownership (for promos / future listing flows)
     if (listingId) {
       const { data: listing, error: listErr } = await supabase
         .from("business_listings")
         .select("id, owner_id")
         .eq("id", listingId)
         .maybeSingle();
-      if (listErr) return new Response("DB error", { status: 500 });
-      if (!listing || listing.owner_id !== user.id)
+
+      if (listErr) {
+        console.error("DB error verifying listing ownership", listErr);
+        return new Response("DB error", { status: 500 });
+      }
+      if (!listing || listing.owner_id !== user.id) {
         return new Response("Forbidden", { status: 403 });
+      }
     }
 
     // Coerce metadata to strings
@@ -81,25 +98,31 @@ export async function POST(req: Request) {
       Object.entries(rawMeta ?? {}).map(([k, v]) => [k, v == null ? "" : String(v)])
     );
 
-    // Decide purpose: default promo when listingId present, else base
-    const finalPurpose = purpose ?? (listingId ? "listing_promo" : "base_membership");
+    // Decide purpose: default promo when listingId present, else base_membership
+    const finalPurpose =
+      purpose ?? (listingId ? "listing_promo" : "base_membership");
 
     // Fetch and validate price (metadata-driven; no env whitelist)
     const fetchedPrice = await stripe.prices.retrieve(priceId, { expand: ["product"] });
+
     if (!fetchedPrice.active) {
       return new Response("Inactive price", { status: 400 });
     }
     if (fetchedPrice.type !== "recurring") {
-      return new Response("Price must be recurring for subscriptions", { status: 400 });
+      return new Response("Price must be recurring for subscriptions", {
+        status: 400,
+      });
     }
 
     const priceUserType = String(fetchedPrice.metadata?.user_type || "").toLowerCase(); // 'business' | 'investor' | ''
-    const pricePurpose = String(fetchedPrice.metadata?.purpose || "").toLowerCase();     // e.g., 'listing_promo' | ''
+    const pricePurpose = String(fetchedPrice.metadata?.purpose || "").toLowerCase(); // 'listing_promo' | 'listing_plan' | ''
 
-    // ---- Purpose/eligibility checks:
+    // ---- Purpose/eligibility checks ----
+
+    // Base memberships: business/investor roles only, not listing promo prices
     if (finalPurpose === "base_membership") {
-      // Must be one of our two base roles; do not allow listing promo prices here
-      const isBaseUserType = priceUserType === "business" || priceUserType === "investor";
+      const isBaseUserType =
+        priceUserType === "business" || priceUserType === "investor";
       if (!isBaseUserType) {
         return new Response("Invalid price for purpose", { status: 400 });
       }
@@ -108,10 +131,26 @@ export async function POST(req: Request) {
       }
     }
 
+    // Listing promos: require listing-specific promo price and a listingId
     if (finalPurpose === "listing_promo") {
-      // Require listing-specific promo price AND a listingId
       if (pricePurpose !== "listing_promo" || !listingId) {
         return new Response("Invalid price for purpose", { status: 400 });
+      }
+    }
+
+    // Listing plans: business-only, not promo prices
+    if (finalPurpose === "listing_plan") {
+      if (priceUserType !== "business") {
+        return new Response(
+          "Invalid price for listing_plan (requires business user_type)",
+          { status: 400 }
+        );
+      }
+      if (pricePurpose === "listing_promo") {
+        return new Response(
+          "Invalid price for listing_plan (got listing_promo)",
+          { status: 400 }
+        );
       }
     }
 
@@ -121,27 +160,27 @@ export async function POST(req: Request) {
         ? priceUserType
         : null;
 
-    // Optional trial handling (prefer configuring on the Price in Stripe)
+    // ---- Trial handling ----
     let trialDays: number | undefined;
     const mdTrial = fetchedPrice.metadata?.trial_days;
     if (mdTrial && /^\d+$/.test(String(mdTrial))) {
       trialDays = parseInt(String(mdTrial), 10);
     }
-    
+
     // Allow client to override (only for base memberships)
-    if (finalPurpose === "base_membership" && typeof trialDaysFromClient === "number"){
+    if (finalPurpose === "base_membership" && typeof trialDaysFromClient === "number") {
       trialDays = trialDaysFromClient;
     }
 
-    // Sanitize bounds (allow 1-60 days; tweak to policy)
-    if (typeof trialDays === "number"){
-      trialDays = 30;
+    // Sanitize bounds (1–60 days) if set
+    if (typeof trialDays === "number") {
+      trialDays = Math.max(1, Math.min(trialDays, 60));
     }
 
-    // Ensure Stripe customer (robust mapping; reuses if exists)
+    // ---- Ensure Stripe customer ----
     const customerId = await ensureCustomer(user);
 
-    //PREVENT DUPLICATE BASE SUBSCRIPTIONS
+    // ---- Prevent duplicate base subscriptions ----
     if (finalPurpose === "base_membership") {
       const existing = await stripe.subscriptions.list({
         customer: customerId,
@@ -158,55 +197,37 @@ export async function POST(req: Request) {
       );
 
       if (hasActiveBase) {
-        const origin =
-          req.headers.get("origin") ??
-          process.env.NEXT_PUBLIC_SITE_URL ??
-          "http://localhost:3000";
-
         const portal = await stripe.billingPortal.sessions.create({
           customer: customerId,
-          return_url: `${origin}/dashboard`,
+          return_url: `${ORIGIN}/dashboard`,
         });
 
-        return Response.json({ url: portal.url });
-      }
-    }
-    if (finalPurpose === "listing_plan"){
-
-      if (priceUserType !== "business"){
-        return new Response("Invalid price for listing_plan (requires business user_type", { status: 400 });
-      }
-      if (pricePurpose === "listing_promo"){
-        return new Response("Invalid price for listing_plan (got listing_promo)", { status: 400 });
+        return NextResponse.json({ url: portal.url });
       }
     }
 
-    // Build origin for redirects
-    const origin =
-      req.headers.get("origin") ??
-      process.env.NEXT_PUBLIC_SITE_URL ??
-      "http://localhost:3000";
-
-    const idempotencyKey = `chk_${user.id}_${priceId}_${quantity}_${listingId ?? "nolisting"}_${finalPurpose}`;
-
-    // Build subscription metadata so both session + subscription carry it
     const commonMeta: Record<string, string> = {
       supabase_user_id: user.id,
       purpose: finalPurpose,
       ...(listingId ? { listing_id: listingId } : {}),
-      ...(resolvedRole ? { user_type_intended: resolvedRole } : {}), // harmless hint; webhook uses price again
-      ...(typeof trialDays === "number" ? { trial_days_applied: String(trialDays) } : {}),
+      ...(resolvedRole ? { user_type_intended: resolvedRole } : {}),
+      ...(typeof trialDays === "number"
+        ? { trial_days_applied: String(trialDays) }
+        : {}),
       ...safeMeta,
     };
 
+    // ---- Create Checkout Session ----
     const session = await stripe.checkout.sessions.create(
       {
         mode: "subscription",
         customer: customerId,
         client_reference_id: user.id,
         line_items: [{ price: priceId, quantity }],
-        success_url: successUrl ?? `${origin}/welcome?session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: cancelUrl ?? `${origin}/dashboard`,
+        success_url:
+          successUrl ??
+          `${ORIGIN}/welcome?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: cancelUrl ?? `${ORIGIN}/dashboard`,
         allow_promotion_codes: true,
         subscription_data: {
           metadata: commonMeta,
@@ -215,13 +236,39 @@ export async function POST(req: Request) {
             : {}),
         },
         metadata: commonMeta,
-      },
-      { idempotencyKey }
-    );
+      });
 
-    return Response.json({ url: session.url });
-  } catch (err) {
-    console.error("Checkout error:", err);
-    return new Response("Checkout error", { status: 500 });
+    if (!session.url) {
+      console.error("Stripe session created without URL", { sessionId: session.id });
+      return NextResponse.json(
+        { error: "No session URL" },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({ url: session.url });
+  } catch (err: unknown) {
+    // Safe narrowing (no implicit any)
+  const error =
+    err instanceof Error
+      ? err
+      : new Error("Unknown error in checkout route");
+
+  // Stripe errors often include additional fields like type or raw
+  const stripeError =
+    typeof err === "object" && err !== null ? (err as Record<string, unknown>) : {};
+
+  console.error("Checkout error", {
+    message: error.message,
+    type: stripeError["type"],
+    stack: error.stack,
+    raw: err,
+  });
+
+
+    return NextResponse.json(
+      { error: "Checkout error", message: error.message ?? null },
+      { status: 500 }
+    );
   }
 }

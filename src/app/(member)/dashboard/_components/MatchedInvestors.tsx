@@ -52,7 +52,7 @@ export default async function MatchedInvestors({ matches }: { matches: InvestorM
           [m.first_name ?? "", m.last_name ?? ""].join(" ").trim() ||
           `Investor #${m.id.slice(0, 6)}`;
 
-        const imgSrc = m.avatar_url || "/images/test/chen-lee.png";
+        const imgSrc = m.avatar_url || "public/images/svg/def-inv.svg";
 
         return (
           <div key={m.id} className="flex-1">
