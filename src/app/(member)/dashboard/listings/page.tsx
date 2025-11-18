@@ -5,11 +5,11 @@ import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClientRSC } from "@/../utils/supabase/server";
-import { cookies } from "next/headers";
 import { getListingBadges } from "@/lib/listings/badges";
 import { Badge } from "lucide-react";
 import { imageUrl } from "@/lib/industryImages";
 import NavGate from "@/app/components/NavGate";
+import { headers } from "next/headers";
 
 const PRICE_LISTING_MONTHLY = process.env.NEXT_PUBLIC_STRIPE_PRICE_BUSINESS_MONTHLY!;
 const PRICE_LISTING_YEARLY = process.env.NEXT_PUBLIC_STRIPE_PRICE_BUSINESS_YEARLY!;
@@ -23,7 +23,8 @@ async function startListingPriceCheckout(priceId: string) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login?next=/dashboard/listings");
 
-  const ck = await cookies();
+  const h = await headers();
+  const ck = h.get("cookie") ?? "";
 
   const res = await fetch(`${ORIGIN}/api/checkout`, {
     method: "POST",
@@ -63,13 +64,14 @@ async function startListingPriceCheckout(priceId: string) {
 async function startEvaluation(listingId: string) {
   "use server";
 
-  const ck = await cookies();
+  const h = await headers();
+  const ck = h.get("cookie");
 
   const res = await fetch(`${ORIGIN}/api/checkout/evaluation`, {
     method: "POST",
     headers: {
       "content-type": "application/json",
-      cookie: ck.toString(),
+      ...(ck ? { cookie: ck } : {}),
     },
     body: JSON.stringify({ listingId }),
     cache: "no-store",
