@@ -1,23 +1,18 @@
-'use client'
-import { requestReset } from './actions'
-import { useFormState } from 'react-dom'
-import Button from "@/app/components/Button"
-
-const initialState = { ok: false, message: ''}
+import NavGate from "@/app/components/NavGate";
+import ForgotPasswordClient from "./ForgotPasswordClient";
 
 export default function ForgotPasswordPage() {
-    const [state, formAction] = useFormState(requestReset, initialState)
+  return (
+    <div className="flex flex-col bg-[url('/images/backgrounds/white-bg.png')] bg-repeat bg-top min-h-screen">
+      <NavGate />
 
-    return (
-        <form action={ formAction } className="space-y-4 max-w-sm">
-            <label className="block">
-                <span>Email</span>
-                <input name="email" type="email" required className="border p-2 w-full"/>
-            </label>
-            <Button type="submit">
-                Send reset link
-            </Button>
-            {state.message && <p>{state.message}</p>}
-        </form>
-    )
+    <div className="w-full lg:w-[1140px] mx-auto py-10 px-5 lg:px-0">
+      <h1 className="mb-4">Forgot Your Password?</h1>
+      <p className="text-sm text-gray-600 mb-6">
+        Reset your password to regain secure access to your RioPlex Business Exchange account.
+      </p>
+        <ForgotPasswordClient />
+      </div>
+    </div>
+  );
 }
