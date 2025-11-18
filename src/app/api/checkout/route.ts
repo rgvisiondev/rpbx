@@ -247,7 +247,7 @@ export async function POST(req: Request) {
     }
 
     return NextResponse.json({ url: session.url });
-  } catch (err: any) {
+  } catch (err: unknown) {
     // Safe narrowing (no implicit any)
   const error =
     err instanceof Error
@@ -267,7 +267,7 @@ export async function POST(req: Request) {
 
 
     return NextResponse.json(
-      { error: "Checkout error", message: err?.message ?? null },
+      { error: "Checkout error", message: error.message ?? null },
       { status: 500 }
     );
   }
