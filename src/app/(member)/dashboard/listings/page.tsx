@@ -6,7 +6,6 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClientRSC } from "@/../utils/supabase/server";
 import { getListingBadges } from "@/lib/listings/badges";
-import { Badge } from "lucide-react";
 import { imageUrl } from "@/lib/industryImages";
 import NavGate from "@/app/components/NavGate";
 import { headers } from "next/headers";
