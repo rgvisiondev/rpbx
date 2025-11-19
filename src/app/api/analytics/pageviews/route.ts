@@ -150,15 +150,32 @@ export async function POST(req: NextRequest) {
     );
 
     return NextResponse.json<{ data: ChartRow[] }>({ data });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("GA4 analytics error", err);
+
+    // Safe narrowing for error info
+    const message = err instanceof Error ? err.message : "Unknown error";
+
+    const code =
+      typeof err === "object" &&
+      err !== null &&
+      "code" in err
+        ? (err as { code?: unknown }).code
+        : undefined;
+
+    const details =
+      typeof err === "object" &&
+      err !== null &&
+      "details" in err
+        ? (err as { details?: unknown }).details
+        : undefined;
 
     return NextResponse.json(
       {
         error: "Analytics query failed",
-        message: err?.message ?? String(err),
-        code: err?.code,
-        details: err?.details,
+        message,
+        code,
+        details,
       },
       { status: 500 }
     );
