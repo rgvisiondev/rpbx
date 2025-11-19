@@ -1,4 +1,4 @@
-// app/onboarding/business/[listingId]/review/page.tsx
+// app/onboarding/business/[id]/review/page.tsx
 import { createClientRSC } from '@/../utils/supabase/server';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
@@ -9,9 +9,9 @@ import { imageUrl } from '@/lib/industryImages';
 export default async function ReviewStep({
   params,
 }: {
-  params: { listingId: string };
+  params: Promise<{ id: string }>;
 }) {
-  const listingId = params.listingId;
+  const { id: listingId } = await params;
 
   const supabase = await createClientRSC();
   const { data: { user } } = await supabase.auth.getUser();
@@ -68,7 +68,7 @@ export default async function ReviewStep({
       'lt_1':'< 1 year','1_3':'1–3 years','3_5':'3–5 years','5_10':'5–10 years','gt_10':'10+ years',
     },
     emp: {
-      '1_4':'1–4','5_10':'5–10','11_25':'11–25','26_50':'26–50','51_100':'51–100','gt_100':'100+',
+      '1_4':'1–4','5_10':'5–10','11_25':'11–25','26–50':'26–50','51_100':'51–100','gt_100':'100+',
     },
   } as const;
   const fmt = (v: string | null | undefined, m: Record<string,string>) =>
@@ -78,11 +78,13 @@ export default async function ReviewStep({
   const coverUrl = coverKey ? imageUrl(coverKey) : null;
 
   // ---- SERVER ACTION ----
-  async function publish(listingId: string) {
+  async function publish(formData: FormData) {
     'use server';
     const { createClientRSC } = await import('@/../utils/supabase/server');
     const sb = await createClientRSC();
     const { data: { user } } = await sb.auth.getUser();
+
+    const listingId = String(formData.get('listing_id') ?? '');
 
     if (!user) {
       redirect(
@@ -135,7 +137,9 @@ export default async function ReviewStep({
           &larr; Your Business at a Glance
         </Link>
 
-        <form action={publish.bind(null, listingId)}>
+        <form action={publish}>
+          <input type="hidden" name="listing_id" value={listingId} />
+
           <h1 className="text-2xl font-semibold mt-2">Review & Go Live</h1>
           <p className="mt-2">
             Take a moment to review your details and make sure everything looks just right. Once you

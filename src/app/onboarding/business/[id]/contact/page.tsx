@@ -1,4 +1,4 @@
-// app/onboarding/business/contact/page.tsx
+// app/onboarding/business/[id]/contact/page.tsx
 import { createClientRSC } from "@/../utils/supabase/server";
 import { redirect } from "next/navigation";
 import Button from "@/app/components/Button";
@@ -8,12 +8,15 @@ import { Progress } from "@/components/ui/progress";
 export default async function ContactStep({
   params,
 }: {
-  params: { listingId: string };
+  params: Promise<{ id: string }>;
 }) {
-  const listingId = params.listingId;
+  const { id: listingId } = await params;
 
   const supabase = await createClientRSC();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
   if (!user) {
     redirect(
       `/login?next=${encodeURIComponent(
@@ -22,7 +25,7 @@ export default async function ContactStep({
     );
   }
 
-  // Load THIS listing, not "any draft for this owner"
+  // Load THIS listing, make sure it belongs to the user and is still a draft
   const { data: draft } = await supabase
     .from("business_listings")
     .select("*")
@@ -30,21 +33,25 @@ export default async function ContactStep({
     .eq("owner_id", user.id)
     .maybeSingle();
 
-  // If no listing or not a draft, bounce appropriately
   if (!draft) {
     redirect("/dashboard/listings?err=no_listing");
   }
+
   if (draft.status !== "draft") {
-    // if you only want onboarding for drafts
-    redirect(`/dashboard/listings?err=not_draft`);
+    redirect("/dashboard/listings?err=not_draft");
   }
 
   // --- SERVER ACTION ---
-  async function save(listingId: string, formData: FormData) {
+  async function save(formData: FormData) {
     "use server";
     const { createClientRSC } = await import("@/../utils/supabase/server");
     const sb = await createClientRSC();
-    const { data: { user } } = await sb.auth.getUser();
+    const {
+      data: { user },
+    } = await sb.auth.getUser();
+
+    const listingId = String(formData.get("listing_id") ?? "");
+
     if (!user) {
       redirect(
         `/login?next=${encodeURIComponent(
@@ -81,7 +88,7 @@ export default async function ContactStep({
       .eq("id", listingId)
       .eq("owner_id", user.id);
 
-    // ✅ redirect to the *next step* with listingId in the path
+    // ✅ next step, keep listingId in path
     redirect(`/onboarding/business/${listingId}/details`);
   }
 
@@ -100,7 +107,10 @@ export default async function ContactStep({
           &larr; Let’s Dive Into Your Business
         </Link>
 
-        <form action={save.bind(null, listingId)}>
+        <form action={save}>
+          {/* hidden so the server action always knows which listing */}
+          <input type="hidden" name="listing_id" value={listingId} />
+
           <h1 className="text-2xl font-semibold mt-2">
             Stay Connected & Build Trust
           </h1>

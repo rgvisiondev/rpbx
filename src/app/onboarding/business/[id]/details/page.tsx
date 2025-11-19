@@ -1,4 +1,4 @@
-// app/onboarding/business/[listingId]/details/page.tsx
+// app/onboarding/business/[id]/details/page.tsx
 import { createClientRSC } from '@/../utils/supabase/server';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
@@ -14,9 +14,9 @@ import {
 export default async function DetailsStep({
   params,
 }: {
-  params: { listingId: string };
+  params: Promise<{ id: string }>;
 }) {
-  const listingId = params.listingId;
+  const { id: listingId } = await params;
 
   const supabase = await createClientRSC();
   const { data: { user } } = await supabase.auth.getUser();
@@ -52,11 +52,13 @@ export default async function DetailsStep({
   }
 
   // ---- SERVER ACTION ----
-  async function save(listingId: string, formData: FormData) {
+  async function save(formData: FormData) {
     'use server';
     const { createClientRSC } = await import('@/../utils/supabase/server');
     const sb = await createClientRSC();
     const { data: { user } } = await sb.auth.getUser();
+
+    const listingId = String(formData.get('listing_id') ?? '');
 
     if (!user) {
       redirect(
@@ -141,7 +143,9 @@ export default async function DetailsStep({
           &larr; Stay Connected & Build Trust
         </Link>
 
-        <form action={save.bind(null, listingId)}>
+        <form action={save}>
+          <input type="hidden" name="listing_id" value={listingId} />
+
           <h1 className="text-2xl font-semibold mt-2">Your Business at a Glance</h1>
           <p className="mt-2">
             Give investors a quick snapshot of your business’s scale and performance. These details help
