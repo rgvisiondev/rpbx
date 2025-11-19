@@ -8,25 +8,30 @@ import IndustryImagePicker from '@/app/onboarding/components/IndustryImagePicker
 import { geocodeAddresssTomTom } from '@/lib/geocode';
 
 export default async function Setup({
+  params,
 }: {
   params: { listingId: string };
 }) {
   const supabase = await createClientRSC();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) {
-    // we don't really care about listingId here; Setup is "start draft" for this user
     redirect('/login?next=/onboarding/business/set-up');
   }
-  const userId = user.id as string;
 
-  // Load *this user's* active draft (like your original version)
-  // We DO NOT hard-require a specific listingId here.
-  const { data: draft } = await supabase
+  const listingId = params.listingId;
+
+  // 🔹 Load *this* listing, ensure it belongs to the current user
+  const { data: draft, error: draftErr } = await supabase
     .from('business_listings')
     .select('id, title, industry, county, city, contact_email, listing_image_choice, address')
-    .eq('owner_id', userId)
-    .eq('status', 'draft')
+    .eq('id', listingId)
+    .eq('owner_id', user.id)
     .maybeSingle();
+
+  if (draftErr || !draft) {
+    console.error('No draft for listing', { listingId, draftErr });
+    redirect('/dashboard/listings?err=no_draft_for_listing');
+  }
 
   const INDUSTRIES = Object.keys(INDUSTRY_SLUGS);
 
@@ -35,8 +40,21 @@ export default async function Setup({
     const { createClientRSC } = await import('@/../utils/supabase/server');
     const sb = await createClientRSC();
     const { data: { user } } = await sb.auth.getUser();
-    if (!user) {
-      redirect('/login?next=/onboarding/business/set-up');
+    if (!user) redirect('/login?next=/onboarding/business/set-up');
+
+    const listingId = String(formData.get('listing_id') ?? '');
+
+    // Re-verify listing belongs to user
+    const { data: existing, error: loadErr } = await sb
+      .from('business_listings')
+      .select('id')
+      .eq('id', listingId)
+      .eq('owner_id', user.id)
+      .maybeSingle();
+
+    if (loadErr || !existing) {
+      console.error('Save: no draft for listing', { listingId, loadErr });
+      redirect('/dashboard/listings?err=no_draft_for_listing');
     }
 
     const title    = String(formData.get('title') ?? '').trim();
@@ -47,21 +65,14 @@ export default async function Setup({
 
     const geo = address ? await geocodeAddresssTomTom(address) : null;
 
-    const city =
-      geo?.city ||
-      null;
-
-    const county =
-      geo?.county ||
-      null;
+    const city = geo?.city ?? null;
+    const county = geo?.county ?? null;
 
     const payload = {
-      owner_id: user.id,
-      status: 'draft' as const,
       title,
       industry,
       county,
-      city: city || null,
+      city,
       contact_email: user.email ?? null,
       listing_image_choice,
       address,
@@ -73,47 +84,20 @@ export default async function Setup({
       geocode_place_id: geo?.placeId ?? null,
       geocode_confidence: geo?.confidence ?? null,
       geocoded_at: geo ? new Date().toISOString() : null,
+      status: 'draft' as const,
     };
 
-    // 🔹 Ensure we have a draft for this user (this is your old behavior)
-    const { data: existingDraft } = await sb
+    const { error: updErr } = await sb
       .from('business_listings')
-      .select('id')
-      .eq('owner_id', user.id)
-      .eq('status', 'draft')
-      .maybeSingle();
+      .update(payload)
+      .eq('id', listingId)
+      .eq('owner_id', user.id);
 
-    let listingId = existingDraft?.id as string | undefined;
-
-    if (!listingId) {
-      // No draft yet → create one now
-      const { data: ins, error: insErr } = await sb
-        .from('business_listings')
-        .insert(payload)
-        .select('id')
-        .single();
-
-      if (insErr || !ins?.id) {
-        console.error('Setup insert error', insErr);
-        redirect('/dashboard/listings?err=setup_insert_failed');
-      }
-
-      listingId = ins.id;
-    } else {
-      // Draft exists → update it
-      const { error: updErr } = await sb
-        .from('business_listings')
-        .update(payload)
-        .eq('id', listingId)
-        .eq('owner_id', user.id);
-
-      if (updErr) {
-        console.error('Setup update error', updErr);
-        redirect('/dashboard/listings?err=setup_update_failed');
-      }
+    if (updErr) {
+      console.error('Setup update error', updErr);
+      redirect('/dashboard/listings?err=setup_update_failed');
     }
 
-    // 🔹 From here on, we ALWAYS use the canonical listingId-based flow
     redirect(`/onboarding/business/${listingId}/contact`);
   }
 
@@ -124,12 +108,15 @@ export default async function Setup({
         <Progress value={0} />
       </div>
 
-      <div className="bg-white mx-auto max-w-lg lg:min-w-[550px] p-6 my-5 rounded-xl border border-neutral-200 shadow">
+      <div className=" bg-white mx-auto max-w-lg lg:min-w-[550px] p-6 my-5 rounded-xl border border-neutral-200 shadow">
         <form action={save}>
+          <input type="hidden" name="listing_id" value={draft.id} />
+
           <h1 className="text-2xl font-semibold">Dive Into Your Business</h1>
           <p className="mt-2">
-            Tell us what makes your business unique! Start by adding the essentials — your name,
-            industry, and where you’re based — so local investors can easily discover and connect with you.
+            Tell us what makes your business unique! Start by adding the essentials —
+            your name, industry, and where you’re based — so local investors can easily
+            discover and connect with you.
           </p>
           <hr className="mb-1 mt-4" />
 
