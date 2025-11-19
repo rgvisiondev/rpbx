@@ -10,11 +10,13 @@ import { geocodeAddresssTomTom } from '@/lib/geocode';
 export default async function Setup({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
+  // ✅ params is now awaited
+  const { id: listingId } = await params;
+
   const supabase = await createClientRSC();
   const { data: { user } } = await supabase.auth.getUser();
-  const listingId = params.id;
 
   if (!user) {
     // include listingId so login can bounce them back to the same step
@@ -41,9 +43,7 @@ export default async function Setup({
     const { createClientRSC } = await import('@/../utils/supabase/server');
     const sb = await createClientRSC();
     const { data: { user } } = await sb.auth.getUser();
-    if (!user) {
-      redirect(`/login?next=/onboarding/business/${listingId}/set-up`);
-    }
+    if (!user) redirect(`/login?next=/onboarding/business/${listingId}/set-up`);
 
     const listingIdFromForm = String(formData.get('listing_id') ?? '');
 
