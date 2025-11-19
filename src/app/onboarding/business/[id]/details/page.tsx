@@ -2,7 +2,7 @@
 import { createClientRSC } from '@/../utils/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import Button from "../../../components/Button";
+import Button from '@/app/components/Button';
 import { Progress } from "@/components/ui/progress"
 
 import {

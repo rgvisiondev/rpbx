@@ -1,7 +1,7 @@
 // app/onboarding/business/set-up/page.tsx
 import { createClientRSC } from '@/../utils/supabase/server'
 import { redirect } from 'next/navigation'
-import Button from "../../../../components/Button";
+import Button from '@/app/components/Button';
 import { Progress } from "@/components/ui/progress"
 import { INDUSTRY_SLUGS } from '@/lib/industryImages';
 import IndustryImagePicker from '../../../components/IndustryImagePicker';
