@@ -105,7 +105,8 @@ export default async function ListingPage({
       contact_email,
       can_provide_financials,
       can_provide_tax_returns,
-      is_promoted_effective
+      is_promoted_effective,
+      has_purchased_valuation
     `)
     .eq("id", id)
     .maybeSingle();
@@ -139,13 +140,28 @@ export default async function ListingPage({
             <div className="flex">
                       <Tooltip>                    
                         <TooltipTrigger>
-                          <div className="bg-[#9ed3c3] hover:bg-[#7fb8a9] text-black px-3 py-1 gap-3 flex rounded-full items-center justify-centern ">
-                            <BadgeCheckIcon size={18} strokeWidth={2.5} className="text-white"/>
+                          <div className="bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-black px-3 py-1 gap-3 flex rounded-full items-center justify-centern ">
+                            <BadgeCheckIcon size={20} strokeWidth={2.5} className="text-white"/>
                             <p className="text-white">Boosted</p>
                           </div>
                         </TooltipTrigger>
                         <TooltipContent>
                           {`Boosted Listing Active`}
+                        </TooltipContent>
+                      </Tooltip>
+            </div>
+          )}
+          {listing.has_purchased_valuation && (
+            <div className="flex">
+                      <Tooltip>                    
+                        <TooltipTrigger>
+                          <div className="bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-black px-3 py-1 gap-3 flex rounded-full items-center justify-centern ">
+                            <Image src={"/images/icons/Logo-Icon-White.png"} alt="RPBX" width={20} height={20}/>
+                            <p className="text-white">Valuated</p>
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          {`Valuated By RPBX`}
                         </TooltipContent>
                       </Tooltip>
             </div>

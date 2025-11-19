@@ -134,7 +134,8 @@ export default async function Businesses({
       ebitda_range,
       listing_image_choice,
       updated_at,
-      is_promoted_effective
+      is_promoted_effective,
+      has_purchased_valuation
     `, { count: "exact" })
     .eq("status", "published")
     .eq("is_active", true);
@@ -292,12 +293,25 @@ export default async function Businesses({
                     {r.is_promoted_effective && (
                       <Tooltip>                    
                         <TooltipTrigger>
-                          <div className="bg-[#9ed3c3] hover:bg-[#7fb8a9] text-black p-[2px] flex rounded-full items-center justify-center">
-                            <BadgeCheckIcon size={15} strokeWidth={2.5} className="text-white"/>
+                          <div className="bg-[#9ed3c3] hover:bg-[#7fb8a9] text-black p-[3px] flex rounded-full items-center justify-center">
+                            <BadgeCheckIcon size={20} strokeWidth={2.5} className="text-white"/>
                           </div>
                         </TooltipTrigger>
                         <TooltipContent>
                           {`Boosted Listing Active`}
+                        </TooltipContent>
+                      </Tooltip>
+
+                    )}
+                    {r.has_purchased_valuation && (
+                      <Tooltip>                    
+                        <TooltipTrigger>
+                          <div className="text-black flex rounded-full items-center justify-center">
+                            <Image src={"/images/icons/Logo-Icon-Mint.png"} alt="RPBX" width={25} height={25}/>
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          {`Valuated By RPBX`}
                         </TooltipContent>
                       </Tooltip>
 
