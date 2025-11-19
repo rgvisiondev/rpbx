@@ -2,8 +2,9 @@
 import { createClientRSC } from '@/../utils/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import Button from "../../../components/Button";
+import Button from "../../../../components/Button";
 import { Progress } from "@/components/ui/progress"
+import { imageUrl } from '@/lib/industryImages';
 
 // 🚩 Feature flag — turn back to true to re-enable credit checks
 const CHECK_PLAN_LIMITS = false as const
@@ -44,14 +45,6 @@ export default async function ReviewStep() {
    redirect('/onboarding/business/set-up') 
   }
 
-  // Signed URL for cover image (private bucket)
-  let coverUrl: string | null = null
-  if (draft.listing_image_choice) {
-    const { data: signed } = await supabase.storage
-      .from('listings')
-      .createSignedUrl(draft.listing_image_choice, 60)
-    coverUrl = signed?.signedUrl ?? null
-  }
 
   // Soft pre-check for plan limits (banner only) — gated by flag
   let allowed = 0
@@ -95,6 +88,9 @@ export default async function ReviewStep() {
 
   // ---- SERVER ACTION ----
   const draftId = draft.id
+
+  const coverKey = draft.listing_image_choice as string | null;
+  const coverUrl = coverKey ? imageUrl(coverKey) : null;
 
   async function publish() {
     'use server'

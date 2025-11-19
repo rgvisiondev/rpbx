@@ -1,10 +1,10 @@
 // app/onboarding/business/set-up/page.tsx
 import { createClientRSC } from '@/../utils/supabase/server'
 import { redirect } from 'next/navigation'
-import Button from "../../../components/Button";
+import Button from "../../../../components/Button";
 import { Progress } from "@/components/ui/progress"
 import { INDUSTRY_SLUGS } from '@/lib/industryImages';
-import IndustryImagePicker from '../../components/IndustryImagePicker';
+import IndustryImagePicker from '../../../components/IndustryImagePicker';
 import { geocodeAddresssTomTom } from '@/lib/geocode';
 
 export default async function Setup() {

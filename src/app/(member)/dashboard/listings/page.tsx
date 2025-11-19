@@ -342,12 +342,7 @@ export default async function OwnerListings() {
                             Manage Plan
                           </button>
                         </form>
-
-                        {evalState === "completed" ? (
-                          <span className="inline-flex items-center gap-2 px-3 py-2 rounded-xl border bg-green-50 text-green-700">
-                            <Badge />
-                          </span>
-                        ) : (
+                        {!evalState && (
                           <form action={startEvaluation.bind(null, l.id)}>
                             <button
                               type="submit"

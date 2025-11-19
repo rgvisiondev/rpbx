@@ -74,5 +74,5 @@ export default async function ClaimPage({
     });
   }
 
-    redirect(`/onboarding/business/set-up?listing_id=${listingId}`);
+    redirect(`/onboarding/business/${listingId}/set-up`);
 }
