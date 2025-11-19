@@ -126,7 +126,7 @@ export default async function InvestorPage(
           <div className="w-full lg:w-1/3">
             <div className="flex flex-col bg-gray-200 rounded-lg overflow-hidden">
               <Image
-                src={avatarUrl ?? "/images/test/chen-lee.png"}
+                src={avatarUrl ?? "/images/svg/def-inv.svg"}
                 alt={fullName}
                 className="w-full object-cover rounded-t-lg shadow-lg"
                 width={300}

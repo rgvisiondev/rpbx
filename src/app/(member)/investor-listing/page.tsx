@@ -164,15 +164,15 @@ export default async function Investors({ searchParams }: PageProps) {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 pb-5 pt-5">
             {rows.map((r) => {
-              const imgSrc = investors[r.id] ?? "/images/test/chen-lee.png";
+              const imgSrc = investors[r.id] ?? "/images/svg/def-inv.svg";
               return (
                 <div key={r.id} className="flex-1 bg-gray-200 rounded-lg overflow-hidden">
                   <Image
                     src={imgSrc}
                     alt={`${r.first_name ?? ""} ${r.last_name ?? ""}`.trim() || "Investor Avatar"}
-                    className="rounded-t-lg w-full shadow-lg border-x-2 border-t-2 border-grey-500"
+                    className="rounded-t-lg w-full shadow-lg border-x-2 border-t-2 border-grey-500 object-cover h-[250px]"
                     width={640}
-                    height={360}
+                    height={250}
                     unoptimized
                   />
                   <div className="bg-white p-5 rounded-b-lg shadow-lg border-x-2 border-b-2 border-grey-500">
