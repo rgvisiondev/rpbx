@@ -1,4 +1,4 @@
-// app/onboarding/business/[listingId]/set-up/page.tsx
+// app/onboarding/business/[id]/set-up/page.tsx
 import { createClientRSC } from '@/../utils/supabase/server';
 import { redirect } from 'next/navigation';
 import Button from '@/app/components/Button';
@@ -10,15 +10,16 @@ import { geocodeAddresssTomTom } from '@/lib/geocode';
 export default async function Setup({
   params,
 }: {
-  params: { listingId: string };
+  params: { id: string };
 }) {
   const supabase = await createClientRSC();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) {
-    redirect('/login?next=/onboarding/business/set-up');
-  }
+  const listingId = params.id;
 
-  const listingId = params.listingId;
+  if (!user) {
+    // include listingId so login can bounce them back to the same step
+    redirect(`/login?next=/onboarding/business/${listingId}/set-up`);
+  }
 
   // 🔹 Load *this* listing, ensure it belongs to the current user
   const { data: draft, error: draftErr } = await supabase
@@ -40,20 +41,22 @@ export default async function Setup({
     const { createClientRSC } = await import('@/../utils/supabase/server');
     const sb = await createClientRSC();
     const { data: { user } } = await sb.auth.getUser();
-    if (!user) redirect('/login?next=/onboarding/business/set-up');
+    if (!user) {
+      redirect(`/login?next=/onboarding/business/${listingId}/set-up`);
+    }
 
-    const listingId = String(formData.get('listing_id') ?? '');
+    const listingIdFromForm = String(formData.get('listing_id') ?? '');
 
     // Re-verify listing belongs to user
     const { data: existing, error: loadErr } = await sb
       .from('business_listings')
       .select('id')
-      .eq('id', listingId)
+      .eq('id', listingIdFromForm)
       .eq('owner_id', user.id)
       .maybeSingle();
 
     if (loadErr || !existing) {
-      console.error('Save: no draft for listing', { listingId, loadErr });
+      console.error('Save: no draft for listing', { listingId: listingIdFromForm, loadErr });
       redirect('/dashboard/listings?err=no_draft_for_listing');
     }
 
@@ -90,7 +93,7 @@ export default async function Setup({
     const { error: updErr } = await sb
       .from('business_listings')
       .update(payload)
-      .eq('id', listingId)
+      .eq('id', listingIdFromForm)
       .eq('owner_id', user.id);
 
     if (updErr) {
@@ -98,7 +101,7 @@ export default async function Setup({
       redirect('/dashboard/listings?err=setup_update_failed');
     }
 
-    redirect(`/onboarding/business/${listingId}/contact`);
+    redirect(`/onboarding/business/${listingIdFromForm}/contact`);
   }
 
   return (
