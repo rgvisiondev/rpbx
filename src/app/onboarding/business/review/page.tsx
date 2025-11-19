@@ -133,7 +133,10 @@ export default async function ReviewStep() {
       .eq('owner_id', user.id)
       .eq('status', 'draft')
       .single()
-    if (upErr) redirect('/onboarding/business/review?msg=publish_failed')
+    if (upErr) {
+      console.error("Publish listing error", upErr);
+      redirect('/onboarding/business/review?msg=publish_failed');
+    }
 
     redirect('/dashboard')
   }
