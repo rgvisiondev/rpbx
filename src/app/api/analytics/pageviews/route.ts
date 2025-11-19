@@ -1,125 +1,166 @@
 import { NextRequest, NextResponse } from "next/server";
-import { BetaAnalyticsDataClient } from "@google-analytics/data"
-import build from "next/dist/build";
-import { exit } from "process";
+import { BetaAnalyticsDataClient } from "@google-analytics/data";
 
-type PageViewsRequest = { pagePaths: string[]; months?: number };
-type ChartRow = { month: string } & Partial<Record<`/${string}`, number>>;
+type PageviewsRequest = {
+  pagePaths: string[];
+  months?: number;
+};
 
-// GA client
-const analyticsClient = new BetaAnalyticsDataClient({
-    //this keeps keys server side only
-    credentials: process.env.GA_SERVICE_ACCOUNT_KEY
-        ? JSON.parse(process.env.GA_SERVICE_ACCOUNT_KEY)
-        : undefined,
-});
+// This is the shape your chart expects:
+export type ChartRow = { month: string } & Partial<Record<`/${string}`, number>>;
 
-const PROPERTY_ID = process.env.GA4_PROPERTY_ID;
+// ---- GA client setup using a single JSON env ----
+const PROPERTY_ID = process.env.GA4_PROPERTY_ID;          // e.g. "508465674"
+const RAW_KEY = process.env.GA_SERVICE_ACCOUNT_KEY;       // full JSON string
 
-const MONTH_NAMES = [
-    "January",
-  "February",
-  "March",
-  "April",
-  "May",
-  "June",
-  "July",
-  "August",
-  "September",
-  "October",
-  "November",
-  "December",
-];
+let analyticsDataClient: BetaAnalyticsDataClient | null = null;
 
-function computeDateRange(months: number){
-    const end = new Date();
-
-    //start at first day of (months - 1) months ago
-    const start = new Date(end.getFullYear(), end.getMonth() - (months - 1), 1);
-    const fmt = (d: Date) => d.toISOString().slice(0,10);
-    return { startDate: fmt(start), endDate: fmt(end) };
+if (!PROPERTY_ID) {
+  console.warn("[GA4] Missing GA4_PROPERTY_ID env var");
 }
 
-function buildMonthKey(d: Date){
-    return `{d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}`;
+if (!RAW_KEY) {
+  console.warn("[GA4] Missing GA_SERVICE_ACCOUNT_KEY env var");
+} else {
+  try {
+    const credentials = JSON.parse(RAW_KEY);
+    analyticsDataClient = new BetaAnalyticsDataClient({ credentials });
+  } catch (err) {
+    console.error("[GA4] Failed to parse GA_SERVICE_ACCOUNT_KEY JSON:", err);
+  }
 }
 
-function buildMonthLabel(d: Date){
-    return `{MONTH_NAMES[d.getMonth()]} ${d.getFullYear()}`;
+function getStartDate(months: number): string {
+  const now = new Date();
+  const start = new Date(now.getFullYear(), now.getMonth() - (months - 1), 1);
+  return start.toISOString().slice(0, 10); // "YYYY-MM-DD"
 }
 
-export async function POST(req: NextRequest){
-    try {
-        if (!PROPERTY_ID) {
-            console.error("Missing GA4_PROPERTY_ID env var");
-            return NextResponse.json(
-                {data: [], error: "missing_property_id"},
-                {status: 500}
-            );
-        }
-
-        const body = (await req.json()) as PageViewsRequest;
-        const pagePaths = body.pagePaths ?? [];
-        const months = body.months ?? 6;
-
-        if (!Array.isArray(pagePaths) || pagePaths.length === 0){
-            return NextResponse.json({data: [] });
-        }
-
-        const {startDate, endDate } = computeDateRange(months);
-
-        //pre-seed a map with all months in range, missing months become 0
-
-        const rowsByYearMonth = new Map<string, ChartRow>();
-        const now = new Date();
-
-        for (let i = months - 1; i >= 0; i--){
-            const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-            const ymKey = buildMonthKey(d);
-            rowsByYearMonth.set(ymKey, { month: buildMonthLabel(d) });
-        }
-        
-        //GA4 Data API: yearMonth + pagePath with metric views
-
-        const [report] = await analyticsClient.runReport({
-            property: `properties/${PROPERTY_ID}`,
-            dateRanges: [{ startDate, endDate }],
-            dimensions: [
-                { name: "yearMonth" },
-                { name: "pagePath "},
-            ],
-            metrics: [{ name: "views" }],
-            dimensionFilter: {
-                filter: {
-                    fieldName: "pagePath",
-                    inListFilter: { values: pagePaths },
-                },
-            },
-            orderBys: [{ dimension: { dimensionName: "yearMonth" } }],
-        });
-
-        for (const row of report.rows ?? []) {
-            const ym = row.dimensionValues?.[0]?.value;
-            const path = row.dimensionValues?.[1]?.value;
-            const viewStr = row.metricValues?.[0]?.value ?? "0";
-            const views = Number(viewStr) || 0;
-            
-            if (!ym || !path) continue;
-            const existing = rowsByYearMonth.get(ym);
-            if (!existing) continue;
-
-            //Each path becomes a series column
-            (existing as any)[path] = views;
-        }
-
-        const data: ChartRow[] = Array.from(rowsByYearMonth.values());
-
-        return NextResponse.json({ data });
-    } catch (err){
-        console.error("GA4 analytics error", err);
-        return NextResponse.json(
-            {data: [], error: "analytics_error"},
-            {status: 500}
-        );
+export async function POST(req: NextRequest) {
+  try {
+    if (!analyticsDataClient || !PROPERTY_ID) {
+      return NextResponse.json(
+        { error: "Analytics client not configured", data: [] },
+        { status: 500 }
+      );
     }
+
+    const body = (await req.json()) as PageviewsRequest;
+    const pagePaths = body.pagePaths ?? [];
+    const months = body.months ?? 6;
+
+    if (!Array.isArray(pagePaths) || pagePaths.length === 0) {
+      return NextResponse.json<{ data: ChartRow[] }>({ data: [] });
+    }
+
+    const startDate = getStartDate(months);
+    const endDate = "today";
+
+    console.log("[GA4] runReport request", {
+      property: `properties/${PROPERTY_ID}`,
+      startDate,
+      endDate,
+      pagePaths,
+    });
+
+    const [response] = await analyticsDataClient.runReport({
+      property: `properties/${PROPERTY_ID}`,
+      dateRanges: [{ startDate, endDate }],
+      dimensions: [
+        { name: "date" },     // YYYYMMDD
+        { name: "pagePath" }, // URL path
+      ],
+      metrics: [{ name: "screenPageViews" }], // correct metric name
+      dimensionFilter: {
+        filter: {
+          fieldName: "pagePath",
+          inListFilter: {
+            values: pagePaths,
+          },
+        },
+      },
+      orderBys: [
+        {
+          dimension: { dimensionName: "date" },
+        },
+      ],
+    });
+
+    const rows = response.rows ?? [];
+
+    // monthLabel -> path -> [views...]
+    const monthMap = new Map<string, Map<string, number[]>>();
+
+    for (const row of rows) {
+      const dateStr = row.dimensionValues?.[0]?.value || ""; // "20251119"
+      const path = row.dimensionValues?.[1]?.value || "";
+      const viewsStr = row.metricValues?.[0]?.value || "0";
+      const views = Number(viewsStr) || 0;
+
+      if (!dateStr || !path) continue;
+
+      const year = Number(dateStr.slice(0, 4));
+      const month = Number(dateStr.slice(4, 6)) - 1;
+
+      const monthLabel = new Date(year, month, 1).toLocaleString("en-US", {
+        month: "long",
+      });
+
+      if (!monthMap.has(monthLabel)) {
+        monthMap.set(monthLabel, new Map());
+      }
+      const series = monthMap.get(monthLabel)!;
+
+      if (!series.has(path)) series.set(path, []);
+      series.get(path)!.push(views);
+    }
+
+    // Convert to ChartRow[]: { month, "/path1": avg, "/path2": avg, ... }
+    const data: ChartRow[] = Array.from(monthMap.entries()).map(
+      ([monthLabel, pathMap]) => {
+        const row: ChartRow = { month: monthLabel };
+        for (const [path, values] of pathMap.entries()) {
+          const avg =
+            values.reduce((sum, v) => sum + v, 0) / (values.length || 1);
+          row[path as `/${string}`] = Math.round(avg); // or keep as avg if you want floats
+        }
+        return row;
+      }
+    );
+
+    // Sort by calendar month order
+    const monthOrder = [
+      "January",
+      "February",
+      "March",
+      "April",
+      "May",
+      "June",
+      "July",
+      "August",
+      "September",
+      "October",
+      "November",
+      "December",
+    ];
+
+    data.sort(
+      (a, b) =>
+        monthOrder.indexOf(a.month) - monthOrder.indexOf(b.month)
+    );
+
+    return NextResponse.json<{ data: ChartRow[] }>({ data });
+  } catch (err: any) {
+    console.error("GA4 analytics error", err);
+
+    return NextResponse.json(
+      {
+        error: "Analytics query failed",
+        message: err?.message ?? String(err),
+        code: err?.code,
+        details: err?.details,
+      },
+      { status: 500 }
+    );
+  }
 }

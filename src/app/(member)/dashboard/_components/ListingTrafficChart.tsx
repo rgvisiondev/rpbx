@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import useSWR from "swr";
-import { AreaChart, Area, CartesianGrid, XAxis } from "recharts";
+import { AreaChart, Area, CartesianGrid, XAxis, YAxis } from "recharts";
 import {
   Card,
   CardContent,
@@ -28,12 +28,10 @@ type Props = {
   emptyNote?: string;                  // optional custom copy for empty state
 };
 
-// ---- Types for API contract ----
-type PageviewsRequest = { pagePaths: string[]; months: number; };
+type PageviewsRequest = { pagePaths: string[]; months: number };
 type ChartRow = { month: string } & Partial<Record<`/${string}`, number>>;
 type PageviewsResponse = { data: ChartRow[] };
 
-// ---- Helpers ----
 const postJson = async (url: string, body: PageviewsRequest): Promise<PageviewsResponse> => {
   const res = await fetch(url, {
     method: "POST",
@@ -62,7 +60,6 @@ export default function ListingTrafficChart({
   months = 6,
   emptyNote = "No data yet — check back soon after visitors land on these pages.",
 }: Props) {
-  // Typed SWR key: [url, body]
   const swrKey =
     pagePaths.length > 0
       ? (["/api/analytics/pageviews", { pagePaths, months }] as const)
@@ -79,14 +76,18 @@ export default function ListingTrafficChart({
 
   const chartData: ChartRow[] = data?.data ?? [];
 
-  // Series keys present in GA response (exclude the x-axis "month")
+  // 1) Collect all series keys that ever appear across all rows
   const keys = useMemo(() => {
-    if (!chartData.length) return [] as string[];
-    const sample = chartData[0];
-    return Object.keys(sample).filter((k) => k !== "month");
+    const keySet = new Set<string>();
+    chartData.forEach((row) => {
+      Object.keys(row).forEach((k) => {
+        if (k !== "month") keySet.add(k);
+      });
+    });
+    return Array.from(keySet);
   }, [chartData]);
 
-  // Build config dynamically for detected series
+  // 2) Build config dynamically for detected series
   const chartConfig: ChartConfig = useMemo(() => {
     const cfg: ChartConfig = {};
     keys.forEach((k, idx) => {
@@ -98,20 +99,37 @@ export default function ListingTrafficChart({
     return cfg;
   }, [keys, seriesLabels]);
 
-  // If there is NO data yet (new user, no traffic), render a skeletal chart:
+  // 3) Empty state detection remains the same
   const isEmpty =
     !pagePaths.length ||                       // nothing to track yet
     isLoading ||                               // still fetching – show skeleton
     (!!pagePaths.length && chartData.length === 0); // no GA rows returned
 
-  // Placeholder rows so the axis/grid render nicely (no <Area> lines)
+  // 4) Placeholder rows for skeleton only (no series / Areas)
   const placeholderData: ChartRow[] = useMemo(
     () => monthLabels(months).map((m) => ({ month: m })),
     [months]
   );
 
-  // Decide which dataset to feed the chart
-  const dataToRender = isEmpty ? placeholderData : chartData;
+  // 5) When we *do* have data, pad out the months on X so you always see full window
+  const paddedData: ChartRow[] = useMemo(() => {
+    if (!chartData.length) return [];
+    const labels = monthLabels(months);
+
+    return labels.map((label) => {
+      const existing = chartData.find((row) => row.month === label);
+      if (existing) return existing;
+
+      // Fill missing months with 0s so the line extends across the full range
+      const row: ChartRow = { month: label };
+      keys.forEach((k) => {
+        row[k as `/${string}`] = 0;
+      });
+      return row;
+    });
+  }, [chartData, months, keys]);
+
+  const dataToRender = isEmpty ? placeholderData : paddedData;
 
   return (
     <Card>
@@ -121,7 +139,6 @@ export default function ListingTrafficChart({
       </CardHeader>
 
       <CardContent className="relative">
-        {/* Top-right hint for empty state */}
         {isEmpty && (
           <div
             className="absolute right-2 top-2 text-xs rounded-md px-2 py-1 bg-neutral-100 text-neutral-700 border border-neutral-200"
@@ -141,9 +158,10 @@ export default function ListingTrafficChart({
           <AreaChart
             accessibilityLayer
             data={dataToRender}
-            margin={{ left: 12, right: 12 }}
+            margin={{ left: 12, right: 12, top: 8, bottom: 0 }}
           >
             <CartesianGrid vertical={false} />
+
             <XAxis
               dataKey="month"
               tickLine={false}
@@ -154,7 +172,17 @@ export default function ListingTrafficChart({
               }
             />
 
-            {/* Tooltip only if we have real data/series */}
+            {/* New: Y-axis with a bit of headroom */}
+            <YAxis
+              tickLine={false}
+              axisLine={false}
+              tickMargin={8}
+              allowDecimals={false}
+              domain={[0, (dataMax: number) =>
+                dataMax <= 5 ? 5 : Math.ceil(dataMax * 1.2)
+              ]}
+            />
+
             {!isEmpty && (
               <>
                 <ChartTooltip
@@ -165,10 +193,13 @@ export default function ListingTrafficChart({
                   <Area
                     key={k}
                     dataKey={k}
-                    type="natural"
+                    type="monotone"
                     fill={`var(--color-${k})`}
-                    fillOpacity={0.4}
+                    fillOpacity={0.2} // a bit lighter so it doesn't look like a solid block
                     stroke={`var(--color-${k})`}
+                    strokeWidth={2}
+                    dot={{ r: 3 }}
+                    activeDot={{ r: 5 }}
                     className={`[--color-${k}:var(${chartConfig[k]?.color || "black"})]`}
                   />
                 ))}
@@ -178,7 +209,6 @@ export default function ListingTrafficChart({
           </AreaChart>
         </ChartContainer>
 
-        {/* Optional: tiny loading text (kept subtle since we show skeleton) */}
         {isLoading && (
           <div className="text-xs text-neutral-500 mt-2">Loading…</div>
         )}
