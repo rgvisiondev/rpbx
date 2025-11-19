@@ -8,61 +8,35 @@ import IndustryImagePicker from '@/app/onboarding/components/IndustryImagePicker
 import { geocodeAddresssTomTom } from '@/lib/geocode';
 
 export default async function Setup({
-  params,
 }: {
   params: { listingId: string };
 }) {
-  const listingId = params.listingId;
-
   const supabase = await createClientRSC();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) {
-    redirect(
-      `/login?next=${encodeURIComponent(
-        `/onboarding/business/${listingId}/set-up`
-      )}`
-    );
+    // we don't really care about listingId here; Setup is "start draft" for this user
+    redirect('/login?next=/onboarding/business/set-up');
   }
   const userId = user.id as string;
 
-  // Load THIS listing's draft
+  // Load *this user's* active draft (like your original version)
+  // We DO NOT hard-require a specific listingId here.
   const { data: draft } = await supabase
     .from('business_listings')
     .select('id, title, industry, county, city, contact_email, listing_image_choice, address')
-    .eq('id', listingId)
     .eq('owner_id', userId)
     .eq('status', 'draft')
     .maybeSingle();
 
-  if (!draft) {
-    redirect('/dashboard/listings?err=no_draft_for_listing');
-  }
-
   const INDUSTRIES = Object.keys(INDUSTRY_SLUGS);
 
-  async function save(listingId: string, formData: FormData) {
+  async function save(formData: FormData) {
     'use server';
     const { createClientRSC } = await import('@/../utils/supabase/server');
     const sb = await createClientRSC();
     const { data: { user } } = await sb.auth.getUser();
     if (!user) {
-      redirect(
-        `/login?next=${encodeURIComponent(
-          `/onboarding/business/${listingId}/set-up`
-        )}`
-      );
-    }
-
-    // Ensure they own this listing and it's a draft
-    const { data: currentDraft } = await sb
-      .from('business_listings')
-      .select('id, owner_id, status')
-      .eq('id', listingId)
-      .eq('owner_id', user.id)
-      .maybeSingle();
-
-    if (!currentDraft || currentDraft.status !== 'draft') {
-      redirect('/dashboard/listings?err=no_draft_for_listing');
+      redirect('/login?next=/onboarding/business/set-up');
     }
 
     const title    = String(formData.get('title') ?? '').trim();
@@ -101,17 +75,45 @@ export default async function Setup({
       geocoded_at: geo ? new Date().toISOString() : null,
     };
 
-    const { error: updErr } = await sb
+    // 🔹 Ensure we have a draft for this user (this is your old behavior)
+    const { data: existingDraft } = await sb
       .from('business_listings')
-      .update(payload)
-      .eq('id', listingId)
-      .eq('owner_id', user.id);
+      .select('id')
+      .eq('owner_id', user.id)
+      .eq('status', 'draft')
+      .maybeSingle();
 
-    if (updErr) {
-      console.error('Setup save error', updErr);
-      redirect(`/onboarding/business/${listingId}/set-up?msg=save_error`);
+    let listingId = existingDraft?.id as string | undefined;
+
+    if (!listingId) {
+      // No draft yet → create one now
+      const { data: ins, error: insErr } = await sb
+        .from('business_listings')
+        .insert(payload)
+        .select('id')
+        .single();
+
+      if (insErr || !ins?.id) {
+        console.error('Setup insert error', insErr);
+        redirect('/dashboard/listings?err=setup_insert_failed');
+      }
+
+      listingId = ins.id;
+    } else {
+      // Draft exists → update it
+      const { error: updErr } = await sb
+        .from('business_listings')
+        .update(payload)
+        .eq('id', listingId)
+        .eq('owner_id', user.id);
+
+      if (updErr) {
+        console.error('Setup update error', updErr);
+        redirect('/dashboard/listings?err=setup_update_failed');
+      }
     }
 
+    // 🔹 From here on, we ALWAYS use the canonical listingId-based flow
     redirect(`/onboarding/business/${listingId}/contact`);
   }
 
@@ -123,7 +125,7 @@ export default async function Setup({
       </div>
 
       <div className="bg-white mx-auto max-w-lg lg:min-w-[550px] p-6 my-5 rounded-xl border border-neutral-200 shadow">
-        <form action={save.bind(null, listingId)}>
+        <form action={save}>
           <h1 className="text-2xl font-semibold">Dive Into Your Business</h1>
           <p className="mt-2">
             Tell us what makes your business unique! Start by adding the essentials — your name,
