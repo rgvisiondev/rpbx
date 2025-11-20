@@ -2,8 +2,6 @@
 import { NextResponse } from "next/server";
 import { createClientRSC } from "@/../utils/supabase/server";
 
-// DB row shapes (only the fields we actually use)
-
 interface SubscriptionMetadata {
   listing_id?: string;
 }
@@ -14,6 +12,8 @@ interface SubscriptionRow {
   current_period_end: string | null;
   user_id: string;
   metadata: SubscriptionMetadata | null;             // holds listing_id, etc.
+  cancel_at: string | null;
+  cancel_at_period_end: boolean | null;
 }
 
 interface PromotionRow {
@@ -21,6 +21,7 @@ interface PromotionRow {
   status: string | null;
   current_period_end: string | null;
   stripe_subscription_id: string;
+  cancel_at_period_end: boolean | null;
 }
 
 interface ListingRow {
@@ -38,6 +39,8 @@ interface BillingRow {
   listingId?: string;
   listingTitle?: string | null;
   stripeSubscriptionId?: string | null;
+  cancelAt?: string | null;
+  cancelAtPeriodEnd?: boolean | null;
 }
 
 function formatDate(dateString: string | null): string | null {
@@ -107,6 +110,8 @@ export async function GET() {
       status: s.status,
       renews: formatDate(s.current_period_end) ?? null,
       stripeSubscriptionId: s.id,
+      cancelAt: s.cancel_at,
+      cancelAtPeriodEnd: s.cancel_at_period_end,
     });
   }
 
@@ -160,6 +165,8 @@ export async function GET() {
       listingId,
       listingTitle,
       stripeSubscriptionId: s.id,
+      cancelAt: s.cancel_at,
+      cancelAtPeriodEnd: s.cancel_at_period_end,
     });
   }
 
