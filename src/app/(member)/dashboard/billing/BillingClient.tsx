@@ -12,10 +12,13 @@ type BillingRow = {
   listingId?: string;
   listingTitle?: string | null;
   stripeSubscriptionId?: string | null;
+  cancelAt?: string | null;
+  cancelAtPeriodEnd?: boolean | null;
 };
 
-function formatStatus(status: string | null): string {
+function formatStatus(status: string | null, cancelAtPeriodEnd?: boolean | null){
   if (!status) return "—";
+  if (status === "active" && cancelAtPeriodEnd) return "Canceling"
 
   const map: Record<string, string> = {
     trialing: "Trialing",
@@ -107,9 +110,28 @@ export default function BillingClient() {
             </thead>
             <tbody>
               {rows.map((r, i) => {
+                const status = r.status ?? null;
+                const isCanceling =
+                  status === "active" && r.cancelAtPeriodEnd === true;
                 const isActive =
-                  r.status === "active" || r.status === "trialing" || r.status === "past_due";
-                const isCanceled = r.status === "canceled" || r.status === "unpaid" || r.status === "paused";
+                  (status === "active" || status === "trialing" || status === "past_due") &&
+                  !isCanceling;
+                const isCanceled =
+                  status === "canceled" || status === "unpaid" || status === "paused";
+
+                let statusClass =
+                  "inline-flex items-center px-2 py-1 rounded-full bg-gray-50 text-gray-700 text-xs";
+
+                if (status === "active" && !isCanceling) {
+                  statusClass =
+                    "inline-flex items-center px-2 py-1 rounded-full bg-green-50 text-green-700 text-xs";
+                } else if (isCanceling) {
+                  statusClass =
+                    "inline-flex items-center px-2 py-1 rounded-full bg-amber-50 text-amber-700 text-xs";
+                } else if (status === "canceled") {
+                  statusClass =
+                    "inline-flex items-center px-2 py-1 rounded-full bg-red-50 text-red-700 text-xs";
+                }
 
                 return (
                   <tr key={i} className="border-t">
@@ -134,22 +156,26 @@ export default function BillingClient() {
                       )}
                     </td>
                     <td className="py-2">
-                      <span
-                        className={
-                          r.status === "active"
-                            ? "inline-flex items-center px-2 py-1 rounded-full bg-green-50 text-green-700 text-xs"
-                            : r.status === "canceled"
-                            ? "inline-flex items-center px-2 py-1 rounded-full bg-red-50 text-red-700 text-xs"
-                            : "inline-flex items-center px-2 py-1 rounded-full bg-gray-50 text-gray-700 text-xs"
-                        }
-                      >
-                        {formatStatus(r.status)}
+                      <span className={statusClass}>
+                        {formatStatus(status, r.cancelAtPeriodEnd)}
                       </span>
                     </td>
                     <td className="py-2">{r.renews ?? "—"}</td>
                     <td className="py-2 text-right space-x-2">
                       {!r.stripeSubscriptionId ? (
                         <span className="text-xs text-gray-400">—</span>
+                      ) : isCanceling ? (
+                        <button
+                          onClick={() =>
+                            manageSubscription(
+                              r.stripeSubscriptionId as string,
+                              "update"
+                            )
+                          }
+                          className="px-3 py-1 rounded-full border text-xs hover:bg-gray-50 transition"
+                        >
+                          Manage
+                        </button>
                       ) : isActive ? (
                         <>
                           <button
