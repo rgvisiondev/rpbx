@@ -3,13 +3,17 @@ import { NextResponse } from "next/server";
 import { createClientRSC } from "@/../utils/supabase/server";
 
 // DB row shapes (only the fields we actually use)
+
+interface SubscriptionMetadata {
+  listing_id?: string;
+}
 interface SubscriptionRow {
   id: string;                       // Stripe subscription id
   product_name: string | null;
   status: string | null;
   current_period_end: string | null;
   user_id: string;
-  metadata: any | null;             // holds listing_id, etc.
+  metadata: SubscriptionMetadata | null;             // holds listing_id, etc.
 }
 
 interface PromotionRow {
