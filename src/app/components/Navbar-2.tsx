@@ -126,7 +126,9 @@ export default function Navbar({ userType }: { userType: UserType }) {
             </li>
           )}
           <li>
-            <Button onClick={() => setIsMobileMenuOpen(false)}>Login</Button>
+            <form action="/signout" method="post">
+              <Button type="submit">Log Out</Button>
+            </form>
           </li>
         </ul>
       </div>
@@ -134,8 +136,8 @@ export default function Navbar({ userType }: { userType: UserType }) {
   );
 
   return (
-    <nav className="sticky top-0 z-[9999] w-full py-10 backdrop-saturate-150 px-5 lg:px-0 ">
-      <div className="mx-auto w-full lg:w-[1140px] lg:px-10 px-7 py-2 bg-white rounded-full shadow-md">
+    <nav className="sticky top-0 z-30 w-full py-10 backdrop-saturate-150 px-5 lg:px-0 ">
+      <div className="mx-auto w-full lg:max-w-[1140px] lg:px-10 px-7 py-2 bg-white rounded-full shadow-md">
         <div className="flex flex-wrap items-center justify-between text-slate-800">
           <Link href="/dashboard" className="flex items-center">
             <Image

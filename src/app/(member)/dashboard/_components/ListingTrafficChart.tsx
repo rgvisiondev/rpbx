@@ -132,7 +132,7 @@ export default function ListingTrafficChart({
   const dataToRender = isEmpty ? placeholderData : paddedData;
 
   return (
-    <Card>
+    <Card className="overflow-visible">
       <CardHeader>
         <CardTitle>{title}</CardTitle>
         <CardDescription>{description}</CardDescription>

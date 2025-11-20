@@ -127,7 +127,7 @@ export default async function Business() {
           <BusinessSlider />
 
           <div className="flex-1 flex justify-center lg:justify-start">
-            <div className="flex flex-col items-center text-center w-full lg:w-[560px] px-4 overflow-hidden">
+            <div className="flex flex-col items-center text-center w-full lg:w-[560px] px-4 pb-8 lg:pb-0 overflow-hidden">
               <CardCarousel />
             </div>
           </div>
@@ -136,7 +136,7 @@ export default async function Business() {
       </div>
 
       {/* Div 4: video */}
-      <VideoSection videoUrl="https://www.youtube.com/embed/ZRSDJQO8ggA" />
+      <VideoSection videoUrl="https://www.youtube.com/embed/fA0zEuTz02s" />
     </div>
   );
 }

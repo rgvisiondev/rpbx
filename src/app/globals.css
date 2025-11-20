@@ -224,6 +224,11 @@ h4.large {
   color: #60BC9B !important;
 }
 
+.always-scroll {
+  overflow-x: scroll;          /* forces scrollbar */
+  scrollbar-gutter: stable both-edges;
+}
+
 
 .dark {
   --background: oklch(0.145 0 0);
