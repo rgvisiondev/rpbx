@@ -90,7 +90,7 @@ function PricingTab(props: PricingTabProps) {
   };
 
   return (
-    <div className={`w-1/3`}>
+    <div className={`w-full lg:w-1/3`}>
       <div className="relative flex flex-col h-full p-6 rounded-2xl bg-white border border-slate-200 shadow shadow-slate-950/5 transition-all duration-300 hover:-translate-y-2 hover:shadow-xl">
         {props.popular && (
           <div className="absolute top-0 right-0 mr-6 -mt-4">
@@ -360,7 +360,7 @@ export default function PricingTable({ dark, loggedIn }: PricingTableProps) {
 
       {/* Cards */}
       <div className="max-w-[1140px] mx-auto">
-        <div className="flex flex-row gap-6 justify-center">
+        <div className="flex flex-col lg:flex-row gap-6 justify-center">
           {visiblePlans.map((p) => (
             <PricingTab
               key={`${p.planName}-${isAnnual ? 'year' : 'month'}`}

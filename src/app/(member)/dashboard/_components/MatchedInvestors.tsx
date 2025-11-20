@@ -59,7 +59,7 @@ export default async function MatchedInvestors({ matches }: { matches: InvestorM
             <Image
               src={imgSrc}
               alt={`${name}'s profile photo`}
-              className="rounded-t-lg w-full shadow-lg border-x-2 border-t-2 border-gray-500 object-cover h-[220px]"
+              className="rounded-t-lg w-full shadow-lg border-x-2 border-t-2 border-gray-200 object-cover h-[220px]"
               width={400}
               height={220}
               loading="lazy"
@@ -67,7 +67,7 @@ export default async function MatchedInvestors({ matches }: { matches: InvestorM
               // Remove this once you've whitelisted your Supabase host in next.config.(t|j)s
               unoptimized
             />
-            <div className="bg-white p-5 rounded-b-lg shadow-lg border-x-2 border-b-2 border-grey-500">
+            <div className="bg-white p-5 rounded-b-lg shadow-lg border-x-2 border-b-2 border-grey-200">
               <h4 className="font-semibold">{name}</h4>
               <p className="italic">{m.primary_industry ?? "—"}</p>
               {m._source === "matched"}

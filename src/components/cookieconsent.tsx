@@ -10,7 +10,7 @@ export default function CookieConsentWrapper() {
       declineButtonText="Decline"
       enableDeclineButton
       cookieName="rpbx_cookie_consent"
-      style={{ background: "#272727", borderTop: "1px solid #7c7c7cff" }}
+      style={{ background: "#272727", borderTop: "1px solid #7c7c7cff", width: "100%", maxWidth: "100%",}}
       buttonStyle={{
         background: "#60BC9B",
         color: "#fff",

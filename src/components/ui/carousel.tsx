@@ -39,7 +39,7 @@ export default function Carousel() {
           <div className="flex flex-col items-center justify-center text-center px-6 h-full">
             <h3 className="giant">{slide.number}</h3>
             <h4 className="text-lg font-semibold">{slide.title}</h4>
-            <p className="mt-3 w-full lg:w-[500px]">
+            <p className="mt-3 w-full lg:w-[500px] pb-10">
               {slide.text}
             </p>
           </div>

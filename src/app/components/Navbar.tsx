@@ -103,7 +103,7 @@ export default function Navbar() {
 
   return (
     <nav className="top-0 z-[9999] w-full py-4 backdrop-saturate-150">
-      <div className="mx-auto w-full lg:w-[1140px] px-4">
+      <div className="mx-auto w-full lg:max-w-[1140px] px-4">
         <div className="flex flex-wrap items-center justify-between text-slate-800">
           <Link href="/" className="flex items-center">
             <Image
