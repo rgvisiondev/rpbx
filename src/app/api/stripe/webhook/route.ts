@@ -14,7 +14,22 @@ const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET!;
 const BIZ_EQUITY_BASE = process.env.BIZEQUITY_URL!;
 const resend = new Resend(process.env.RESEND_API_KEY!);
 
+function isDeletedCustomer(
+  c: Stripe.Customer | Stripe.DeletedCustomer
+): c is Stripe.DeletedCustomer {
+  return (c as Stripe.DeletedCustomer).deleted === true;
+}
+
+
 function getAdmin(): SupabaseClient<Database> {
+  console.log(
+    "Webhook Supabase URL:",
+    process.env.NEXT_PUBLIC_SUPABASE_URL
+  );
+  console.log(
+    "Webhook has service role key?",
+    !!process.env.SUPABASE_SERVICE_ROLE_KEY
+  );
   return createClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
@@ -136,35 +151,76 @@ async function upsertSubscription(
 ) {
   const stripeCustomerId =
     typeof sub.customer === "string" ? sub.customer : sub.customer?.id;
-  if (!stripeCustomerId) return;
+  if (!stripeCustomerId) {
+    console.warn("No stripeCustomerId on subscription", sub.id);
+    return;
+  }
 
-  const { data: mapRow } = await admin
+  // 1) Map Stripe customer -> Supabase user via customers table
+  const { data: mapRow, error: mapErr } = await admin
     .from("customers")
     .select("id")
     .eq("stripe_customer_id", stripeCustomerId)
     .maybeSingle();
 
+  if (mapErr) {
+    console.error("customers lookup error:", mapErr);
+  }
+
   let userId = mapRow?.id ?? null;
 
+  // 2) Fallback: from Stripe customer metadata (old flows)
   if (!userId) {
-    const cust =
-      typeof sub.customer === "string"
-        ? await stripe.customers.retrieve(sub.customer)
-        : (sub.customer as Stripe.Customer);
-    const metaUserId = (cust as Stripe.Customer).metadata?.supabase_user_id;
+      const cust =
+        typeof sub.customer === "string"
+          ? await stripe.customers.retrieve(sub.customer)
+          : sub.customer;
+
+      if (!cust || isDeletedCustomer(cust)) {
+        console.warn(
+          "upsertSubscription: Stripe customer is deleted or missing, cannot resolve supabase_user_id"
+        );
+        return;
+      }
+    const metaUserId = cust.metadata?.supabase_user_id as string | undefined;
     if (metaUserId) {
+      userId = metaUserId;
+
+      // keep customers table in sync
       await admin
         .from("customers")
         .upsert({ id: metaUserId, stripe_customer_id: stripeCustomerId });
-      userId = metaUserId;
     }
   }
 
   if (!userId) {
-    console.warn("No user mapping for stripe_customer_id:", stripeCustomerId);
+    console.warn(
+      "upsertSubscription: no mapped userId for stripeCustomerId",
+      stripeCustomerId,
+      "sub",
+      sub.id
+    );
     return;
   }
 
+  // 3) Make sure this user actually exists on our app side (mirrors auth.users)
+  const { data: profileRow } = await admin
+    .from("profiles")
+    .select("id")
+    .eq("id", userId)
+    .maybeSingle();
+
+  if (!profileRow) {
+    console.warn(
+      "upsertSubscription: userId has no profile (likely no auth.user), skipping",
+      userId,
+      "sub",
+      sub.id
+    );
+    return; // <-- prevents FK error 23503
+  }
+
+  // 4) Build row as before
   const item = sub.items?.data?.[0];
   const price = item?.price ?? undefined;
   const { startISO: currentPeriodStart, endISO: currentPeriodEnd } =
@@ -185,7 +241,7 @@ async function upsertSubscription(
     status: sub.status as Database["public"]["Enums"]["subscription_status"],
     price_id: price?.id ?? null,
     quantity: item?.quantity ?? null,
-    metadata: subMetadata as unknown as TablesInsert<"subscriptions">["metadata"],
+    metadata: subMetadata as TablesInsert<"subscriptions">["metadata"],
     cancel_at: toISO(sub.cancel_at ?? null),
     cancel_at_period_end: sub.cancel_at_period_end ?? null,
     canceled_at: toISO(sub.canceled_at ?? null),
@@ -204,14 +260,25 @@ async function upsertSubscription(
     price_interval_count: price?.recurring?.interval_count ?? null,
     price_nickname: price?.nickname ?? null,
     price_lookup_key: price?.lookup_key ?? null,
-    price_metadata: priceMetadata as unknown as TablesInsert<"subscriptions">["price_metadata"],
-    product_metadata: productMetadata as unknown as TablesInsert<"subscriptions">["product_metadata"],
+    price_metadata:
+      priceMetadata as TablesInsert<"subscriptions">["price_metadata"],
+    product_metadata:
+      productMetadata as TablesInsert<"subscriptions">["product_metadata"],
   };
 
   const { error } = await admin.from("subscriptions").upsert(row);
-  if (error) console.error("subscriptions upsert error:", error);
-  else console.log(`upserted subscription ${sub.id} for user ${userId}`);
+  if (error) {
+    console.error(
+      "subscriptions upsert error (after profile check):",
+      JSON.stringify(error, null, 2)
+    );
+  } else {
+    console.log(
+      `upserted subscription ${sub.id} for user ${userId} with status ${sub.status}`
+    );
+  }
 }
+
 
 // Type for listing_evaluations insert
 type ListingEvaluationInsert = {
@@ -404,10 +471,10 @@ export async function POST(req: NextRequest) {
       return new Response("ok", { status: 200 });
     }
 
+    // Handle created / updated subscription events with expanded data
     if (
       type === "customer.subscription.created" ||
-      type === "customer.subscription.updated" ||
-      type === "customer.subscription.deleted"
+      type === "customer.subscription.updated"
     ) {
       const subObj = event.data.object as Stripe.Subscription;
       const sub = await stripe.subscriptions.retrieve(subObj.id, {
@@ -420,9 +487,13 @@ export async function POST(req: NextRequest) {
       const role = resolveBaseRole(price, sub.metadata);
       if (role) {
         const nextType =
-          sub.status === "active" || sub.status === "trialing" ? role : "member";
+          sub.status === "active" || sub.status === "trialing"
+            ? role
+            : "member";
         const stripeCustomerId =
-          typeof sub.customer === "string" ? sub.customer : sub.customer?.id;
+          typeof sub.customer === "string"
+            ? sub.customer
+            : sub.customer?.id;
         if (stripeCustomerId) {
           const { data: mapRow } = await admin
             .from("customers")
@@ -452,7 +523,33 @@ export async function POST(req: NextRequest) {
             cancel_at_period_end: sub.cancel_at_period_end ?? false,
           })
           .eq("stripe_subscription_id", sub.id);
-        if (promoUpdErr) console.error("listing_promotions update error:", promoUpdErr);
+        if (promoUpdErr)
+          console.error("listing_promotions update error:", promoUpdErr);
+      }
+
+      return new Response("ok", { status: 200 });
+    }
+
+    // Handle deleted subscription events without retrieving from Stripe
+    if (type === "customer.subscription.deleted") {
+      const sub = event.data.object as Stripe.Subscription;
+
+      // This will mark status = 'canceled', set ended_at, cancel_at, etc.
+      await upsertSubscription(admin, sub);
+
+      // If this was a promo sub, keep listing_promotions in sync too
+      if ((sub.metadata?.purpose ?? "") === "listing_promo") {
+        const { endISO: currentPeriodEnd } = extractPeriodISO(sub);
+        const { error: promoUpdErr } = await admin
+          .from("listing_promotions")
+          .update({
+            status: sub.status,
+            current_period_end: currentPeriodEnd,
+            cancel_at_period_end: sub.cancel_at_period_end ?? false,
+          })
+          .eq("stripe_subscription_id", sub.id);
+        if (promoUpdErr)
+          console.error("listing_promotions update error:", promoUpdErr);
       }
 
       return new Response("ok", { status: 200 });

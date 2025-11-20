@@ -72,7 +72,7 @@ export async function GET() {
   const { data: subs, error: subsError } = await supabase
     .from("subscriptions")
     .select(
-      "id, product_name, status, current_period_end, user_id, metadata"
+      "id, product_name, status, current_period_end, user_id, metadata, cancel_at, cancel_at_period_end"
     )
     .eq("user_id", user.id)
     .returns<SubscriptionRow[]>();
@@ -175,7 +175,7 @@ export async function GET() {
   // ----------------------------
   const { data: boosts, error: boostsError } = await supabase
     .from("listing_promotions")
-    .select("listing_id, status, current_period_end, stripe_subscription_id")
+    .select("listing_id, status, current_period_end, stripe_subscription_id, cancel_at_period_end")
     .returns<PromotionRow[]>();
 
   if (boostsError) {
@@ -206,6 +206,7 @@ export async function GET() {
           listingId: b.listing_id,
           listingTitle: byId.get(b.listing_id) ?? b.listing_id,
           stripeSubscriptionId: b.stripe_subscription_id,
+          cancelAtPeriodEnd: b.cancel_at_period_end,
         });
       }
     }
