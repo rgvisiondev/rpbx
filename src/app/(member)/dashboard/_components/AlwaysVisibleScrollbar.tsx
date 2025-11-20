@@ -74,7 +74,6 @@ export default function AlwaysVisibleScrollbar({
     const onPointerMove = (e: PointerEvent) => {
       if (!draggingRef.current) return;
 
-      const trackRect = track.getBoundingClientRect();
       const trackW = track.clientWidth;
       const thumbW = thumb.clientWidth;
       const maxThumbX = trackW - thumbW;
@@ -94,7 +93,7 @@ export default function AlwaysVisibleScrollbar({
       document.removeEventListener("pointerup", onPointerUp);
     };
 
-    const onPointerDown = (e: PointerEvent) => {
+    const onPointerDown: (this: HTMLDivElement, e: PointerEvent) => void = (e) => {
       draggingRef.current = true;
       dragStartRef.current = e.clientX;
 
@@ -113,7 +112,7 @@ export default function AlwaysVisibleScrollbar({
       document.addEventListener("pointerup", onPointerUp);
     };
 
-    thumb.addEventListener("pointerdown", onPointerDown as any);
+    thumb.addEventListener("pointerdown", onPointerDown);
 
     const onTrackClick = (e: MouseEvent) => {
       if (e.target === thumb) return;
@@ -134,7 +133,7 @@ export default function AlwaysVisibleScrollbar({
     track.addEventListener("click", onTrackClick);
 
     return () => {
-      thumb.removeEventListener("pointerdown", onPointerDown as any);
+      thumb.removeEventListener("pointerdown", onPointerDown);
       track.removeEventListener("click", onTrackClick);
     };
   }, []);
@@ -164,8 +163,7 @@ export default function AlwaysVisibleScrollbar({
           style={{
             height: trackHeight,
             width: 40,
-            background:
-              "linear-gradient(90deg, #60BC9B 0%, #8fe4c5ff 100%)",
+            background: "linear-gradient(90deg, #60BC9B 0%, #60BC9B 100%)",
           }}
         />
       </div>
