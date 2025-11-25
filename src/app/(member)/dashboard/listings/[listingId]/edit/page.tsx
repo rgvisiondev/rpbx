@@ -7,6 +7,12 @@ import { Progress } from '@/components/ui/progress'
 import { INDUSTRY_SLUGS } from '@/lib/industryImages'
 import IndustryImagePicker from '@/app/onboarding/components/IndustryImagePicker'
 import { geocodeAddresssTomTom } from '@/lib/geocode'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger
+} from "@/components/ui/tooltip";
+import AddressAutocomplete from '@/app/onboarding/components/AddressAutocomplete'
 
 
 type Params = { listingId: string }
@@ -199,17 +205,17 @@ export default async function EditListingPage({ params }: PageProps) {
                 defaultImageKey={listing?.listing_image_choice ?? ''}
             ></IndustryImagePicker>
           </label>
-          <label className="block pt-4 pt-4">
-          <span>Business Address</span>
-          <input
-            name="address"
-            defaultValue={listing.address ?? ''}
-            placeholder="123 Main St, McAllen, TX 78501"
-            className="mt-1 w-full border rounded px-3 py-2"
-          />
-          <p className="text-xs text-gray-500 mt-1">
-            We&apos;ll only use this to auto-fill city and county. Your exact address is <strong>never</strong> shown to investors.
-          </p>
+          <label className="block pt-4">
+            <span>Business Address</span>
+            <AddressAutocomplete
+              name="address"
+              defaultValue={listing?.address ?? ""}
+              placeholder="123 Main St, McAllen, TX 78501"
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              We&apos;ll only use this to auto-fill city and county. Your exact address is{" "}
+              <strong>never</strong> shown to investors.
+            </p>
           </label>
           {/* Contact flags */}
           <label className="flex items-center gap-2 pt-4">
@@ -251,7 +257,16 @@ export default async function EditListingPage({ params }: PageProps) {
           </label>
 
           <label className="block pt-4">
-            <span>EBITDA</span>
+            <Tooltip>
+              <span>
+                EBITDA <TooltipTrigger>ⓘ</TooltipTrigger>
+              </span>
+              <TooltipContent>
+                EBITDA (Earnings Before Interest, Taxes, Depreciation, and Amortization) shows your<br/>
+                business&#39;s profit from operations, before accounting for things like loans, taxes,
+                or depreciation.
+              </TooltipContent>
+            </Tooltip>
             <select name="ebitda_range" defaultValue={listing.ebitda_range ?? ''} className="mt-1 w-full border rounded px-3 py-2 hover:cursor-pointer">
               <option value="">—</option>
               <option value="lt_50k">Under 50K</option>
@@ -287,10 +302,26 @@ export default async function EditListingPage({ params }: PageProps) {
             </select>
           </label>
           <label className="block pt-4">
-            <span>Description</span>
-            <textarea name="description" rows={5} defaultValue={listing.description ?? ''} className="mt-1 w-full border rounded px-3 py-2" />
+            <Tooltip>
+              <span>
+                Description <TooltipTrigger> ⓘ</TooltipTrigger>
+                </span>
+              <TooltipContent>
+                Describe your business story, what you offer, and what makes your operation unique.<br/> 
+                Highlight your experience, customer loyalty, quality, or growth. Avoid listing confidential names,<br/> 
+                exact locations, or sensitive details. Focus on what sets your business apart and why it&#39;s a strong opportunity.
+              </TooltipContent>
+            </Tooltip>
+            <textarea
+              name="description"
+              rows={5}
+              defaultValue={listing?.description ?? ''}
+              className="mt-1 w-full border rounded px-3 py-2"
+              placeholder='Seasoned local service provider with 10+ years of experience, specializing in quality-focused operations and 
+              steady year-over-year growth. Our customer loyalty, efficient processes, 
+              and strong regional demand position this business for continued success.' 
+            />
           </label>
-
           <div className="mt-4 flex gap-3">
             <Button className="w-full">Save Changes</Button>
           </div>
