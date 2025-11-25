@@ -71,7 +71,7 @@ function PricingTab(props: PricingTabProps) {
     : null;
 
   // For unauth users, href is provided by parent; we keep it as-is
-  const href = props.checkoutLookup ? `/subscribe/${encodeURIComponent(props.checkoutLookup)}` : '#';
+  const href = props.checkoutLookup ? `/subscribe/${encodeURIComponent(props.checkoutLookup)}${isTrial ? `?trial=${trialDays}` : ''}` : '#';
 
   const canCheckout = props.loggedIn ? !!chosenPriceId : !!props.checkoutLookup;
 
