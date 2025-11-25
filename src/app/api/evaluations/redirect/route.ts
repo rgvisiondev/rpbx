@@ -10,6 +10,6 @@ export async function GET(req: Request) {
   }
 
 
-  const target = `/owner/listings/${listingId}/success`;
+  const target = `/dashboard/listings/${listingId}/valuation/success`;
   return new Response(null, { status: 302, headers: { Location: target } });
 }
