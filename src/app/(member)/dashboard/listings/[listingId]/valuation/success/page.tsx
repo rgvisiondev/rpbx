@@ -13,8 +13,8 @@ type Props = {
   params: { listingId: string };
 };
 
-export default async function ValuationSuccessPage({ params }: Props) {
-  const { listingId } = await params;
+export default function ValuationSuccessPage({ params }: Props) {
+  const { listingId } = params;
 
   return (
     <div className="flex flex-col bg-[url('/images/backgrounds/white-bg.png')] bg-repeat bg-center min-h-screen justify-center p-4 lg:py-10">
