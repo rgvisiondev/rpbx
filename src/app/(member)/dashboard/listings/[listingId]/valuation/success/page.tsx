@@ -1,4 +1,4 @@
-// app/owner/listings/[listingId]/valuation/success/page.tsx
+// src/app/(member)/dashboard/listings/[listingId]/valuation/success/page.tsx
 import Image from "next/image";
 import Link from "next/link";
 import Button from "@/app/components/Button";
@@ -9,12 +9,12 @@ const CALENDLY_URL =
   process.env.CALENDLY_VALUATION_URL ??
   "https://calendly.com/YOUR-RIOPLEX-CONSULTANT/valuation-call";
 
-type Props = {
-  params: { listingId: string };
+type ValuationSuccessPageProps = {
+  params: Promise<{ listingId: string }>;
 };
 
-export default function ValuationSuccessPage({ params }: Props) {
-  const { listingId } = params;
+export default async function ValuationSuccessPage({ params }: ValuationSuccessPageProps) {
+  const { listingId } = await params;
 
   return (
     <div className="flex flex-col bg-[url('/images/backgrounds/white-bg.png')] bg-repeat bg-center min-h-screen justify-center p-4 lg:py-10">
