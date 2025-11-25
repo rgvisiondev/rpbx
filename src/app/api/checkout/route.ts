@@ -57,6 +57,14 @@ export async function POST(req: Request) {
       const td = Number(body.trialDays);
       trialDaysFromClient =
         Number.isFinite(td) && td > 0 ? Math.floor(td) : undefined;
+
+        console.log("Parsed JSON body", {
+          priceId,
+          purpose,
+          listingId,
+          trialDaysRaw: body.trialDays,
+          trialDaysFromClient,
+        });
     } else {
       const form = await req.formData();
       priceId = String(form.get("priceId") ?? "");
@@ -70,6 +78,14 @@ export async function POST(req: Request) {
       const td = Number(form.get("trialDays"));
       trialDaysFromClient =
         Number.isFinite(td) && td > 0 ? Math.floor(td) : undefined;
+
+        console.log("Parsed FORM body", {
+          priceId,
+          purpose,
+          listingId,
+          trialDaysRaw: form.get("trialDays"),
+          trialDaysFromClient
+        })
     }
 
     if (!priceId) {
@@ -202,6 +218,13 @@ export async function POST(req: Request) {
     if (typeof trialDays === "number") {
       trialDays = Math.max(1, Math.min(trialDays, 60));
     }
+
+    console.log("Trial resolution", {
+      mdTrial,
+      trialDaysFromClient,
+      finalPurpose,
+      resolvedTrialDays: trialDays,
+    });
 
     // ---- Prevent duplicate base subscriptions ----
     if (finalPurpose === "base_membership") {

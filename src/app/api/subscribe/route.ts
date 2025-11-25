@@ -6,7 +6,6 @@ import { stripe } from '@/lib/stripe'
 import { createClientRSC } from '@/../utils/supabase/server'
 import { ensureCustomer } from '@/lib/ensure-customer' // make sure the path matches your file
 
-
 function deriveUserTypeFromPrice(price: Stripe.Price): 'investor' | 'business' | 'member' {
   const fromMeta = (price.metadata?.user_type ?? '').toLowerCase()
   if (fromMeta === 'investor' || fromMeta === 'business') return fromMeta
@@ -20,6 +19,8 @@ function deriveUserTypeFromPrice(price: Stripe.Price): 'investor' | 'business' |
 }
 
 export async function POST(req: Request) {
+  const origin = req.headers.get('origin') ?? process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
+  
   try {
     const form = await req.formData()
     const lookup = String(form.get('lookup') ?? '')
@@ -31,7 +32,7 @@ export async function POST(req: Request) {
     const password = String(form.get('password') ?? '')
 
     if ((!lookup && !priceIdFromForm) || !email || !password) {
-      return new Response('Missing fields', { status: 400 })
+      return Response.redirect(`${origin}/subscribe/${lookup}?error=missing_fields`, 303)
     }
 
     // 1) Create Supabase user (session may be null if email confirmations are ON)
@@ -44,15 +45,30 @@ export async function POST(req: Request) {
         // emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/confirm`,
       },
     })
+    
     if (signUpErr) {
-      if (String(signUpErr.message).toLowerCase().includes('already registered')) {
-        const origin = req.headers.get('origin') ?? process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
-        return Response.redirect(`${origin}/login?next=/pricing&reason=existing`, 303)
+      console.error('Sign up error:', signUpErr)
+      
+      // Check for "user already exists" error
+      if (String(signUpErr.message).toLowerCase().includes('already registered') || 
+          String(signUpErr.message).toLowerCase().includes('user already registered')) {
+        return Response.redirect(`${origin}/subscribe/${lookup}?error=account_exists`, 303)
       }
-      return new Response(`Sign up error: ${signUpErr.message}`, { status: 400 })
+      
+      // Check for rate limiting
+      if (String(signUpErr.message).toLowerCase().includes('rate') || 
+          String(signUpErr.message).toLowerCase().includes('too many')) {
+        return Response.redirect(`${origin}/subscribe/${lookup}?error=rate_limit`, 303)
+      }
+      
+      // Generic error - redirect back with unknown error
+      return Response.redirect(`${origin}/subscribe/${lookup}?error=unknown`, 303)
     }
+    
     const userId = signUpRes.user?.id
-    if (!userId) return new Response('Could not create user', { status: 500 })
+    if (!userId) {
+      return Response.redirect(`${origin}/subscribe/${lookup}?error=unknown`, 303)
+    }
 
     // 2) Resolve the Price (by lookup preferred; priceId fallback)
     let price: Stripe.Price | null = null
@@ -68,8 +84,9 @@ export async function POST(req: Request) {
     } else if (priceIdFromForm) {
       price = await stripe.prices.retrieve(priceIdFromForm, { expand: ['product'] })
     }
+    
     if (!price || !price.active || !((price.product as Stripe.Product)?.active)) {
-      return new Response('Invalid plan', { status: 400 })
+      return Response.redirect(`${origin}/subscribe/${lookup}?error=invalid_plan`, 303)
     }
 
     // Derive user_type that the webhook will ultimately enforce
@@ -79,9 +96,6 @@ export async function POST(req: Request) {
     const customerId = await ensureCustomer({id: userId, email: signUpRes.user?.email ?? email})
 
     // 4) Create Checkout Session (subscription) with helpful metadata
-    const origin =
-      req.headers.get('origin') ?? process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
-
     const session = await stripe.checkout.sessions.create({
       mode: 'subscription',
       customer: customerId,
@@ -96,13 +110,22 @@ export async function POST(req: Request) {
         },
       },
       success_url: `${origin}/welcome?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${origin}/pricing`,
+      cancel_url: `${origin}/subscribe/${lookup}`,
       allow_promotion_codes: true,
     })
 
     return Response.redirect(session.url!, 303)
   } catch (e) {
     console.error('Subscribe flow error:', e)
-    return new Response('Subscribe error', { status: 500 })
+    
+    // Get lookup from form if available for redirect
+    let lookup = ''
+    try {
+      const form = await req.formData()
+      lookup = String(form.get('lookup') ?? '')
+    } catch {}
+    
+    // Redirect back to subscribe page with error instead of showing black screen
+    return Response.redirect(`${origin}/subscribe/${lookup || 'business_monthly'}?error=unknown`, 303)
   }
 }
