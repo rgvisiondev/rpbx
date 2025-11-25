@@ -11,7 +11,8 @@ import ValuationEmail from "@/emails/ValuationEmail";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET!;
-const BIZ_EQUITY_BASE = process.env.BIZEQUITY_URL!;
+const BIZ_EQUITY_URL = process.env.BIZEQUITY_URL!;
+const CALENDLY_VALUATION_URL = process.env.CALENDLY_VALUATION_URL!;
 const resend = new Resend(process.env.RESEND_API_KEY!);
 
 function isDeletedCustomer(
@@ -35,12 +36,6 @@ function getAdmin(): SupabaseClient<Database> {
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
     { auth: { persistSession: false } }
   );
-}
-
-function buildBizEquityLink(listingId: string) {
-  const url = new URL(BIZ_EQUITY_BASE);
-  url.searchParams.set("listing_id", listingId);
-  return url.toString();
 }
 
 // Normalize Stripe event types
@@ -452,14 +447,18 @@ export async function POST(req: NextRequest) {
         }
 
         if (toEmail) {
-          const evaluationLink = buildBizEquityLink(listingId);
+          const evaluationLink = BIZ_EQUITY_URL;
+          const calendlyLink = CALENDLY_VALUATION_URL;
           const idemKey = `eval-email:${piId ?? sess.id}`;
           await resend.emails.send(
             {
-              from: "RioPlex <valuations@rioplexbizx.com>",
+              from: "RioPlex <info@rioplexbizx.com>",
               to: toEmail,
-              subject: "Your Business Valuation Link",
-              react: ValuationEmail({ link: evaluationLink }),
+              subject: "Your RPBX Valuation is ready to begin",
+              react: ValuationEmail({
+                link: evaluationLink,
+                calendlyLink
+              }),
             },
             { idempotencyKey: idemKey }
           );
