@@ -87,7 +87,7 @@ export default async function SubscribePage({
         </Link>
         <h1 className="mt-2 text-2xl font-semibold">Create Your Account</h1>
         <p className="mt-2 text-neutral-600">
-          You're subscribing to <strong>{product.name}</strong>
+          You&apos;re subscribing to <strong>{product.name}</strong>
         </p>
         <p className="text-neutral-600">Price: {displayPriceText}</p>
         <hr className="mb-1 mt-4" />
