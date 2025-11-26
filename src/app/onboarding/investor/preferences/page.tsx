@@ -4,6 +4,8 @@ import { redirect } from "next/navigation";
 import OwnershipRange from "./OwnershipRange";
 import Button from "../../../components/Button";
 import { Progress } from "@/components/ui/progress"
+import { INDUSTRY_SLUGS } from "@/lib/industryImages";
+
 
 export default async function Preferences() {
   const supabase = await createClientRSC();
@@ -83,13 +85,7 @@ export default async function Preferences() {
     redirect("/onboarding/investor/compliance");
   }
 
-  const INDUSTRY_OPTIONS = [
-    "Healthcare","Technology","Finance","Real Estate","Education","Manufacturing","Retail","Hospitality",
-    "Transportation","Agriculture","Energy","Entertainment","Construction","Telecommunications","Insurance",
-    "Legal","Automotive","Food and Beverage","Media and Advertising","Pharmaceutical","Tourism","Fashion",
-    "Logistics","Non-profit","Environmental Services","Biotechnology","Aerospace","E-commerce","Consulting",
-    "Sports and Recreation","Other"
-  ];
+  const INDUSTRY_OPTIONS = Object.keys(INDUSTRY_SLUGS)
 
   const INDUSTRY_EXPERIENCE_OPTIONS = [
     { label: "0–2 years",  value: "0-2" },
