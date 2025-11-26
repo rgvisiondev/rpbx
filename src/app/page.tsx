@@ -8,7 +8,7 @@ import { createClientRSC } from "@/../utils/supabase/server"
 import { redirect } from "next/navigation"
 import PricingTable from "./components/pricing-table";
 import NewsletterSignup from "../components/ui/newsletter";
-import Carousel from "../components/ui/carousel";
+import MyCarousel from "../components/ui/myCarousel";
 import HoverGif from '../components/HoverGif'
 import ContactForm from "@/app/components/ContactForm";
 import HomeSlider from "@/components/sliders/homeslider";
@@ -120,7 +120,7 @@ export default async function Home() {
 
           <div className="flex-1 flex justify-center lg:justify-start">
             <div className="flex flex-col items-center text-center w-full lg:w-[560px] px-4">
-              <Carousel />
+              <MyCarousel />
             </div>
           </div>
         </div>

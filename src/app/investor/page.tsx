@@ -115,7 +115,7 @@ export default async function Investor() {
           <div className="flex-1 flex flex-col justify-center">
             <h3>As An Investor</h3>
             <p className="py-5">Discover vetted businesses aligned with your investment goals through our easy-to-use platform. Filter listings by industry, size, and location, and connect directly with business owners—all in one secure, streamlined dashboard.</p>
-            <Link href="/pricing" className="max-w-40"><Button className="w-40">Get Started</Button></Link>
+            <Link href="/subscribe/investor_plan" className="max-w-40"><Button className="w-40">Get Started</Button></Link>
           </div>
 
         </div>

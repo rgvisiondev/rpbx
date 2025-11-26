@@ -6,22 +6,45 @@ import Button from "../components/Button";
 import AuthForm from "../../components/AuthForm";
 import VideoSection from "../components/VideoSection";
 import AnimatedBeamDemo from "../components/animated-beam-demo"
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel"
+import { ReadMore } from "@/components/ReadMore";
+import { Mail } from "lucide-react";
 
 const experts = [
   {
+    index: 1,
     name: "John Wilson",
-    title: "John T. Wilson, a seasoned business attorney, is a trusted legal advisor committed to guiding entrepreneurs through smooth, secure, and successful business transactions.",
+    title: "John Wilson is a business and banking attorney with extensive experience guiding companies through mergers and acquisitions, securities offerings, and complex regulatory matters. Having advised public and private financial institutions on transactions ranging from multi-branch acquisitions to major debt and equity issuances, he brings a deep understanding of corporate structure and compliance. As founder of Wilson Business & Banking Law, he regularly counsels clients on entity formation, governance, contract negotiation, and strategic business planning. His practical, detail-driven approach makes him a trusted resource for RPBX members navigating growth, acquisition, or structural transitions.",
     img: "/images/experts/john-wilson.png",
+    email: "john@jtwilsonlaw.com",
   },
   {
+    index: 2,
     name: "Abby Young",
-    title: "Abby Young, CPA and founder of AYCPA, is a dedicated accounting professional focused on helping small business owners achieve financial clarity through expert tax strategy, planning, and guidance.",
+    title: "Abby Young is a Certified Public Accountant with over a decade of experience supporting businesses, families, and nonprofits with tax strategy, financial planning, and virtual CFO guidance. As Managing Partner of Abigail Young CPA PLLC, she specializes in comprehensive accounting, forecasting, and tax preparation tailored to small and medium-sized businesses across the Rio Grande Valley. Her background in corporate accounting and financial operations allows her to provide proactive, cost-efficient financial leadership to growing organizations. Abby’s commitment to service, accuracy, and community involvement makes her a trusted resource for RPBX members seeking clarity and confidence in their financial decisions.",
     img: "/images/experts/abby-young.png",
+    email: "aymurray.cpa@gmail.com",
   },
   {
+    index: 3,
     name: "Juan A. Garcia",
-    title: "Juan A. Garcia, Of Counsel at Villeda Law Group, is a seasoned legal and financial advisor dedicated to guiding businesses through mergers, acquisitions, and strategic growth with clarity and confidence.",
+    title: "Juan A. Garcia brings over 20 years of experience advising institutional clients on complex mergers and acquisitions, private equity, and strategic corporate transactions. With a background that includes roles at Skadden, Arps and Citigroup, as well as financial executive and external counsel positions, he combines top-tier legal training with practical financial expertise. His work spans corporate structuring, investment management, and asset protection strategies for high-net-worth individuals and investment firms. Juan’s leadership and longstanding commitment to community service make him a trusted resource for RPBX members navigating sophisticated business and financial decisions.",
     img: "/images/experts/juan-garcia.png",
+    email: "avilleda@mybusinesslawyer.com",
+  },
+  {
+    index: 4,
+    name: "Bill Martin",
+    title: "Bill Martin is a Certified Exit Planning Advisor® and CERTIFIED FINANCIAL PLANNER™ professional with nearly 30 years of experience guiding business owners through succession planning and long-term financial strategy. As Vice President of Investments at 1845 Capital of Raymond James, he integrates exit planning, wealth management, and family goals to support smooth and informed transitions. With advanced credentials including the CPWA® designation, Bill brings a strategic, client-first approach that makes him a trusted resource for RPBX members preparing for the next stage of their business.",
+    img: "/images/experts/bill-martin.png",
+    email: "b.martin@raymondjames.com",
+
   },
 ];
 
@@ -36,7 +59,6 @@ export default function AboutPage() {
 
 
   return (
-
     <div>
       {/* Div 1: 2 rows */}
       <div className="flex flex-col bg-[url('/images/backgrounds/white-bg.png')] bg-repeat bg-center">
@@ -91,44 +113,66 @@ export default function AboutPage() {
       </div>
 
       {/* Div 3: Experts Section */}
-      <div className="flex flex-col items-center bg-[url('/images/backgrounds/white-bg.png')] bg-repeat bg-top py-[15px]">
+        <div className="flex flex-col items-center bg-[url('/images/backgrounds/white-bg.png')] bg-repeat bg-top py-[15px]">
+          <div className="w-full px-4 lg:w-[1140px] lg:px-0 mx-auto py-10">
+            <h2 className="text-center -mt-4">Meet Our Experts</h2>
 
-        <div className="w-full px-4 lg:w-[1140px] lg:px-0 mx-auto flex flex-col gap-y-5 lg:gap-y-0 lg:gap-x-10 py-10">
-          <h2 className="text-center -mt-4">Meet Our Experts</h2>
+            <Carousel
+              opts={{ align: "start", loop: true }}
+              className="w-full mt-8"              // ⬅ full width of the 1140px container
+            >
+              <CarouselContent className="-ml-4">   {/* optional: for spacing between slides */}
+                {experts.map((expert) => (
+                  <CarouselItem
+                    key={expert.index}
+                    className="pl-4 basis-full sm:basis-1/2 lg:basis-1/3"
+                    // full-width on mobile, 2-up on small, 3-up on large
+                  >
+                    <div
+                      className="rounded-2xl shadow-lg overflow-hidden flex flex-col items-center bg-white transition-all duration-300 h-full"
+                    >
+                      {/* Top gray section */}
+                      <div className="relative bg-[#272727] w-full h-[120px]">
+                        <a
+                          href={`mailto:${expert.email}`}
+                          className="absolute top-3 right-3 text-white hover:text-[#9ed3c3] transition-colors"
+                        >
+                          <Mail size={22} />
+                        </a>
+                      </div>
 
-          <div className="flex flex-col lg:flex-row justify-center gap-5 mt-8 ">
-            {experts.map((expert) => (
-              <div
-                key={expert.name}
-                className="flex-1 rounded-2xl shadow-lg overflow-hidden flex flex-col items-center bg-white transition-all duration-300 hover:-translate-y-2 hover:shadow-xl"
-              >
-                {/* Top gray section */}
-                <div className="bg-[#272727] w-full h-30"></div>
+                      {/* Bottom white section */}
+                      <div className="bg-white w-full flex flex-col items-center p-5">
+                      <div
+                        className="w-[144px] h-[144px] bg-white rounded-full border-4 border-[#272727] flex justify-center items-center -mt-[96px] relative z-10"
+                      >
+                        <Image
+                          src={expert.img}
+                          alt={expert.name}
+                          width={100}
+                          height={100}
+                          className="w-[136px] h-[136px] rounded-full object-cover p-1"
+                        />
+                      </div>
 
-                {/* Bottom white section */}
-                <div className="bg-white w-full flex flex-col items-center p-5">
-                  <div className="w-36 h-36 bg-white rounded-full border-4 border-[#272727] flex justify-center items-center -mt-25">
-                    <Image
-                      src={expert.img}
-                      alt={expert.name}
-                      width={100}
-                      height={100}
-                      className="w-35 h-35 rounded-full object-cover p-1"
-                    />
-                  </div>
-                  <h4 className="mt-4 large">{expert.name}</h4>
-                  <p className="text-center mt-1">{expert.title}</p>
-                </div>
-              </div>
-            ))}
+                      <h4 className="mt-4 large">{expert.name}</h4>
+                      <ReadMore
+                        id={`read-more-expert-${expert.name}`}
+                        text={expert.title}
+                      />
+                    </div>
+                    </div>
+                  </CarouselItem>
+                ))}
+              </CarouselContent>
+
+              <CarouselPrevious />
+              <CarouselNext />
+            </Carousel>
           </div>
-
         </div>
-
-      </div>
-
       {/* Div 4: video */}
-      <VideoSection videoUrl="https://www.youtube.com/embed/VZZhns1tcMU"/>
+      <VideoSection videoUrl="https://youtube.com/embed/BUpPR2Bi9uQ"/>
     </div>
   );
 }

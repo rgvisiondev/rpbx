@@ -37,14 +37,14 @@ export default async function PricingPage() {
           <div className="gap-5 flex flex-col">
             <Accordion title="How does the Business Owner 30-day free trial work?">
               <p>
-                You’ll have full access to the Business Owner membership for 30 days at no cost. During the trial, some features are limited — you won’t be able to view investors’ full profiles, filter or sort the investor listings, see your own business listing views, access the business valuation discount, or boost your listing. After the 30 days, your regular plan charges will automatically begin unless you cancel beforehand.
+                You&apos;ll have full access to the Business Owner membership for 30 days at no cost. During the trial, some features are limited — you won&apos;t be able to view investors&apos; full profiles, filter or sort the investor listings, see your own business listing views, access the business valuation discount, or boost your listing. After the 30 days, your regular plan charges will automatically begin unless you cancel beforehand.
               </p>
             </Accordion>
 
             <Accordion title="Are there any additional costs beyond the subscription fees?">
               <p>
                 No, the subscription fees cover all the features and services available through your membership.
-                There are no additional costs for using the platform’s <b>core functions</b>.
+                There are no additional costs for using the platform&apos;s <b>core functions</b>. <br/><br/>Optional add-ons—such as requesting a professional valuation or boosting your business listing for higher visibility—are available at an additional cost and can be purchased as needed.
               </p>
             </Accordion>
 
@@ -57,7 +57,7 @@ export default async function PricingPage() {
 
             <Accordion title="What is the refund policy for RioPlex Business Exchange memberships?">
               <p>
-                Membership fees are generally non-refundable. If you experience an issue, contact support within 30 days and we’ll review it case-by-case.
+                Membership fees are generally non-refundable. If you experience an issue, contact support within 30 days and we&apos;ll review it case-by-case.
               </p>
             </Accordion>
 
