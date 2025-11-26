@@ -3,6 +3,26 @@ import { NextRequest, NextResponse } from "next/server";
 
 const TOMTOM_API_KEY = process.env.TOMTOM_API_KEY;
 
+type TomTomResult = {
+  id: string;
+  address?: {
+    freeformAddress?: string;
+    municipality?: string;
+    countrySecondarySubdivision?: string;
+    countrySubdivisionCode?: string;
+    postalCode?: string;
+  };
+  position?: {
+    lat?: number;
+    lon?: number;
+  };
+};
+
+type TomTomSearchResponse = {
+  results?: TomTomResult[];
+};
+
+
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = req.nextUrl;
@@ -49,9 +69,9 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ suggestions: [] }, { status: 200 });
     }
 
-    const data = await res.json();
+    const data = (await res.json()) as TomTomSearchResponse;
 
-    const suggestions = (data.results ?? []).map((r: any) => ({
+    const suggestions = (data.results ?? []).map((r) => ({
       id: r.id,
       address: r.address?.freeformAddress ?? "",
       city: r.address?.municipality ?? null,
