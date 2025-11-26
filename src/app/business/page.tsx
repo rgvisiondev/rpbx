@@ -117,7 +117,7 @@ export default async function Business() {
           <div className="flex-1 flex flex-col justify-center">
             <h3>As A Business Owner</h3>
             <p className="py-5">Discover potential investors who align with your business goals through our easy-to-use platform. Browse investor profiles, filter by industry and investment preferences, and connect with the right partners—all in one seamless dashboard.</p>
-            <Link href="/subscribe/business_monthly" className="max-w-40"><Button className="w-40">Get Started</Button></Link>
+            <Link href="/subscribe/business_monthly?trial=30" className="max-w-40"><Button className="w-40">Get Started</Button></Link>
           </div>
 
         </div>
@@ -136,7 +136,7 @@ export default async function Business() {
       </div>
 
       {/* Div 4: video */}
-      <VideoSection videoUrl="https://www.youtube.com/embed/fA0zEuTz02s" />
+      <VideoSection videoUrl="https://youtube.com/embed/GLsAlbAw7og" />
     </div>
   );
 }

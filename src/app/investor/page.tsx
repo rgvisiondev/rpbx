@@ -122,7 +122,7 @@ export default async function Investor() {
       </div>
 
       {/* Div 4: video */}
-      <VideoSection videoUrl="https://www.youtube.com/embed/fA0zEuTz02s" />
+      <VideoSection videoUrl="https://youtube.com/embed/GLsAlbAw7og" />
     </div>
   );
 }

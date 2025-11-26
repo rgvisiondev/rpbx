@@ -75,9 +75,9 @@ function PricingTab(props: PricingTabProps) {
 
   const canCheckout = props.loggedIn ? !!chosenPriceId : !!props.checkoutLookup;
 
-  const headlineNumber = isTrial ? '0' : displayCents != null ? (displayCents / 100).toFixed(0) : props.isFree ? '0' : '-'
+  const headlineNumber = displayCents != null ? (displayCents / 100).toFixed(0) : props.isFree ? '0' : '-'
 
-  const periodLabel = isTrial ? `/ ${trialDays} days` : (props.isFree && displayCents == null ? '' : period);
+  const periodLabel = (props.isFree && displayCents == null ? '' : period);
 
   const handleClick = async (e: React.MouseEvent<HTMLAnchorElement | HTMLButtonElement>) => {
     if (!props.loggedIn) {
@@ -117,7 +117,7 @@ function PricingTab(props: PricingTabProps) {
                       ⓘ
                     </TooltipTrigger>
                     <TooltipContent>
-                      {`Automatically renews at $${((props.price.monthly ?? props.price.yearly ?? 0) / 100).toFixed(0)}/mo after 30 days. Cancel any time.`}
+                      <strong>Start with a 30-day free trial.</strong><br/>Your plan will renew at the regular monthly rate afterward. You can cancel anytime.
                     </TooltipContent>
                   </Tooltip>
                 )}
@@ -251,35 +251,11 @@ export default function PricingTable({ dark, loggedIn }: PricingTableProps) {
 
       const arr = Array.from(map.values());
 
-      const legacyIdx = arr.findIndex(
-        p => p.planName === 'Business Owner Legacy' && p.monthly != null
-      );
-      const alreadyHasLite = arr.some(p => p.planName === 'Business Owner Lite');
-
-      if (legacyIdx !== -1 && !alreadyHasLite){
-            const legacy = arr[legacyIdx];
-            const lite: Group = {
-            planName: 'Business Owner Lite',
-            planDescription: 'Free for 30 days',
-            monthly: legacy.monthly,
-            yearly: null,
-            lookupMonthly: legacy.lookupMonthly,
-            lookupYearly: null,
-            priceIdMonthly: legacy.priceIdMonthly,
-            priceIdYearly: null,
-            features: [
-              'Get a glimpse of the investor community',
-              'Discover investor affiliations (companies & industries)',
-              'Explore real investor matches for 30 days — free',
-              'Keep connecting after your trial with our monthly plan'
-            ],
-            popular: false,
-            isFree: false,
-            sortOrder: Math.max(0, legacy.sortOrder - 1),
-            trialDays: 30,
-          };
-          arr.splice(legacyIdx, 0, lite);
+      for (const g of arr){
+        if (g.planName === "Business Owner Legacy" && g.monthly != null){
+          g.trialDays = 30;
         }
+      }
         return arr.sort(
           (a, b) => (a.sortOrder - b.sortOrder) || a.planName.localeCompare(b.planName)
         );
@@ -370,7 +346,7 @@ export default function PricingTable({ dark, loggedIn }: PricingTableProps) {
               planDescription={p.planDescription}
               price={{ monthly: p.monthly, yearly: p.yearly }}
               features={p.features}
-              trialDays={p.trialDays}
+              trialDays={!isAnnual ? p.trialDays: undefined}
               // --- FIX: For unauth users, free plan falls back to whichever lookup exists
               checkoutLookup={
                 p.isFree
