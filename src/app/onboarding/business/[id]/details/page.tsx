@@ -203,7 +203,7 @@ export default async function DetailsStep({
                 EBITDA <TooltipTrigger>ⓘ</TooltipTrigger>
               </span>
               <TooltipContent>
-                EBITDA (Earnings Before Interest, Taxes, Depreciation, and Amortization) shows your
+                EBITDA (Earnings Before Interest, Taxes, Depreciation, and Amortization) shows your<br/>
                 business&#39;s profit from operations, before accounting for things like loans, taxes,
                 or depreciation.
               </TooltipContent>
@@ -256,15 +256,26 @@ export default async function DetailsStep({
           </label>
 
           <label className="block pt-4">
-            <span>Description</span>
+            <Tooltip>
+              <span>
+                Description<TooltipTrigger>ⓘ</TooltipTrigger>
+                </span>
+              <TooltipContent>
+                Describe your business story, what you offer, and what makes your operation unique. 
+                Highlight your experience, customer loyalty, quality, or growth. Avoid listing confidential names, 
+                exact locations, or sensitive details. Focus on what sets your business apart and why it&#39;s a strong opportunity.
+              </TooltipContent>
+            </Tooltip>
             <textarea
               name="description"
               rows={5}
               defaultValue={draft?.description ?? ''}
               className="mt-1 w-full border rounded px-3 py-2"
+              placeholder='Seasoned local service provider with 10+ years of experience, specializing in quality-focused operations and 
+              steady year-over-year growth. Our customer loyalty, efficient processes, 
+              and strong regional demand position this business for continued success.'
             />
           </label>
-
           <div className="mt-4 flex gap-3">
             <Button className="w-full">Save & Continue</Button>
           </div>

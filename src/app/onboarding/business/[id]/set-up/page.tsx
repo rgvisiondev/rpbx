@@ -6,13 +6,13 @@ import { Progress } from "@/components/ui/progress";
 import { INDUSTRY_SLUGS } from '@/lib/industryImages';
 import IndustryImagePicker from '@/app/onboarding/components/IndustryImagePicker';
 import { geocodeAddresssTomTom } from '@/lib/geocode';
+import AddressAutocomplete from '@/app/onboarding/components/AddressAutocomplete';
 
 export default async function Setup({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
-  // ✅ params is now awaited
   const { id: listingId } = await params;
 
   const supabase = await createClientRSC();
@@ -141,11 +141,10 @@ export default async function Setup({
 
           <label className="block pt-4">
             <span>Business Address</span>
-            <input
+            <AddressAutocomplete
               name="address"
+              defaultValue={draft?.address ?? ""}
               placeholder="123 Main St, McAllen, TX 78501"
-              defaultValue={draft?.address ?? ''}
-              className="mt-1 w-full border rounded px-3 py-2"
             />
             <p className="text-xs text-gray-500 mt-1">
               We&apos;ll only use this to auto-fill city and county. Your exact address is{" "}

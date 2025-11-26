@@ -3,6 +3,11 @@ import { redirect } from "next/navigation";
 import { splitName } from "@/lib/name";
 import Button from "../../../components/Button";
 import { Progress } from "@/components/ui/progress"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger
+} from "@/components/ui/tooltip";
 
 export default async function Contact() {  
   const supabase = await createClientRSC();
@@ -187,13 +192,25 @@ export default async function Contact() {
       </label>
 
       <label className="block pt-4">
-        <span>Short bio (public)</span>
+        <Tooltip>
+          <span>
+            Short bio (public) <TooltipTrigger>ⓘ</TooltipTrigger>
+            </span>
+        </Tooltip>
+        <TooltipContent>
+          Share a brief overview of your background, investment interests, and experience. You may highlight<br/>
+          the industries you focus on, your years of experience, your investment goals, and what types of<br/> 
+          opportunities you&apos;re looking for. Avoid listing sensitive personal information. Aim for a professional<br/> 
+          summary that helps business owners understand your perspective and expertise.
+        </TooltipContent>
         <textarea
           name="bio"
           rows={4}
           defaultValue={draft?.bio ?? ""}
           className="mt-1 w-full border rounded px-3 py-2"
-          placeholder="Tell us about you as an investor…"
+          placeholder="Investor with experience in regional businesses, specializing in growth-stage opportunities. 
+          I focus on sectors such as services, real estate, and light manufacturing, and I enjoy partnering with owners 
+          looking to scale, expand, or transition their businesses."
         />
       </label>
 
