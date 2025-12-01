@@ -36,16 +36,9 @@ export default async function Business() {
             </div>
           </div>
 
-          <div className="flex-1 lg:order-2 hidden lg:block">
-            <Image
-              src="/images/header/business-header.png"
-              alt="Investors and Business Owners"
-              width={2000}
-              height={450}
-              className="w-full h-auto"
-              priority
-            />
+          <div className="flex-1 lg:order-2 hidden lg:block bg-[url('/images/header/business-header.png')] bg-cover bg-left bg-no-repeat min-h-[450px]">
           </div>
+
         </div>
       </div>
 
