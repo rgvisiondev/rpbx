@@ -27,7 +27,7 @@ export default function Modal({
       >
         {/* Drawer */}
         <div
-          className={`bg-white w-100 md:w-1/3 h-full shadow-lg relative transform transition-transform duration-300 ease-in-out ${
+          className={`bg-white w-100 md:w-1/2 lg:w-1/3 h-full shadow-lg relative transform transition-transform duration-300 ease-in-out ${
             isOpen ? "translate-x-0" : "translate-x-full"
           }`}
         >

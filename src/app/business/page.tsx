@@ -116,11 +116,11 @@ export default async function Business() {
         </div>
 
         {/* Row 2 */}
-        <div className="flex flex-col lg:flex-row gap-y-6 lg:gap-y-0 lg:gap-x-[15px] w-full pr-4 lg:pb-10">
+        <div className="flex flex-col md:flex-row gap-y-6 md:gap-y-0 md:gap-x-[15px] w-full pr-4 md:pb-10">
           <BusinessSlider />
 
-          <div className="flex-1 flex justify-center lg:justify-start">
-            <div className="flex flex-col items-center text-center w-full lg:max-w-[560px] px-4 pb-8 lg:pb-0 overflow-hidden">
+          <div className="flex-1 flex justify-center md:justify-start">
+            <div className="flex flex-col items-center text-center w-full md:max-w-[560px] px-4 pb-8 md:pb-0 overflow-hidden">
               <CardCarousel />
             </div>
           </div>

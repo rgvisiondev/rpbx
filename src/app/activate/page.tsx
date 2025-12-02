@@ -74,9 +74,9 @@ export default async function Home() {
 
 
       {/* Div 3: As An Business */}
-      <div className="flex flex-col items-center bg-[url('/images/backgrounds/white-bg.png')] bg-repeat bg-top py-[15px]">
+      <div className="flex flex-col items-center bg-[url('/images/backgrounds/white-bg.png')] bg-repeat bg-top py-[15px] overflow-hidden">
 
-        <div className="w-full px-4 lg:w-[1140px] lg:px-0 mx-auto flex flex-col lg:flex-row gap-y-6 lg:gap-y-0 lg:gap-x-10 py-10">
+        <div className="w-full px-4 lg:max-w-[1140px] md:px-2 mx-auto flex flex-col md:flex-row gap-y-6 md:gap-y-0 md:gap-x-10 py-10">
 
           <div className="flex-1 flex flex-col items-center rounded-2xl">
               <Image
@@ -98,17 +98,17 @@ export default async function Home() {
         </div>
 
         {/* Row 2 */}
-        <div className="flex flex-col lg:flex-row gap-y-6 lg:gap-y-0 lg:gap-x-[15px] w-full pr-4 lg:pb-10">
+        <div className="flex flex-col md:flex-row gap-y-6 md:gap-y-0 md:gap-x-[15px] w-full pr-4 md:pb-10">
           <BusinessSlider />
 
-          <div className="flex-1 flex justify-center lg:justify-start">
-            <div className="flex flex-col items-center text-center w-full lg:w-[560px] px-4 pb-8 lg:pb-0 overflow-hidden">
+          <div className="flex-1 flex justify-center md:justify-start">
+            <div className="flex flex-col items-center text-center w-full md:max-w-[560px] px-4 pb-8 md:pb-0 overflow-hidden">
               <CardCarousel />
             </div>
           </div>
         </div>
 
-        <div className="w-full px-4 lg:w-[1140px] lg:px-0 mx-auto flex flex-col lg:flex-row gap-y-6 lg:gap-y-0 lg:gap-x-10 py-10">
+        <div className="w-full px-4 lg:max-w-[1140px] md:px-2 mx-auto flex flex-col md:flex-row gap-y-6 md:gap-y-0 md:gap-x-10 py-10">
 
           <div className="flex-1 flex flex-col items-center rounded-2xl">
               <Image

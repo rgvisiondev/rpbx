@@ -106,11 +106,11 @@ export default async function Home() {
         </div>
 
         {/* Row 2 */}
-        <div className="flex flex-col lg:flex-row gap-y-6 lg:gap-y-0 w-full pr-4">
+        <div className="flex flex-col md:flex-row gap-y-6 md:gap-y-0 w-full pr-4">
           <HomeSlider />
 
-          <div className="flex-1 flex justify-center lg:justify-start overflow-hidden">
-            <div className="flex flex-col items-center text-center w-full lg:max-w-[500px] px-4">
+          <div className="flex-1 flex justify-center md:justify-start overflow-hidden">
+            <div className="flex flex-col items-center text-center w-full md:max-w-[500px] px-4">
               <MyCarousel />
             </div>
           </div>
@@ -122,7 +122,7 @@ export default async function Home() {
           <p className="text-center pt-1">Connect with Our Trusted Advisors for Tailored Business Solutions</p>
 
           {/* four cols on desktop, two on tablet/mobile */}
-          <div className="mt-4 lg:px-10 grid grid-cols-1 lg:grid-cols-3 gap-10 lg:gap-0 w-full">
+          <div className="mt-4 lg:px-10 grid grid-cols-1 md:grid-cols-3 gap-10 lg:gap-0 w-full">
 
             {/* 1 */}
             <div className="flex flex-col items-center">
