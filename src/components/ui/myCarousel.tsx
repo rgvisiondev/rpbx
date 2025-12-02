@@ -10,7 +10,7 @@ export default function MyCarousel() {
     {
       number: "2.3M",
       title: "Businesses at stake",
-      text: "In the United States, baby boomers own about 40% of small businesses—roughly 2.3 million. As this generation nears retirement, many will be sold or closed, affecting millions of jobs and marking a major shift in business ownership over the next decade.",
+      text: "In the US, baby boomers own about 40% of small businesses—roughly 2.3 million. As this generation nears retirement, many will be sold or closed, affecting millions of jobs and marking a major shift in business ownership.",
     },
     {
       number: "40%",
@@ -32,14 +32,14 @@ export default function MyCarousel() {
       pagination={{ clickable: true, dynamicBullets: true, }}
       autoplay={{ delay: 5000 }}
       loop
-      className="w-full h-[340px]"
+      className="w-full h-[375px] lg:h-[350px]"
     >
       {slides.map((slide, i) => (
         <SwiperSlide key={i}>
           <div className="flex flex-col items-center justify-center text-center px-6 h-full">
             <h3 className="giant">{slide.number}</h3>
             <h4 className="text-lg font-semibold">{slide.title}</h4>
-            <p className="mt-3 w-full lg:w-[500px] pb-10">
+            <p className="mt-3 w-full pb-10">
               {slide.text}
             </p>
           </div>

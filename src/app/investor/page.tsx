@@ -34,22 +34,15 @@ export default async function Investor() {
             </div>
           </div>
 
-          <div className="flex-1 lg:order-2 hidden lg:block">
-            <Image
-              src="/images/header/investor-header.png"
-              alt="Investors and Business Owners"
-              width={2000}
-              height={450}
-              className="w-full h-auto"
-              priority
-            />
+          <div className="flex-1 lg:order-2 hidden lg:block bg-[url('/images/header/investor-header.png')] bg-cover bg-left bg-no-repeat min-h-[450px]">
           </div>
+
         </div>
       </div>
 
       {/* Div 2: How It Works */}
       <div className="bg-[url('/images/backgrounds/black-bg.png')] bg-cover bg-center bg-fixed lg:bg-fixed flex justify-center py-10">
-        <div className="flex flex-col lg:flex-row gap-y-4 lg:gap-y-0 lg:gap-x-10 w-full lg:w-[1140px] px-4 lg:px-0">
+        <div className="flex flex-col lg:flex-row gap-y-4 lg:gap-y-0 lg:gap-x-10 w-full lg:max-w-[1140px] px-4 lg:px-2">
 
           <div className="flex-1 flex flex-col">
             <h2 className="text-white">How It Works</h2>
@@ -88,7 +81,7 @@ export default async function Investor() {
   
           </div>
 
-          <div className="flex flex-col items-center text-center w-full lg:w-[560px] px-4">
+          <div className="flex flex-col items-center text-center w-full lg:w-[560px]">
             <CarouselInvestor />
   
           </div>
@@ -99,7 +92,7 @@ export default async function Investor() {
       {/* Div 3: As An Investor */}
       <div className="flex flex-col items-center bg-[url('/images/backgrounds/white-bg.png')] bg-repeat bg-top py-[15px]">
 
-        <div className="w-full px-4 lg:w-[1140px] lg:px-0 mx-auto flex flex-col lg:flex-row gap-y-6 lg:gap-y-0 lg:gap-x-10 py-10">
+        <div className="w-full px-4 lg:max-w-[1140px] md:px-2 mx-auto flex flex-col md:flex-row gap-y-6 md:gap-y-0 md:gap-x-10 py-10">
 
           <div className="flex-1 flex flex-col items-center rounded-2xl">
               <Image

@@ -1,4 +1,3 @@
-import Image from "next/image";
 import Link from "next/link";
 import Navbar from "./components/Navbar";
 import Button from "./components/Button";
@@ -50,15 +49,7 @@ export default async function Home() {
             </div>
           </div>
 
-          <div className="flex-1 lg:order-2 hidden lg:block">
-            <Image
-              src="/images/header/home-header.png"
-              alt="Investors and Business Owners"
-              width={2000}
-              height={450}
-              className="w-full h-auto"
-              priority
-            />
+          <div className="flex-1 lg:order-2 hidden lg:block bg-[url('/images/header/home-header.png')] bg-cover bg-left bg-no-repeat min-h-[450px]">
           </div>
         </div>
       </div>
@@ -74,15 +65,15 @@ export default async function Home() {
       {/* Div 3: 3 rows */}
       <div className="flex flex-col items-center bg-[url('/images/backgrounds/white-bg.png')] bg-repeat bg-top py-[15px]">
         {/* Row 1 */}
-        <div className="w-full px-4 lg:w-[1140px] lg:px-0 mx-auto flex flex-col lg:flex-row gap-y-6 lg:gap-y-0 lg:gap-x-[45px] py-10">
-          <div className="flex-1 flex justify-center lg:justify-end">
-            <div className="flex flex-col items-start w-full lg:w-[430px] max-w-lg">
-              <h2>Explore our Blog topics</h2>
+        <div className="w-full px-4 lg:max-w-[1140px] lg:px-2 mx-auto flex flex-col lg:flex-row gap-y-6 lg:gap-y-0 lg:gap-x-[45px] py-10">
+          <div className="=flex justify-center lg:justify-end lg:w-2/5">
+            <div className="flex flex-col  w-full">
+              <h2 className="text-center lg:text-start">Explore our Blog topics</h2>
               <p className="text-center lg:text-left pt-1">RPBX is here to offer you valuable knowledge. We will help guide you in making your next steps.</p>
             </div>
           </div>
-          <div className="flex-1 flex justify-center lg:justify-start">
-            <div className="flex flex-col items-center w-full lg:w-[660px]">
+          <div className="flex justify-center lg:justify-start lg:w-3/5">
+            <div className="flex flex-col items-center w-full">
               {/* Blog Topic */}
               <div className="flex flex-wrap gap-3 lg:gap-4 justify-center lg:justify-start">
                 <Link href="/blog?category=entrepreneurship-and-growth-category">
@@ -115,23 +106,23 @@ export default async function Home() {
         </div>
 
         {/* Row 2 */}
-        <div className="flex flex-col lg:flex-row gap-y-6 lg:gap-y-0 lg:gap-x-[15px] w-full pr-4">
+        <div className="flex flex-col md:flex-row gap-y-6 md:gap-y-0 w-full pr-4">
           <HomeSlider />
 
-          <div className="flex-1 flex justify-center lg:justify-start">
-            <div className="flex flex-col items-center text-center w-full lg:w-[560px] px-4">
+          <div className="flex-1 flex justify-center md:justify-start overflow-hidden">
+            <div className="flex flex-col items-center text-center w-full md:max-w-[500px] px-4">
               <MyCarousel />
             </div>
           </div>
         </div>
 
         {/* Row 3 */}
-        <div className="w-full lg:w-[1140px] px-4 lg:px-0 flex flex-col items-center py-10">
+        <div className="w-full lg:max-w-[1140px] px-4 lg:px-0 flex flex-col items-center py-10">
           <h2>Business Solutions</h2>
           <p className="text-center pt-1">Connect with Our Trusted Advisors for Tailored Business Solutions</p>
 
           {/* four cols on desktop, two on tablet/mobile */}
-          <div className="mt-4 lg:px-10 grid grid-cols-1 lg:grid-cols-3 gap-10 lg:gap-0 w-full">
+          <div className="mt-4 lg:px-10 grid grid-cols-1 md:grid-cols-3 gap-10 lg:gap-0 w-full">
 
             {/* 1 */}
             <div className="flex flex-col items-center">

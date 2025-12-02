@@ -44,7 +44,7 @@ export default async function Events() {
           <NavGate />
         </div>
 
-        <div className="flex flex-col w-full lg:w-[1140px] mx-auto py-10 gap-10 px-5 lg:px-0">
+        <div className="flex flex-col w-full lg:max-w-[1140px] mx-auto py-10 gap-10 px-5 lg:px-2">
           <h1 className="text-center">Events</h1>
 
           <div className="gap-5 flex flex-col">
