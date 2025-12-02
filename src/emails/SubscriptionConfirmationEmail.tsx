@@ -42,7 +42,7 @@ export default function SubscriptionConfirmationEmail({ dashboardUrl }: Props) {
               </Text>
 
               <Text className="mt-0 mb-[12px] text-[14px] leading-[22px] text-gray-700">
-                Your subscription is now active. We're excited to have you as part
+                Your subscription is now active. We are excited to have you as part
                 of our growing community of entrepreneurs and
                 investors. Your membership gives you full access to the tools,
                 insights, and opportunities available inside the RioPlex platform.
