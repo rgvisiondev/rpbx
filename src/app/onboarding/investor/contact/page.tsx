@@ -192,17 +192,23 @@ export default async function Contact() {
       </label>
 
       <label className="block pt-4">
-        <Tooltip>
-          <span>
-            Short bio (public) <TooltipTrigger>ⓘ</TooltipTrigger>
-            </span>
-        </Tooltip>
-        <TooltipContent>
-          Share a brief overview of your background, investment interests, and experience. You may highlight<br/>
-          the industries you focus on, your years of experience, your investment goals, and what types of<br/> 
-          opportunities you&apos;re looking for. Avoid listing sensitive personal information. Aim for a professional<br/> 
-          summary that helps business owners understand your perspective and expertise.
-        </TooltipContent>
+          <span>Bio </span>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                className="text-xs text-gray-500 hover:text-gray-700"
+                aria-label="What to include in your bio"
+              >
+                ⓘ
+              </button>
+            </TooltipTrigger>
+            <TooltipContent className="max-w-xs text-sm leading-snug">
+              Share a brief overview of your background, investment interests, and experience.
+              Highlight industries you focus on, your years of experience, your investment goals,
+              and what types of opportunities you&apos;re looking for. Avoid sensitive personal details.
+            </TooltipContent>
+          </Tooltip>
         <textarea
           name="bio"
           rows={4}
