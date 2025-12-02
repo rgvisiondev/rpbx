@@ -8,8 +8,6 @@ import {
   Row,
   Column,
   Text,
-  Button,
-  Link,
   Tailwind,
   Hr,
   Img
@@ -82,6 +80,11 @@ export default function BoostedListingEmail(){
                                     </Column>
                                 </Row>
                             </Section>
+            <Hr className="m-0 border-gray-200" />
+
+            {/* Footer (simplified, inspired by your snippet) */}
+              <RPBXFooter />  
+
                         </Container>
                     </Body>
                 </Container>

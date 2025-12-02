@@ -48,9 +48,9 @@ export default function SubscriptionConfirmationEmail({ dashboardUrl }: Props) {
                 insights, and opportunities available inside the RioPlex platform.
               </Text>
 
-              <Text className="mt-[8px] mb-[12px] text-[14px] font-medium text-gray-900">
-                Here’s what you can do next:
-              </Text>
+                <Text className="mt-[8px] mb-[12px] text-[14px] font-medium text-gray-900">
+                Here&rsquo;s what you can do next:
+                </Text>
 
               <Row className="mt-[12px]">
                 <Column align="center" className="w-1/3 pr-[12px]">
