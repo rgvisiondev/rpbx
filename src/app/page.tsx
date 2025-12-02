@@ -67,7 +67,7 @@ export default async function Home() {
         {/* Row 1 */}
         <div className="w-full px-4 lg:max-w-[1140px] lg:px-2 mx-auto flex flex-col lg:flex-row gap-y-6 lg:gap-y-0 lg:gap-x-[45px] py-10">
           <div className="=flex justify-center lg:justify-end lg:w-2/5">
-            <div className="flex flex-col items-start w-full">
+            <div className="flex flex-col  w-full">
               <h2 className="text-center lg:text-start">Explore our Blog topics</h2>
               <p className="text-center lg:text-left pt-1">RPBX is here to offer you valuable knowledge. We will help guide you in making your next steps.</p>
             </div>

@@ -16,7 +16,7 @@ export default function CarouselInvestor() {
       pagination={{ clickable: true, dynamicBullets: true }}
       autoplay={{ delay: 5000 }}
       loop={false}
-      className="w-full h-[250px] lg:h-[370px]"
+      className="w-full min-h-[400px]"
     >
       {slides.map((slide, i) => (
         <SwiperSlide key={i}>

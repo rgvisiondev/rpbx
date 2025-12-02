@@ -17,7 +17,7 @@ export default async function Blogs() {
       <div className="flex flex-col bg-[url('/images/backgrounds/white-bg.png')] bg-repeat bg-top min-h-screen">
         <div><NavGate /></div>
 
-        <div className="flex flex-col w-full lg:w-[1140px] mx-auto py-10 gap-10 px-5 lg:px-0">
+        <div className="flex flex-col w-full lg:max-w-[1140px] mx-auto py-10 gap-10 px-5 lg:px-2">
           <h1 className="text-center">Blog</h1>
 
           {/* filter/sort/fetch */}

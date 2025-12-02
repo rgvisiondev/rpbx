@@ -46,6 +46,7 @@ const experts = [
     email: "b.martin@raymondjames.com",
 
   },
+
 ];
 
 
@@ -84,7 +85,7 @@ export default function AboutPage() {
 
       {/* Div 2: How It Works */}
       <div className="bg-[url('/images/backgrounds/black-bg.png')] bg-cover bg-center bg-fixed lg:bg-fixed flex justify-center py-10">
-        <div className="flex flex-col lg:flex-row gap-y-4 lg:gap-y-0 lg:gap-x-10 w-full lg:w-[1140px] px-4 lg:px-0">
+        <div className="flex flex-col md:flex-row gap-y-4 lg:gap-y-0 lg:gap-x-10 w-full lg:w-[1140px] px-4 lg:px-0">
 
           <div className="flex-1 flex flex-col items-center justify-center">
             <AnimatedBeamDemo />
@@ -106,8 +107,8 @@ export default function AboutPage() {
       </div>
 
       {/* Div 3: Experts Section */}
-        <div className="flex flex-col items-center bg-[url('/images/backgrounds/white-bg.png')] bg-repeat bg-top py-[15px]">
-          <div className="w-full px-4 lg:w-[1140px] lg:px-0 mx-auto py-10">
+        <div className="flex flex-col items-center bg-[url('/images/backgrounds/white-bg.png')] bg-repeat bg-top py-[15px] overflow-hidden">
+          <div className="w-full px-4 lg:max-w-[1140px] lg:px-2 mx-auto py-10">
             <h2 className="text-center -mt-4">Meet Our Experts</h2>
 
             <Carousel

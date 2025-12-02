@@ -18,7 +18,7 @@ export default function Cookies() {
             <NavGate />
         </div>
 
-        <div className="flex flex-col w-full lg:w-[1140px] mx-auto py-10 gap-10 px-5 lg:px-0">
+        <div className="flex flex-col w-full lg:max-w-[1140px] mx-auto py-10 gap-10 px-5 lg:px-2">
           <h1>Cookie Policy</h1>
           <p className="-mt-2">Effective Date: 9/25/24</p>
 
