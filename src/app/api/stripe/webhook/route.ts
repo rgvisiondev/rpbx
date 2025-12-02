@@ -8,6 +8,7 @@ import { createClient, SupabaseClient } from "@supabase/supabase-js";
 import type { Database, TablesInsert } from "@/types/database.types";
 import { Resend } from "resend";
 import ValuationEmail from "@/emails/ValuationEmail";
+import SubscriptionConfirmationEmail from "@/emails/SubscriptionConfirmationEmail";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET!;
@@ -410,6 +411,38 @@ export async function POST(req: NextRequest) {
           { onConflict: "stripe_subscription_id" }
         );
         if (promoErr) console.error("listing_promotions upsert error:", promoErr);
+
+        let toEmail: string | null =
+          (sess.customer_details?.email as string | null) ||
+          (sess.customer_email as string | null) ||
+          null;
+
+        if (!toEmail) {
+          const { data: listingRow } = await admin
+            .from("business_listings")
+            .select("contact_email")
+            .eq("id", listingId)
+            .maybeSingle();
+          toEmail = listingRow?.contact_email ?? null;
+        }
+
+        if (toEmail) {
+          const dashboardUrl = `${process.env.NEXT_PUBLIC_BASE_URL}/dashboard`;
+          const idemKey = `promo-email:${sess.id}`;
+          await resend.emails.send(
+            {
+              from: "RioPlex <info@rioplexbizx.com>",
+              to: toEmail,
+              subject: "Your Boosted Listing is now active",
+              react: SubscriptionConfirmationEmail({
+                dashboardUrl
+              }),
+            },
+            { idempotencyKey: idemKey }
+          );
+        } else {
+          console.warn("No email found for boosted listing purchase; skipped email send.");
+        }
       }
 
       // Business Evaluation

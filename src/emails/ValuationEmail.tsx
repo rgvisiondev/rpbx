@@ -7,13 +7,15 @@ import {
   Section,
   Row,
   Column,
-  Img,
   Text,
   Button,
   Link,
   Tailwind,
   Hr
 } from "@react-email/components";
+
+import { RPBXHeader } from "./components/RPBXHeader";
+import { RPBXFooter } from "./components/RPBXFooter";
 
 type Props = { link: string; calendlyLink: string };
 
@@ -31,28 +33,7 @@ export default function ValuationEmail({ link, calendlyLink }: Props) {
         <Body className="bg-[#f3f4f6] font-sans">
           <Container className="mx-auto my-8 w-full max-w-[600px] rounded-xl border border-gray-200 bg-white">
             {/* Header */}
-            <Section className="px-[24px] pt-[24px] pb-[16px]">
-              <Row>
-                <Column className="w-[70%]">
-                  {/* Replace src with your real logo URL (must be absolute) */}
-                  <Img
-                    alt="RioPlex"
-                    height="40"
-                    src="https://rioplexbusinessexchange.com/wp-content/uploads/2024/11/RPBX.png"
-                    className="mb-1"
-                  />
-                  <Text className="m-0 text-[14px] font-medium text-gray-500">
-                    RioPlex Business Exchange
-                  </Text>
-                </Column>
-                <Column align="right" className="align-middle">
-                  {/* If you want socials later, you can add them here, for now keep it minimal */}
-                  <Text className="m-0 text-right text-[12px] text-gray-400">
-                    Valuation Confirmation
-                  </Text>
-                </Column>
-              </Row>
-            </Section>
+            <RPBXHeader />
 
             <Hr className="m-0 border-gray-200" />
 
@@ -91,7 +72,7 @@ export default function ValuationEmail({ link, calendlyLink }: Props) {
                   <Column className="pr-[4px]">
                     <Button
                       href={link}
-                      className="inline-block rounded-md bg-[#0f766e] px-[16px] py-[10px] text-[14px] font-semibold text-white no-underline"
+                      className="inline-block rounded-md bg-[#60BC9B] px-[16px] py-[10px] text-[14px] font-semibold text-white no-underline"
                     >
                       Start your valuation
                     </Button>
@@ -99,7 +80,7 @@ export default function ValuationEmail({ link, calendlyLink }: Props) {
                   <Column className="pl-[4px]">
                     <Button
                       href={calendlyLink}
-                      className="inline-block rounded-md border border-[#0f766e] px-[16px] py-[10px] text-[14px] font-semibold text-[#0f766e] no-underline"
+                      className="inline-block rounded-md border border-[#60BC9B] px-[16px] py-[10px] text-[14px] font-semibold text-[#60BC9B] no-underline"
                     >
                       Schedule a consultation
                     </Button>
@@ -141,29 +122,7 @@ export default function ValuationEmail({ link, calendlyLink }: Props) {
             <Hr className="m-0 border-gray-200" />
 
             {/* Footer (simplified, inspired by your snippet) */}
-            <Section className="px-[24px] py-[16px]">
-              <Row>
-                <Column>
-                  <Text className="mt-0 mb-[4px] text-[12px] font-semibold text-gray-700">
-                    RioPlex Business Exchange
-                  </Text>
-                  <Text className="mt-0 mb-[2px] text-[12px] text-gray-500">
-                    Helping investors and business owners connect in the Rio
-                    Grande Valley.
-                  </Text>
-                  <Text className="mt-[4px] mb-0 text-[12px] text-gray-500">
-                    Need help? Email{" "}
-                    <Link
-                      href="mailto:info@rioplexbizx.com"
-                      className="text-[#0f766e] underline"
-                    >
-                      info@rioplexbizx.com
-                    </Link>
-                    .
-                  </Text>
-                </Column>
-              </Row>
-            </Section>
+              <RPBXFooter />  
           </Container>
         </Body>
       </Tailwind>
