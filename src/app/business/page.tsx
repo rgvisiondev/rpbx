@@ -91,7 +91,7 @@ export default async function Business() {
         </div>
       </div>
 
-      {/* Div 3: As An Investor */}
+      {/* Div 3: As An Business */}
       <div className="flex flex-col items-center bg-[url('/images/backgrounds/white-bg.png')] bg-repeat bg-top py-[15px]">
 
         <div className="w-full px-4 lg:w-[1140px] lg:px-0 mx-auto flex flex-col lg:flex-row gap-y-6 lg:gap-y-0 lg:gap-x-10 py-10">
@@ -99,7 +99,7 @@ export default async function Business() {
           <div className="flex-1 flex flex-col items-center rounded-2xl">
               <Image
               src="/images/other/business-mockup.png"
-              alt="Investors Feed"
+              alt="Business Feed"
               width={2000}
               height={450}
               className="w-full h-auto transition-transform duration-300 lg:hover:-translate-y-2"
