@@ -6,7 +6,7 @@ import Image from "next/image";
 export default function Footer() {
   return (
     <div>
-    <div className="bg-[url('/images/backgrounds/footer-bg.png')] bg-cover bg-center flex justify-center py-10  px-4 lg:px-0">
+    <div className="bg-[url('/images/backgrounds/footer-bg.png')] bg-cover bg-center flex justify-center py-10  px-4 lg:px-2">
       <div className="w-[1140px]">
         <p className="text-white">Follow us on:</p>
         <div className="flex justify-left gap-4 mt-2">

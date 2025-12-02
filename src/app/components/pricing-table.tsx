@@ -336,7 +336,7 @@ export default function PricingTable({ dark, loggedIn }: PricingTableProps) {
 
       {/* Cards */}
       <div className="max-w-[1140px] mx-auto">
-        <div className="flex flex-col lg:flex-row gap-6 justify-center">
+        <div className="flex flex-col md:flex-row gap-6 justify-center">
           {visiblePlans.map((p) => (
             <PricingTab
               key={`${p.planName}-${isAnnual ? 'year' : 'month'}`}

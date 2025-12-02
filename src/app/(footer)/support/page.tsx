@@ -18,7 +18,7 @@ export default function Support() {
             <NavGate />
         </div>
 
-        <div className="flex flex-col w-full lg:w-[1140px] mx-auto py-10 gap-10 px-5 lg:px-0">
+        <div className="flex flex-col w-full lg:max-w-[1140px] mx-auto py-10 gap-10 px-5 lg:px-2">
           <h1>Support</h1>
           <p className="-mt-2">We’re here to help. Below you’ll find answers to common support topics and how to get in touch with us.</p>
 

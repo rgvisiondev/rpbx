@@ -19,7 +19,7 @@ export default async function PricingPage() {
         <div>
           <NavGate />
         </div>
-        <div className="mx-auto lg:w-[1140px] py-10 px-4 lg:px-0">
+        <div className="mx-auto lg:max-w-[1140px] py-10 px-4 lg:px-0">
           <h1 className="text-3xl font-semibold text-center">Choose Your Plan</h1>
           <p className="mt-2 mb-8 text-sm text-neutral-500 text-center">
             Toggle between monthly and yearly billing. Business Owner Lite is free for 30 days, regular charges apply afterward.
@@ -31,7 +31,7 @@ export default async function PricingPage() {
       </div>
 
       <div className="flex flex-col items-center bg-[url('/images/backgrounds/black-mint-bg.png')] bg-cover bg-center bg-fixed py-10">
-        <div className="w-full overflow-visible lg:w-[1140px] lg:min-h-[300px] px-3 lg:px-0">
+        <div className="w-full overflow-visible lg:max-w-[1140px] lg:min-h-[300px] px-3 lg:px-2">
           <h2 className="text-white text-center mb-5">FAQ</h2>
 
           <div className="gap-5 flex flex-col">
