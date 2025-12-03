@@ -327,6 +327,65 @@ export async function POST(req: NextRequest) {
           expand: ["items.data.price.product", "customer"],
         });
         await upsertSubscription(admin, sub);
+
+        // Send subscription confirmation email for initial subscriptions
+        try {
+          const uid = (sess.metadata?.["supabase_user_id"] ?? null) as string | null;
+          if (uid) {
+            // Check if user already had other subscriptions (excluding this one)
+            const { data: otherSubs } = await admin
+              .from("subscriptions")
+              .select("id")
+              .eq("user_id", uid)
+              .neq("id", sub.id)
+              .limit(1);
+
+            const hadPrevious = Array.isArray(otherSubs) && otherSubs.length > 0;
+            if (!hadPrevious) {
+              let toEmail: string | null =
+                (sess.customer_details?.email as string | null) ||
+                (sess.customer_email as string | null) ||
+                null;
+
+              if (!toEmail) {
+                const { data: invRow } = await admin
+                  .from("investor_profiles")
+                  .select("contact_email")
+                  .eq("user_id", uid)
+                  .maybeSingle();
+                toEmail = invRow?.contact_email ?? null;
+              }
+
+              if (!toEmail) {
+                const { data: listingRow } = await admin
+                  .from("business_listings")
+                  .select("contact_email")
+                  .eq("owner_id", uid)
+                  .limit(1)
+                  .maybeSingle();
+                toEmail = listingRow?.contact_email ?? null;
+              }
+
+              if (toEmail) {
+                const dashboardUrl = `${process.env.NEXT_PUBLIC_BASE_URL}/dashboard`;
+                const idemKey = `sub-confirm:${sess.id}`;
+                await resend.emails.send(
+                  {
+                    from: "RioPlex <info@rioplexbizx.com>",
+                    to: toEmail,
+                    subject: "Your RPBX subscription is active",
+                    react: SubscriptionConfirmationEmail({ dashboardUrl }),
+                  },
+                  { idempotencyKey: idemKey }
+                );
+              } else {
+                console.warn("No email found for subscription confirmation; skipped email send.");
+              }
+            }
+          }
+        } catch (e) {
+          console.error("Error sending subscription confirmation email:", e);
+        }
       }
 
       const meta = sess.metadata || {};
