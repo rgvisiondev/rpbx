@@ -29,7 +29,7 @@ export default async function MemberLayout({
   // Soft gate (your current pattern): show overlay + blur content.
   return (
     <div className="relative">
-      {!entitled && <PaywallOverlay priceId={process.env.NEXT_PUBLIC_STRIPE_PRICE_BASE} />}
+      {!entitled && <PaywallOverlay />}
       <div
         className={!entitled ? "pointer-events-none select-none blur-sm" : ""}
         aria-hidden={!entitled}
