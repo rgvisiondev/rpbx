@@ -1,15 +1,15 @@
 import Link from "next/link";
-import NavbarActivate from "./../components/NavBarActivate";
-import Button from "./../components/Button";
+import NavBarActivate from "../components/NavBarActivate";
+
+// Utils
 import { createClientRSC } from "@/../utils/supabase/server"
 import { redirect } from "next/navigation"
-import PricingTable from "./../components/pricing-table";
-import NewsletterSignup from "../../components/ui/newsletter";
-import CardCarousel from "../components/Card-carousel";
-import BusinessSlider from "@/components/sliders/businessslider";
-import Image from "next/image";
 
-export default async function Home() {
+// Icons
+import { BadgeCheck } from 'lucide-react';
+import { Network } from 'lucide-react';
+
+export default async function Activate() {
   const supabase = await createClientRSC();
   
   // Use getSession instead of getUser for better performance
@@ -25,113 +25,160 @@ export default async function Home() {
     return redirect("/dashboard");
   }
 
-  const dark = false;
+  const points = [
+    {
+      icon: <Network color="#60BC9B" size={32}/>, title: "Direct Networking", description: "Bypass gatekeepers, we give you direct access to decision-makers in your industry."
+    },
+    {
+      icon: <Network color="#60BC9B" size={32}/>, title: "Local Advantage", description: "RPBX connects you with investors who understand the local market and support local growth."
+    },
+    {
+      icon: <Network color="#60BC9B" size={32}/>, title: "Targeted Exposure", description: "Our platform focuses on investors who are actively looking for opportunities like yours."
+    }
+  ];
 
-    
   return (
-    <div>
-      {/* Div 1: 2 rows */}
-      <div className="flex flex-col bg-[url('/images/backgrounds/white-bg.png')] bg-repeat bg-center">
-        <div className="pt-[103px]">
-          <NavbarActivate />
-        </div>
-
-        {/* row becomes column on tablet/mobile */}
-        <div className="flex flex-col lg:flex-row py-10 lg:py-0">
-          <div className="flex-1 flex justify-center lg:justify-end items-center px-4 lg:p-[15px] order-2 lg:order-1">
-            <div className="flex flex-col items-center w-full lg:w-[560px] max-w-lg">
-              <h1 className="text-center">Connect Your Business With Investors Today</h1>
-    <>
-  <Link href="/login" className="w-full">
-  <button className="mt-5 w-full px-6 py-2 rounded-full font-medium transition bg-[#60BC9B] hover:bg-[var(--color-primary-hover)] text-white border border-gray-300 hover:border-transparent flex items-center justify-center gap-2">
-    Start 30 Day Free Trial
-  </button>
-  </Link>
-  <Link href="/login" className="w-full">
-      <button className="mt-5 w-full px-6 py-2 rounded-full font-medium transition bg-white hover:bg-[var(--color-primary-hover)] text-black hover:text-white border border-gray-300 hover:border-transparent">
-        Learn More
-      </button>
-  </Link>
-      <p className="mt-5 text-center small text-grey">
-        By clicking Continue to join or sign in, you agree to RioPlex Business Exchange&apos;s <Link href="/terms" className="hover:underline">Terms of Service</Link>, <Link href="/privacy" className="hover:underline">Privacy Policy</Link>, and <Link href="/cookies" className="hover:underline">Cookie Policy</Link>.
-      </p>
-      <p className="mt-5 text-center">Looking to Invest? <Link href="/pricing" className="green-link">Join Now</Link></p>
-    </>
-            </div>
-          </div>
-
-          <div className="flex-1 lg:order-2 hidden lg:block bg-[url('/images/header/activate-header.png')] bg-cover bg-left bg-no-repeat min-h-[450px]">
-          </div>
-        </div>
-      </div>
-
-
-      {/* Div 2: 1 div containing 3 div columns */}
+    <div className="bg-white text-slate-800 antialiased min-h-screen flex flex-col font-sans">
       
-      <div className="bg-[url('/images/backgrounds/black-bg.png')] bg-cover bg-center bg-fixed lg:bg-fixed flex justify-center py-10 px-4 lg:px-0">
-      <PricingTable dark={dark} loggedIn={false} />
-      </div>
-
-
-      {/* Div 3: As An Business */}
-      <div className="flex flex-col items-center bg-[url('/images/backgrounds/white-bg.png')] bg-repeat bg-top py-[15px] overflow-hidden">
-
-        <div className="w-full px-4 lg:max-w-[1140px] md:px-2 mx-auto flex flex-col md:flex-row gap-y-6 md:gap-y-0 md:gap-x-10 py-10">
-
-          <div className="flex-1 flex flex-col items-center rounded-2xl">
-              <Image
-              src="/images/other/business-mockup.png"
-              alt="Business Feed"
-              width={2000}
-              height={450}
-              className="w-full h-auto transition-transform duration-300 lg:hover:-translate-y-2"
-              priority
-            />
-          </div>
-
-          <div className="flex-1 flex flex-col justify-center">
-            <h3>As A Business Owner</h3>
-            <p className="py-5">Discover potential investors who align with your business goals through our easy-to-use platform. Browse investor profiles, filter by industry and investment preferences, and connect with the right partners—all in one seamless dashboard.</p>
-            <Link href="/subscribe/business_monthly?trial=30" className="max-w-40"><Button className="w-40">Get Started</Button></Link>
-          </div>
-
-        </div>
-
-        {/* Row 2 */}
-        <div className="flex flex-col md:flex-row gap-y-6 md:gap-y-0 md:gap-x-[15px] w-full pr-4 md:pb-10">
-          <BusinessSlider />
-
-          <div className="flex-1 flex justify-center md:justify-start">
-            <div className="flex flex-col items-center text-center w-full md:max-w-[560px] px-4 pb-8 md:pb-0 overflow-hidden">
-              <CardCarousel />
-            </div>
-          </div>
-        </div>
-
-        <div className="w-full px-4 lg:max-w-[1140px] md:px-2 mx-auto flex flex-col md:flex-row gap-y-6 md:gap-y-0 md:gap-x-10 py-10">
-
-          <div className="flex-1 flex flex-col items-center rounded-2xl">
-              <Image
-              src="/images/other/investor-mockup.png"
-              alt="Investor Feed"
-              width={2000}
-              height={450}
-              className="w-full h-auto transition-transform duration-300 lg:hover:-translate-y-2"
-              priority
-            />
-          </div>
-
-          <div className="flex-1 flex flex-col justify-center">
-            <h3>As An Investor</h3>
-            <p className="py-5">Discover vetted businesses aligned with your investment goals through our easy-to-use platform. Filter listings by industry, size, and location, and connect directly with business owners—all in one secure, streamlined dashboard.</p>
-            <Link href="/subscribe/investor_plan" className="max-w-40"><Button className="w-40">Get Started</Button></Link>
-          </div>
-        </div>
+      {/* Custom Styles for this page only */}
+      <style>{`
+        :root {
+            --color-primary: #60BC9B;
+            --color-primary-dark: #4da685;
+        }
         
-      </div>
+        .hero-bg {
+            background-image: linear-gradient(to bottom right, rgba(15, 23, 42, 0.9), rgba(30, 41, 59, 0.85)), url('https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?ixlib=rb-1.2.1&auto=format&fit=crop&w=1920&q=80');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            
+        }
+      `}</style>
 
-      {/* Div 4: 1 div */}
-      <NewsletterSignup />
+      {/* Navigation - Transparent on dark bg */}
+      <nav>
+        <NavBarActivate />
+      </nav>
+
+      {/* Hero Section with Form */}
+      <header className="relative hero-bg pt-32 pb-24 lg:pt-40 lg:pb-32 overflow-hidden">
+        <div className="max-w-[1140px] container mx-auto px-6 grid lg:grid-cols-2 gap-16 items-center pb-10">
+            
+            {/* Hero Copy */}
+            <div className="w-full relative z-10">
+                <div className="inline-block px-3 py-1 mb-6 border border-[#60BC9B]/50 bg-[#60BC9B]/20 rounded-full text-[#60BC9B] text-sm font-bold tracking-wide uppercase shadow-sm">
+                    START WITH 30 DAYS FOR FREE
+                </div>
+                <h1 className="activatepage text-4xl sm:text-5xl lg:text-6xl font-extrabold leading-tight mb-6 text-white">
+                    Connect With Investors Today!
+                </h1>
+                {/* Trust Indicators */}
+                <div className="flex flex-col sm:flex-row gap-4 sm:gap-8 text-slate-300 text-sm font-medium">
+                    <div className="flex items-center gap-2">
+                        <BadgeCheck /> Verified Partners
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <BadgeCheck /> Instant Access
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <BadgeCheck /> Secure Transactions
+                    </div>
+                </div>
+            </div>
+
+            {/* Conversion Form */}
+            <div className="relative z-10 w-full mx-auto lg:ml-auto">
+                {/* Glow effect behind form */}
+                <div className="absolute -inset-1 bg-[#60BC9B] rounded-2xl blur opacity-20"></div>
+
+                <div className="relative bg-white rounded-2xl shadow-2xl overflow-hidden p-8">
+                    <div className="text-center mb-8">
+                        <h2 className="text-2xl font-bold text-slate-900">Start Your Free Trial</h2>
+                        <p className="text-slate-500 text-sm mt-2">30 days free access for Business Owners.</p>
+                    </div>
+
+                    <form className="space-y-4">
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label htmlFor="firstName" className="block text-xs font-bold text-slate-700 uppercase mb-1">First Name</label>
+                                <input type="text" id="firstName" name="firstName" placeholder="Jane" className="w-full px-4 py-3 rounded-lg bg-gray-50 border border-gray-200 focus:border-[#60BC9B] focus:ring-2 focus:ring-[#60BC9B]/20 outline-none transition-all font-medium text-slate-900" required />
+                            </div>
+                            <div>
+                                <label htmlFor="lastName" className="block text-xs font-bold text-slate-700 uppercase mb-1">Last Name</label>
+                                <input type="text" id="lastName" name="lastName" placeholder="Doe" className="w-full px-4 py-3 rounded-lg bg-gray-50 border border-gray-200 focus:border-[#60BC9B] focus:ring-2 focus:ring-[#60BC9B]/20 outline-none transition-all font-medium text-slate-900" required />
+                            </div>
+                        </div>
+
+                        <div>
+                            <label htmlFor="username" className="block text-xs font-bold text-slate-700 uppercase mb-1">Username</label>
+                            <input type="text" id="username" name="username" placeholder="business_guru_99" className="w-full px-4 py-3 rounded-lg bg-gray-50 border border-gray-200 focus:border-[#60BC9B] focus:ring-2 focus:ring-[#60BC9B]/20 outline-none transition-all font-medium text-slate-900" required />
+                        </div>
+                        
+                        <div>
+                            <label htmlFor="email" className="block text-xs font-bold text-slate-700 uppercase mb-1">Email Address</label>
+                            <input type="email" id="email" name="email" placeholder="jane@company.com" className="w-full px-4 py-3 rounded-lg bg-gray-50 border border-gray-200 focus:border-[#60BC9B] focus:ring-2 focus:ring-[#60BC9B]/20 outline-none transition-all font-medium text-slate-900" required />
+                        </div>
+
+                        <div>
+                            <label htmlFor="password" className="block text-xs font-bold text-slate-700 uppercase mb-1">Password</label>
+                            <input type="password" id="password" name="password" placeholder="••••••••" className="w-full px-4 py-3 rounded-lg bg-gray-50 border border-gray-200 focus:border-[#60BC9B] focus:ring-2 focus:ring-[#60BC9B]/20 outline-none transition-all font-medium text-slate-900" required />
+                        </div>
+
+                        <button type="submit" className="w-full bg-[#60BC9B] hover:bg-[#4da685] text-white font-bold py-4 rounded-full text-lg shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-center gap-2 group mt-6 cursor-pointer">
+                            Claim 30 Days Free
+                            <i className="fas fa-arrow-right group-hover:translate-x-1 transition-transform"></i>
+                        </button>
+                        
+                        <p className="small text-center text-grey">
+                            By joining, you agree to RPBX&apos;s <Link href="/terms" className="underline hover:text-[#60BC9B]">Terms</Link> and <Link href="/privacy" className="underline hover:text-[#60BC9B]">Privacy Policy</Link>.
+                        </p>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        {/* Bottom Curve Divider using CSS Mask to ensure seamless background pattern */}
+        <div 
+            className="absolute bottom-0 w-full h-[60px] md:h-[120px] z-10 leading-[0]"
+            style={{
+                backgroundImage: "url('/images/backgrounds/white-bg.png')",
+                backgroundRepeat: "repeat",
+                backgroundPosition: "bottom",
+                maskImage: "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 1200 120' preserveAspectRatio='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M985.66,92.83C906.67,72,823.78,31,743.84,14.19c-82.26-17.34-168.06-16.33-250.45.39-57.84,11.73-114,31.07-172,41.86A600.21,600.21,0,0,1,0,27.35V120H1200V95.8C1132.19,118.92,1055.71,111.31,985.66,92.83Z' fill='black'/%3E%3C/svg%3E\")",
+                WebkitMaskImage: "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 1200 120' preserveAspectRatio='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M985.66,92.83C906.67,72,823.78,31,743.84,14.19c-82.26-17.34-168.06-16.33-250.45.39-57.84,11.73-114,31.07-172,41.86A600.21,600.21,0,0,1,0,27.35V120H1200V95.8C1132.19,118.92,1055.71,111.31,985.66,92.83Z' fill='black'/%3E%3C/svg%3E\")",
+                maskSize: "100% 100%",
+                WebkitMaskSize: "100% 100%",
+                maskRepeat: "no-repeat",
+                WebkitMaskRepeat: "no-repeat"
+            }}
+        ></div>
+      </header>
+
+      {/* Value Proposition */}
+      <section className="pb-20 bg-[url('/images/backgrounds/white-bg.png')] bg-repeat bg-top">
+        <div className="max-w-[1140px] container mx-auto px-6">
+            <div className="text-center mb-16 mx-auto">
+                <h2 className="text-3xl font-bold text-slate-900 mb-4">Why Top Businesses Choose RioPlex</h2>
+                <p className="text-slate-600">We&apos;ve stripped away the noise. RioPlex is a pure utility engine designed for one thing: growth.</p>
+            </div>
+
+            <div className="grid md:grid-cols-3 gap-10">
+                {
+                    points.map((point, index) => (
+                        <div key={index} className="bg-slate-50 p-8 rounded-2xl text-center shadow-lg border-2 border-grey-500 transition-transform duration-300 hover:-translate-y-1 hover:shadow-xl">
+                            <div className="w-14 h-14 bg-[#60BC9B]/20 rounded-xl shadow-sm flex items-center justify-center text-white text-2xl mb-6 mx-auto ">
+                                {point.icon}
+                            </div>
+                            <h4 className="large mb-3">{point.title}</h4>
+                            <p className="text-slate-500 leading-relaxed">{point.description}</p>
+                        </div>
+                    ))
+                }
+
+            </div>
+        </div>
+      </section>
 
     </div>
   );
