@@ -1,6 +1,4 @@
 
-
-import Link from "next/link";
 import NavBarActivate from "../components/NavBarActivate";
 
 
