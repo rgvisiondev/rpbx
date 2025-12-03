@@ -31,6 +31,12 @@ export async function POST(req: Request) {
     const email = String(form.get('email') ?? '')
     const password = String(form.get('password') ?? '')
 
+    const trialDaysRaw = form.get('trial_days')
+    const trialDays = 
+      typeof trialDaysRaw === 'string' && /^\d+$/.test(trialDaysRaw)
+        ? parseInt(trialDaysRaw, 10)
+        : 0
+
     if ((!lookup && !priceIdFromForm) || !email || !password) {
       return Response.redirect(`${origin}/subscribe/${lookup}?error=missing_fields`, 303)
     }
@@ -102,6 +108,7 @@ export async function POST(req: Request) {
       line_items: [{ price: price.id, quantity: 1 }],
       client_reference_id: userId, // convenient for reconciling
       subscription_data: {
+        trial_period_days: trialDays > 0 ? trialDays: undefined,
         metadata: {
           supabase_user_id: userId,                 // webhook uses this
           plan_lookup: lookup || '',                // optional for logging
