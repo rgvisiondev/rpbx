@@ -16,6 +16,34 @@ const BIZ_EQUITY_URL = process.env.BIZEQUITY_URL!;
 const CALENDLY_VALUATION_URL = process.env.CALENDLY_VALUATION_URL!;
 const resend = new Resend(process.env.RESEND_API_KEY!);
 
+
+  const subscribeNewsletter = async (email: string, membership: string) => {
+    if (!email) return;
+    const groups = ["172616011480041008", "172615978122740973"]; // Default newsletter group
+    
+    if (membership === "investor") {
+      groups.push("172616029418030559"); // Investor group
+    } else if (membership === "business") {
+      groups.push("172616046280181040"); // Business group
+    }
+
+    const res = await fetch("/api/ml-subscribe", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Accept": "application/json"
+      },
+      body: JSON.stringify({ email, groups }),
+    });
+
+
+    if (res.ok) {
+      return;
+    } else {
+      alert("Something went wrong. Try again.");
+    }
+  };
+
 function isDeletedCustomer(
   c: Stripe.Customer | Stripe.DeletedCustomer
 ): c is Stripe.DeletedCustomer {
@@ -378,6 +406,12 @@ export async function POST(req: NextRequest) {
                   },
                   { idempotencyKey: idemKey }
                 );
+                // for new subscribers, also subscribe to newsletter
+                const membership = resolveBaseRole(
+                  sub.items?.data?.[0]?.price,
+                  sub.metadata
+                ) ?? "business"; 
+                await subscribeNewsletter(toEmail, membership);
               } else {
                 console.warn("No email found for subscription confirmation; skipped email send.");
               }
