@@ -14,6 +14,7 @@ export default function NewsletterSignup() {
     if (!email) return;
 
     setLoading(true);
+    groups.push("172615978122740973"); // General
 
     const res = await fetch("/api/ml-subscribe", {
       method: "POST",
