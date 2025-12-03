@@ -27,7 +27,11 @@ export default function NavBarActivate() {
         {/* Logo */}
         <Link href="/" className="flex items-center">
           <Image
-            src="/images/logos/Rio-Plex-Logo-Main-Mint-&-Charcoal.png"
+            src={
+              scrolled
+                ? "/images/logos/Rio-Plex-Logo-Main-Mint-&-Charcoal.png"
+                : "/images/logos/Rio-Plex-Logo-Main-Mint-&-White.png"
+            }
             width={150}
             height={140}
             alt="RioPlex Logo"
