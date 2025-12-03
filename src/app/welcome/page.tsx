@@ -8,9 +8,17 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
 // Map a role to the page they should land on
 type Role = "business" | "investor" | "admin" | "member" | null;
-function nextPathForRole(role: Role) {
+function nextPathForRole(role: Role, sessionId?: string | null) {
   if (role === "investor") return "/onboarding/investor/contact";
-  if (role === "business") return "/onboarding/business/set-up";
+    if (role === "business") {
+    if (sessionId) {
+      return `/onboarding/business/claim?session_id=${encodeURIComponent(
+        sessionId
+      )}`;
+    }
+    return "/dashboard/listings";
+  }
+
   if (role === "admin") return "/admin";
   return "/dashboard";
 }
@@ -51,7 +59,7 @@ export default async function Welcome({
   const session_id = Array.isArray(sp.session_id) ? sp.session_id[0] : sp.session_id;
 
   const intendedRole = await getIntendedRole(session_id);
-  const intendedNext = nextPathForRole(intendedRole);
+  const intendedNext = nextPathForRole(intendedRole, session_id);
 
   if (user) {
     const { data: profile } = await supabase
@@ -61,10 +69,10 @@ export default async function Welcome({
       .maybeSingle<{ user_type: Role }>();
 
     const role: Role = profile?.user_type ?? intendedRole ?? "member";
-    redirect(nextPathForRole(role));
+    redirect(nextPathForRole(role, session_id));
   }
 
-  const loginNext = encodeURIComponent(intendedNext || "/onboarding/business/basics");
+  const loginNext = encodeURIComponent(intendedNext || "/dashboard/listings");
 
   return (
     <div className="flex flex-col bg-[url('/images/backgrounds/white-bg.png')] bg-repeat bg-center min-h-screen justify-center p-4 lg:py-10">
