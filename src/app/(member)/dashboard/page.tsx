@@ -149,7 +149,7 @@ const posts = await blogClient.fetch(
         <div className="flex flex-col w-full lg:w-[1140px] mx-auto py-10 px-5 lg:px-0 pb-40 md:pb-52">
           <h1 className="mb-4">Welcome back, {displayName}</h1>
           <p className="text-sm text-gray-600 mb-6">
-            Here’s what’s happening in your business today.
+            {userType === "business" ? "Here’s what’s happening in your business today." : "Here’s what’s happening across your investment opportunities today."  }
           </p>
 
         <div className="flex flex-col gap-10">
