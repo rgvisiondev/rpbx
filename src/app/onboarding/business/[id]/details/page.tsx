@@ -261,8 +261,8 @@ export default async function DetailsStep({
                 Description<TooltipTrigger>ⓘ</TooltipTrigger>
                 </span>
               <TooltipContent>
-                Describe your business story, what you offer, and what makes your operation unique. 
-                Highlight your experience, customer loyalty, quality, or growth. Avoid listing confidential names, 
+                Describe your business story, what you offer, and what makes your operation unique.<br /> 
+                Highlight your experience, customer loyalty, quality, or growth. Avoid listing confidential names, <br />
                 exact locations, or sensitive details. Focus on what sets your business apart and why it&#39;s a strong opportunity.
               </TooltipContent>
             </Tooltip>

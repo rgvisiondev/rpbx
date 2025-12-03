@@ -4,12 +4,13 @@ import { Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
 
 export function ActivateForm() {
-    const lookup = process.env.NEXT_PUBLIC_STRIPE_PRICE_BUSINESS_MONTHLY;
+    const lookup = process.env.NEXT_PUBLIC_STRIPE_LOOKUP_BUSINESS_LEGACY ?? "business_monthly";
     const [showPw, setShowPw] = React.useState(false);
     
     return (
         <form method="post" action="/api/subscribe" className="space-y-4">
             <input name="lookup" type="hidden" value={lookup} />
+            <input name="trial_days" type="hidden" value="30" />
 
             <div className="grid grid-cols-2 gap-4">
                 <div>
