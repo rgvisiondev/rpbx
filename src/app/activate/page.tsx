@@ -8,6 +8,9 @@ import { redirect } from "next/navigation"
 // Icons
 import { BadgeCheck } from 'lucide-react';
 import { Network } from 'lucide-react';
+import { Map } from 'lucide-react';
+import { Goal } from 'lucide-react';
+
 
 export default async function Activate() {
   const supabase = await createClientRSC();
@@ -30,10 +33,10 @@ export default async function Activate() {
       icon: <Network color="#60BC9B" size={32}/>, title: "Direct Networking", description: "Bypass gatekeepers, we give you direct access to decision-makers in your industry."
     },
     {
-      icon: <Network color="#60BC9B" size={32}/>, title: "Local Advantage", description: "RPBX connects you with investors who understand the local market and support local growth."
+      icon: <Map color="#60BC9B" size={32}/>, title: "Local Advantage", description: "RPBX connects you with investors who understand the local market and support local growth."
     },
     {
-      icon: <Network color="#60BC9B" size={32}/>, title: "Targeted Exposure", description: "Our platform focuses on investors who are actively looking for opportunities like yours."
+      icon: <Goal color="#60BC9B" size={32}/>, title: "Targeted Exposure", description: "Our platform focuses on investors who are actively looking for opportunities like yours."
     }
   ];
 
@@ -102,7 +105,7 @@ export default async function Activate() {
                         <div className="grid grid-cols-2 gap-4">
                             <div>
                                 <label htmlFor="firstName" className="block text-xs font-bold text-slate-700 uppercase mb-1">First Name</label>
-                                <input type="text" id="firstName" name="firstName" placeholder="Jane" className="w-full px-4 py-3 rounded-lg bg-gray-50 border border-gray-200 focus:border-[#60BC9B] focus:ring-2 focus:ring-[#60BC9B]/20 outline-none transition-all font-medium text-slate-900" required />
+                                <input type="text" id="firstName" name="firstName" placeholder="John" className="w-full px-4 py-3 rounded-lg bg-gray-50 border border-gray-200 focus:border-[#60BC9B] focus:ring-2 focus:ring-[#60BC9B]/20 outline-none transition-all font-medium text-slate-900" required />
                             </div>
                             <div>
                                 <label htmlFor="lastName" className="block text-xs font-bold text-slate-700 uppercase mb-1">Last Name</label>
@@ -112,12 +115,12 @@ export default async function Activate() {
 
                         <div>
                             <label htmlFor="username" className="block text-xs font-bold text-slate-700 uppercase mb-1">Username</label>
-                            <input type="text" id="username" name="username" placeholder="business_guru_99" className="w-full px-4 py-3 rounded-lg bg-gray-50 border border-gray-200 focus:border-[#60BC9B] focus:ring-2 focus:ring-[#60BC9B]/20 outline-none transition-all font-medium text-slate-900" required />
+                            <input type="text" id="username" name="username" placeholder="JohnDoe99" className="w-full px-4 py-3 rounded-lg bg-gray-50 border border-gray-200 focus:border-[#60BC9B] focus:ring-2 focus:ring-[#60BC9B]/20 outline-none transition-all font-medium text-slate-900" required />
                         </div>
                         
                         <div>
                             <label htmlFor="email" className="block text-xs font-bold text-slate-700 uppercase mb-1">Email Address</label>
-                            <input type="email" id="email" name="email" placeholder="jane@company.com" className="w-full px-4 py-3 rounded-lg bg-gray-50 border border-gray-200 focus:border-[#60BC9B] focus:ring-2 focus:ring-[#60BC9B]/20 outline-none transition-all font-medium text-slate-900" required />
+                            <input type="email" id="email" name="email" placeholder="john.doe@example.com" className="w-full px-4 py-3 rounded-lg bg-gray-50 border border-gray-200 focus:border-[#60BC9B] focus:ring-2 focus:ring-[#60BC9B]/20 outline-none transition-all font-medium text-slate-900" required />
                         </div>
 
                         <div>
@@ -159,8 +162,8 @@ export default async function Activate() {
       <section className="pb-20 bg-[url('/images/backgrounds/white-bg.png')] bg-repeat bg-top">
         <div className="max-w-[1140px] container mx-auto px-6">
             <div className="text-center mb-16 mx-auto">
-                <h2 className="text-3xl font-bold text-slate-900 mb-4">Why Top Businesses Choose RioPlex</h2>
-                <p className="text-slate-600">We&apos;ve stripped away the noise. RioPlex is a pure utility engine designed for one thing: growth.</p>
+                <h2 className="text-3xl font-bold text-slate-900 mb-4">Your Gateway to Local Investors</h2>
+                <p className="text-slate-600">RPBX gives your business direct access, local credibility, and targeted exposure to investors who are ready to engage.</p>
             </div>
 
             <div className="grid md:grid-cols-3 gap-10">
