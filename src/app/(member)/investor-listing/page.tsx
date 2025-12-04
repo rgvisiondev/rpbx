@@ -147,7 +147,7 @@ export default async function Investors({ searchParams }: PageProps) {
     <div className="flex flex-col bg-[url('/images/backgrounds/white-bg.png')] bg-repeat bg-top">
       <NavGate />
 
-      <div className="flex flex-col w-full lg:w-[1140px] mx-auto py-10 gap-10 px-5 lg:px-0">
+      <div className="flex flex-col w-full lg:max-w-[1140px] mx-auto py-10 gap-10 px-5 lg:px-2">
         <h1 className="text-center">Investors</h1>
 
         {/* Search + Filters (client components) */}
