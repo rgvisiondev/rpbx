@@ -5,6 +5,7 @@ import Link from "next/link";
 import Button from "@/app/components/Button";
 import { useState, useEffect } from "react";
 import Modal from "@/app/components/Modal";
+import EvaluationCheckoutButton from "@/app/components/EvaluationCheckoutButton";
 
 export default function BusinessSlider() {
   const [isDesktop, setIsDesktop] = useState(false);
@@ -33,7 +34,7 @@ export default function BusinessSlider() {
               <p className="lg:pr-15  pt-1">
                  Know the true value of your business with a valuation powered by Biz Equity. RPBX members get 50% off their valuations, making it easier than ever to make informed decisions whether you’re planning to sell, grow, or invest.
               </p>
-              <Link href="https://rioplexbizx.bizequity.com" target="_blank" ><Button className="mt-3 lg:mt-3 w-full sm:w-auto" variant="white">Get My Valuation</Button></Link>
+              <EvaluationCheckoutButton color="white" />
 
               {/* Learn More button */}
               <Modal
