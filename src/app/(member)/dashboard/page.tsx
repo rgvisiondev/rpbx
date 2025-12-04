@@ -156,7 +156,7 @@ const posts = await blogClient.fetch(
           {/* Action buttons */}
           <div className="flex flex-col lg:flex-row gap-5">
             <Link
-              href={userType === "business" ? "/dashboard/listings" : "/listings"}
+              href={userType === "business" ? "/dashboard/listings" : "dashboard/profile/edit"}
               className="flex-1 flex flex-col items-center p-5 bg-[#60A1BC] rounded-2xl hover:opacity-90 transition"
             >
               <p className="text-white">
