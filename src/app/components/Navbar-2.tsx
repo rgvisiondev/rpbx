@@ -111,7 +111,7 @@ export default function Navbar({ userType }: { userType: UserType }) {
           {/* Investor / Admin: View Profile */}
           {rightActions.showViewProfile && (
             <li>
-              <Link href="/dashboard/profile" onClick={() => setIsMobileMenuOpen(false)} className="green-nav block">
+              <Link href="/dashboard/profile/edit" onClick={() => setIsMobileMenuOpen(false)} className="green-nav block">
                 View Profile
               </Link>
             </li>
@@ -191,7 +191,7 @@ export default function Navbar({ userType }: { userType: UserType }) {
               </li>
               {rightActions.showViewProfile && (
                 <li>
-                  <Link href="/dashboard/profile" onClick={() => setIsMobileMenuOpen(false)} className="green-nav block">
+                  <Link href="/dashboard/profile/edit" onClick={() => setIsMobileMenuOpen(false)} className="green-nav block">
                     View Profile
                   </Link>
                 </li>

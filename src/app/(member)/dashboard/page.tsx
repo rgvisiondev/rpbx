@@ -149,14 +149,14 @@ const posts = await blogClient.fetch(
         <div className="flex flex-col w-full lg:w-[1140px] mx-auto py-10 px-5 lg:px-0 pb-40 md:pb-52">
           <h1 className="mb-4">Welcome back, {displayName}</h1>
           <p className="text-sm text-gray-600 mb-6">
-            Here’s what’s happening in your business today.
+            {userType === "business" ? "Here’s what’s happening in your business today." : "Here’s what’s happening across your investment opportunities today."  }
           </p>
 
         <div className="flex flex-col gap-10">
           {/* Action buttons */}
           <div className="flex flex-col lg:flex-row gap-5">
             <Link
-              href={userType === "business" ? "/dashboard/listings" : "/listings"}
+              href={userType === "business" ? "/dashboard/listings" : "dashboard/profile/edit"}
               className="flex-1 flex flex-col items-center p-5 bg-[#60A1BC] rounded-2xl hover:opacity-90 transition"
             >
               <p className="text-white">
