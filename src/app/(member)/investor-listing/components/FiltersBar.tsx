@@ -2,9 +2,9 @@
 "use client";
 
 import { useSearchParams, useRouter } from "next/navigation";
+import { useState } from "react";
 
-// If your option arrays are in this file, keep them here.
-// Ideally move to a shared module like "@/lib/constants" and import them here.
+// Constants (kept same as provided)
 const INDUSTRIES = [
   { label: "All Categories", value: "" },
   { label: "Healthcare", value: "Healthcare" },
@@ -40,7 +40,6 @@ const INDUSTRIES = [
   { label: "Other", value: "Other" },
 ] as const;
 
-
 const EBITDA = [
   { label: "EBITDA: Any", value: "" },
   { label: "< 250K", value: "<250k" },
@@ -63,6 +62,7 @@ const CASH = [
 export default function FiltersBar() {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const [isOpen, setIsOpen] = useState(false);
 
   const industry = searchParams.get("industry") ?? "";
   const ebitda = searchParams.get("ebitda") ?? "";
@@ -73,60 +73,82 @@ export default function FiltersBar() {
     const params = new URLSearchParams(Array.from(searchParams.entries()));
     if (val && val.trim()) params.set(key, val);
     else params.delete(key);
-    params.delete("page"); // reset pagination on filter change
+    params.delete("page");
     router.replace(`?${params.toString()}`, { scroll: false });
   };
 
   return (
-    <form className="flex justify-end gap-4">
-      <select
-        className="w-48 px-4 py-2 bg-white border border-gray-300 rounded-lg shadow-sm"
-        value={industry}
-        onChange={(e) => setParam("industry", e.target.value)}
-        aria-label="Filter by industry"
+    <div className="w-full flex flex-col md:flex-row justify-end items-stretch md:items-start gap-4">
+      {/* Mobile Toggle Button */}
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className="md:hidden w-full px-4 py-2 bg-white border border-gray-300 rounded-lg shadow-sm text-left flex justify-between items-center text-gray-700"
       >
-        {INDUSTRIES.map((it) => (
-          <option key={it.value || "all"} value={it.value}>
-            {it.label}
-          </option>
-        ))}
-      </select>
+        <span>Filters</span>
+        <span className="text-gray-500 text-sm">{isOpen ? '▲' : '▼'}</span>
+      </button>
 
-      <select
-        className="w-48 px-4 py-2 bg-white border border-gray-300 rounded-lg shadow-sm"
-        value={ebitda}
-        onChange={(e) => setParam("ebitda", e.target.value)}
-        aria-label="Filter by EBITDA"
+      {/* Filter Container */}
+      <form
+        className={`
+          ${isOpen ? 'flex' : 'hidden'} 
+          md:flex 
+          flex-col md:flex-row 
+          flex-wrap gap-4 
+          items-stretch md:items-center 
+          justify-end
+        `}
       >
-        {EBITDA.map((it) => (
-          <option key={it.value || "any"} value={it.value}>
-            {it.label}
-          </option>
-        ))}
-      </select>
+        <select
+          className="w-full md:w-48 px-4 py-2 bg-white border border-gray-300 rounded-lg shadow-sm"
+          value={industry}
+          onChange={(e) => setParam("industry", e.target.value)}
+          aria-label="Filter by industry"
+        >
+          {INDUSTRIES.map((it) => (
+            <option key={it.value || "all"} value={it.value}>
+              {it.label}
+            </option>
+          ))}
+        </select>
 
-      <select
-        className="w-56 px-4 py-2 bg-white border border-gray-300 rounded-lg shadow-sm"
-        value={cash}
-        onChange={(e) => setParam("cash", e.target.value)}
-        aria-label="Filter by cash flow"
-      >
-        {CASH.map((it) => (
-          <option key={it.value || "any"} value={it.value}>
-            {it.label}
-          </option>
-        ))}
-      </select>
+        <select
+          className="w-full md:w-48 px-4 py-2 bg-white border border-gray-300 rounded-lg shadow-sm"
+          value={ebitda}
+          onChange={(e) => setParam("ebitda", e.target.value)}
+          aria-label="Filter by EBITDA"
+        >
+          {EBITDA.map((it) => (
+            <option key={it.value || "any"} value={it.value}>
+              {it.label}
+            </option>
+          ))}
+        </select>
 
-      <select
-        className="w-44 px-4 py-2 bg-white border border-gray-300 rounded-lg shadow-sm"
-        value={sort}
-        onChange={(e) => setParam("sort", e.target.value)}
-        aria-label="Sort results"
-      >
-        <option value="date">Sort: Recent</option>
-        <option value="name">Sort: Name</option>
-      </select>
-    </form>
+        <select
+          className="w-full md:w-56 px-4 py-2 bg-white border border-gray-300 rounded-lg shadow-sm"
+          value={cash}
+          onChange={(e) => setParam("cash", e.target.value)}
+          aria-label="Filter by cash flow"
+        >
+          {CASH.map((it) => (
+            <option key={it.value || "any"} value={it.value}>
+              {it.label}
+            </option>
+          ))}
+        </select>
+
+        <select
+          className="w-full md:w-44 px-4 py-2 bg-white border border-gray-300 rounded-lg shadow-sm"
+          value={sort}
+          onChange={(e) => setParam("sort", e.target.value)}
+          aria-label="Sort results"
+        >
+          <option value="date">Sort: Recent</option>
+          <option value="name">Sort: Name</option>
+        </select>
+      </form>
+    </div>
   );
 }

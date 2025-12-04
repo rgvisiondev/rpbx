@@ -140,7 +140,7 @@ const posts = await blogClient.fetch(
       {/* Header / Hero */}
       <div className="flex flex-col bg-[url('/images/backgrounds/white-bg.png')] bg-repeat bg-top">
       <NavGate />
-        <div className="flex flex-col w-full lg:w-[1140px] mx-auto py-10 px-5 lg:px-0 pb-40 md:pb-52">
+        <div className="flex flex-col w-full lg:max-w-[1140px] mx-auto py-10 px-5 lg:px-2 pb-40 md:pb-52">
           <h1 className="mb-4">Welcome back, {displayName}</h1>
           <p className="text-sm text-gray-600 mb-6">
             {userType === "business" ? "Here’s what’s happening in your business today." : "Here’s what’s happening across your investment opportunities today."  }
@@ -148,7 +148,7 @@ const posts = await blogClient.fetch(
 
         <div className="flex flex-col gap-10">
           {/* Action buttons */}
-          <div className="flex flex-col lg:flex-row gap-5">
+          <div className="flex flex-col md:flex-row gap-5">
             <Link
               href={userType === "business" ? "/dashboard/listings" : "dashboard/profile/edit"}
               className="flex-1 flex flex-col items-center p-5 bg-[#60A1BC] rounded-2xl hover:opacity-90 transition"
@@ -170,19 +170,19 @@ const posts = await blogClient.fetch(
           {/* Data widgets */}
           {dashboardData && (
             <>
-              <div className="flex flex-col lg:flex-row gap-5 w-full">
-                <div className="w-full lg:w-[60%] rounded-2xl flex flex-col bg-[url('/images/backgrounds/black-bg.png')] bg-cover bg-center p-5">
+              <div className="flex flex-col md:flex-row gap-5 w-full">
+                <div className="w-full md:w-1/2 lg:w-[60%] rounded-2xl flex flex-col bg-[url('/images/backgrounds/black-bg.png')] bg-cover bg-center p-5">
                   <h3 className="text-white pb-5">Recent Activity</h3>
                   <RecentActivityList items={dashboardData.activities} />
                 </div>
 
-                <div className="w-full lg:w-[40%] bg-white rounded-2xl p-5">
+                <div className="w-full md:w-1/2 lg:w-[40%] bg-white rounded-2xl p-5">
                   <h3 className="pb-5">Upcoming Events</h3>
                   <UpcomingEventsList events={dashboardData.events} />
                 </div>
               </div>
 
-<div className="w-full lg:w-[1140px] mx-auto pb-80 md:pb-30">
+<div className="w-full lg:max-w-[1140px] mx-auto pb-80 md:pb-30">
   <AlwaysVisibleScrollbar className="h-full">
     <div className="min-w-[600px]">
       <ListingTrafficChart
@@ -208,9 +208,9 @@ const posts = await blogClient.fetch(
 
       {/* Matches + Resources */}
       {dashboardData && (
-        <div className="flex flex-col items-center bg-[url('/images/backgrounds/black-mint-bg.png')] bg-cover bg-center md:bg-fixed py-10 px-5 lg:px-0">
+        <div className="flex flex-col items-center bg-[url('/images/backgrounds/black-mint-bg.png')] bg-cover bg-center md:bg-fixed py-10 px-5 lg:px-2">
           <div className="relative -mt-120 md:-mt-82 -mb-18 z-10 w-full">
-            <div className="bg-white flex flex-col w-full lg:w-[1140px] mx-auto rounded-2xl p-5 shadow-xl">
+            <div className="bg-white flex flex-col w-full lg:max-w-[1140px] mx-auto rounded-2xl p-5 shadow-xl">
               <h2 className="pb-5">
                 {dashboardData.kind === "business" ? "Investor Matches" : "Business Matches"}
               </h2>
@@ -224,10 +224,10 @@ const posts = await blogClient.fetch(
             </div>
           </div>
 
-          <div className="bg-white flex flex-col w-full lg:w-[1140px] mx-auto rounded-2xl p-5 mt-30">
+          <div className="bg-white flex flex-col w-full lg:max-w-[1140px] mx-auto rounded-2xl p-5 mt-30">
             <h2 className="pb-5">Resources</h2>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 pb-5">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pb-5">
               {(() => {
                 interface PostSlug {
                   current: string;
@@ -259,7 +259,7 @@ const posts = await blogClient.fetch(
             </div>
 
             <button className="px-6 py-2 rounded-full font-medium transition inline-flex items-center justify-center bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-white mt-5">
-              View More Resources
+              <Link href="/blog">View More Resources</Link>
             </button>
           </div>
 
