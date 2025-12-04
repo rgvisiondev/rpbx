@@ -23,6 +23,9 @@ export const metadata: Metadata = {
   icons: {
     icon: "/favicon.png",
   },
+  openGraph: {
+    images: '/images/logos/Rio-Plex-Logo-Main-Mint-&-Charcoal.png'
+  },
 };
 
 export default function RootLayout({
