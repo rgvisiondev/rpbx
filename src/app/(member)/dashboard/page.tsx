@@ -64,13 +64,14 @@ export default async function Dashboard() {
       redirect("/onboarding/investor/contact");
     }
   } else {
-    const { count } = await supabase
+    const { data, count, error } = await supabase
       .from("business_listings")
-      .select("id", { count: "exact", head: true })
+      .select("id")
       .eq("owner_id", user.id)
       .eq("is_active", true);
-    if (!count) {
-      redirect("/onboarding/business/set-up");
+    if (error) throw error;
+    if (!count || data.length === 0) {
+      redirect(`/onboarding/business/${data[0].id}/set-up`);
     }
   }
 
