@@ -26,5 +26,5 @@ export async function GET(request: Request) {
     process.env.NEXT_PUBLIC_SITE_URL ??
     'http://localhost:3000'
 
-  return NextResponse.redirect(`${baseUrl}/auth/auth-code-error`)
+  return NextResponse.redirect(`${baseUrl}/auth-code-error`)
 }

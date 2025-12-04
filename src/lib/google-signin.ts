@@ -8,7 +8,7 @@ export async function signInWithGoogle(next: string = '/dashboard') {
 
   const redirectTo =
     typeof window !== 'undefined'
-      ? `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`
+      ? `${window.location.origin}/callback?next=${encodeURIComponent(next)}`
       : undefined
 
   return supabase.auth.signInWithOAuth({
