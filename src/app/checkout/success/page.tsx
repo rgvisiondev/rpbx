@@ -1,10 +1,13 @@
 // app/checkout/success/page.tsx
 import Stripe from "stripe";
+import { Resend } from "resend";
+import ValuationEmail from "@/emails/ValuationEmail";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 function getCustomerEmail(
   customer: string | Stripe.Customer | Stripe.DeletedCustomer | null
@@ -12,6 +15,30 @@ function getCustomerEmail(
   if (!customer || typeof customer === "string") return null;
   if ("deleted" in customer && customer.deleted) return null;
   return customer.email ?? null;
+}
+
+async function sendValuationEmail(email: string, sessionId: string) {
+  try {
+    const origin = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+    const valuationLink = `${origin}/checkout/success?type=evaluation&session_id=${sessionId}`;
+    const calendlyLink = "https://calendly.com/rioplex";
+
+    await resend.emails.send({
+      from: "RioPlex <noreply@rioplex.com>",
+      to: email,
+      subject: "Your RioPlex Business Valuation is Ready",
+      react: ValuationEmail({
+        link: valuationLink,
+        calendlyLink: calendlyLink,
+      }),
+    });
+
+    console.log("Valuation email sent successfully to:", email);
+    return true;
+  } catch (err) {
+    console.error("Failed to send valuation email:", err);
+    return false;
+  }
 }
 
 export default async function SuccessPage({
@@ -22,6 +49,7 @@ export default async function SuccessPage({
   const params = await searchParams;
   const raw = params?.session_id;
   const sessionId = Array.isArray(raw) ? raw[0] : raw;
+  const type = params?.type;
 
   let buyerEmail: string | null = null;
   if (sessionId) {
@@ -30,6 +58,11 @@ export default async function SuccessPage({
         expand: ["customer", "customer_details"],
       });
       buyerEmail = s.customer_details?.email ?? getCustomerEmail(s.customer);
+
+      // Send valuation email for public evaluations
+      if (type === "evaluation" && buyerEmail) {
+        await sendValuationEmail(buyerEmail, sessionId);
+      }
     } catch (e) {
       console.warn("Could not retrieve session", e);
     }

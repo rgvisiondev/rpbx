@@ -11,6 +11,7 @@ import MyCarousel from "../components/ui/myCarousel";
 import HoverGif from '../components/HoverGif'
 import ContactForm from "@/app/components/ContactForm";
 import HomeSlider from "@/components/sliders/homeslider";
+import EvaluationCheckoutButton from "./components/EvaluationCheckoutButton";
 
 export default async function Home() {
   const supabase = await createClientRSC();
@@ -168,7 +169,7 @@ export default async function Home() {
                   <p>
                     At RioPlex Business Exchange, we help make the process clear, accurate, and aligned with your goals, so whether you’re buying, selling, or planning for the future, you’ll have the right insights to move forward.
                   </p><br />
-                  <Link href="/business"><Button className="mb-10 w-full max-w-[1000px]">Get My Valuation</Button></Link>
+                  <EvaluationCheckoutButton color="green"/>
               </div>
 
               
