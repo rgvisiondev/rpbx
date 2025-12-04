@@ -25,7 +25,7 @@ async function sendValuationEmail(email: string, sessionId: string) {
     const calendlyLink = "https://calendly.com/rioplex";
 
     await resend.emails.send({
-      from: "RioPlex <noreply@rioplex.com>",
+      from: "RioPlex <info@rioplexbizx.com>",
       to: email,
       subject: "Your RioPlex Business Valuation is Ready",
       react: ValuationEmail({
