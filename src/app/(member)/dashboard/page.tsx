@@ -42,9 +42,8 @@ export default async function Dashboard() {
   }
 
   // From here down, user is entitled & verified.
-  const userType: "business" | "investor" = (gate.role ?? "business") as
-    | "business"
-    | "investor";
+  const userType: "business" | "investor" = gate.role === "investor" ? "investor" : "business";
+
 
   const supabase = await createClientRSC();
 
@@ -60,20 +59,14 @@ export default async function Dashboard() {
       .select("id")
       .eq("user_id", user.id)
       .maybeSingle();
+
     if (!inv) {
       redirect("/onboarding/investor/contact");
     }
-  } else {
-    const { data, count, error } = await supabase
-      .from("business_listings")
-      .select("id")
-      .eq("owner_id", user.id)
-      .eq("is_active", true);
-    if (error) throw error;
-    if (!count || data.length === 0) {
-      redirect(`/onboarding/business/${data[0].id}/set-up`);
-    }
   }
+  // No special redirect for business users here for now.
+  // We assume their listing was created via the claim flow after checkout.
+
 
   // Fetch private dashboard data now that we know it's safe
   let dashboardData: DashboardData | null = null;
