@@ -18,6 +18,7 @@ const poppins = Poppins({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://rioplexbizx.com"),
   title: "RioPlex Business Exchange",
   description: "Connecting Local Business Owners With Investors",
   icons: {

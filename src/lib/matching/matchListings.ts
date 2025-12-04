@@ -4,6 +4,11 @@ import type { Database } from "@/types/database.types";
 type Listing = Database["public"]["Tables"]["business_listings"]["Row"];
 type InvestorProfile = Database["public"]["Tables"]["investor_profiles"]["Row"];
 
+export type BusinessMatch = Listing & {
+  score?: number;
+  _source: "matched" | "newest";
+};
+
 function strIncludes(a?: string | null, b?: string | null) {
   if (!a || !b) return false;
   const aLower = a.toLowerCase();
@@ -39,7 +44,6 @@ function rangeLikeMatch(
 }
 
 /**
- * Mirror the scoring idea from matchInvestorsToListings:
  * - +5 for industry match
  * - +3 for EBITDA overlap
  * - +2 for annual_revenue_range vs target_cash_flow overlap
@@ -52,17 +56,14 @@ function calculateListingScore(
 
   let score = 0;
 
-  // Industry is the main signal
   if (matchesIndustry(l, inv)) {
     score += 5;
   }
 
-  // EBITDA compatibility
   if (rangeLikeMatch(l.ebitda_range, inv.target_ebitda)) {
     score += 3;
   }
 
-  // Cash-flow proxy vs annual revenue
   if (rangeLikeMatch(l.annual_revenue_range, inv.target_cash_flow)) {
     score += 2;
   }
@@ -73,40 +74,47 @@ function calculateListingScore(
 export function matchListingsToInvestor(
   all: Listing[],
   inv?: InvestorProfile | null
-): Listing[] {
+): BusinessMatch[] {
   if (!all.length) return [];
 
-  // Compute scores per listing
   const scored = all.map((l) => ({
     listing: l,
     score: calculateListingScore(l, inv),
   }));
 
-  // Positive-scoring matches first
-  const matches = scored
+  const positiveMatches: BusinessMatch[] = scored
     .filter((s) => (s.score ?? 0) > 0)
     .sort((a, b) => {
-      const scoreDiff = (b.score ?? 0) - (a.score ?? 0);
-      if (scoreDiff !== 0) return scoreDiff;
+      const diff = (b.score ?? 0) - (a.score ?? 0);
+      if (diff !== 0) return diff;
 
-      // Tie-breaker: newest first
       const aDate = new Date(a.listing.created_at ?? 0).getTime();
       const bDate = new Date(b.listing.created_at ?? 0).getTime();
       return bDate - aDate;
     })
     .slice(0, 4)
-    .map((s) => s.listing);
+    .map((s) => ({
+      ...s.listing,
+      score: s.score,
+      _source: "matched" as const,
+    }));
 
-  if (matches.length > 0) {
-    return matches;
+  if (positiveMatches.length > 0) {
+    return positiveMatches;
   }
 
   // Fallback: newest 4 listings overall
-  return [...all]
+  const newest: BusinessMatch[] = [...all]
     .sort(
       (a, b) =>
         new Date(b.created_at ?? 0).getTime() -
         new Date(a.created_at ?? 0).getTime()
     )
-    .slice(0, 4);
+    .slice(0, 4)
+    .map((l) => ({
+      ...l,
+      _source: "newest" as const,
+    }));
+
+  return newest;
 }

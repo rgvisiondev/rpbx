@@ -16,78 +16,108 @@ export type Database = {
     Tables: {
       business_listings: {
         Row: {
+          address: string | null
           annual_revenue_range: string | null
           book_value_range: string | null
           can_provide_financials: boolean | null
           can_provide_tax_returns: boolean | null
+          city: string | null
           contact_email: string | null
+          country_code: string | null
           county: string | null
           created_at: string | null
           description: string | null
           ebitda_range: string | null
           employee_count_range: string | null
+          geocode_confidence: number | null
+          geocode_place_id: string | null
+          geocoded_at: string | null
+          geocoded_lat: number | null
+          geocoded_lng: number | null
           id: string
           industry: string
           is_active: boolean | null
           listing_image_alt: string | null
+          listing_image_choice: string | null
           listing_image_h: number | null
           listing_image_path: string | null
           listing_image_w: number | null
-          location_city: string | null
           owner_id: string
           ownership_percentage: number | null
+          postal_code: string | null
+          state_code: string | null
           status: string
           title: string
           updated_at: string | null
           years_in_business: string | null
         }
         Insert: {
+          address?: string | null
           annual_revenue_range?: string | null
           book_value_range?: string | null
           can_provide_financials?: boolean | null
           can_provide_tax_returns?: boolean | null
+          city?: string | null
           contact_email?: string | null
+          country_code?: string | null
           county?: string | null
           created_at?: string | null
           description?: string | null
           ebitda_range?: string | null
           employee_count_range?: string | null
+          geocode_confidence?: number | null
+          geocode_place_id?: string | null
+          geocoded_at?: string | null
+          geocoded_lat?: number | null
+          geocoded_lng?: number | null
           id?: string
           industry: string
           is_active?: boolean | null
           listing_image_alt?: string | null
+          listing_image_choice?: string | null
           listing_image_h?: number | null
           listing_image_path?: string | null
           listing_image_w?: number | null
-          location_city?: string | null
           owner_id: string
           ownership_percentage?: number | null
+          postal_code?: string | null
+          state_code?: string | null
           status?: string
           title: string
           updated_at?: string | null
           years_in_business?: string | null
         }
         Update: {
+          address?: string | null
           annual_revenue_range?: string | null
           book_value_range?: string | null
           can_provide_financials?: boolean | null
           can_provide_tax_returns?: boolean | null
+          city?: string | null
           contact_email?: string | null
+          country_code?: string | null
           county?: string | null
           created_at?: string | null
           description?: string | null
           ebitda_range?: string | null
           employee_count_range?: string | null
+          geocode_confidence?: number | null
+          geocode_place_id?: string | null
+          geocoded_at?: string | null
+          geocoded_lat?: number | null
+          geocoded_lng?: number | null
           id?: string
           industry?: string
           is_active?: boolean | null
           listing_image_alt?: string | null
+          listing_image_choice?: string | null
           listing_image_h?: number | null
           listing_image_path?: string | null
           listing_image_w?: number | null
-          location_city?: string | null
           owner_id?: string
           ownership_percentage?: number | null
+          postal_code?: string | null
+          state_code?: string | null
           status?: string
           title?: string
           updated_at?: string | null
@@ -402,6 +432,7 @@ export type Database = {
           current_period_start: string
           ended_at: string | null
           id: string
+          listing_id: string | null
           metadata: Json | null
           price_currency: string | null
           price_id: string | null
@@ -414,6 +445,7 @@ export type Database = {
           product_id: string | null
           product_metadata: Json | null
           product_name: string | null
+          purpose_sub: string | null
           quantity: number | null
           status: Database["public"]["Enums"]["subscription_status"] | null
           trial_end: string | null
@@ -429,6 +461,7 @@ export type Database = {
           current_period_start?: string
           ended_at?: string | null
           id: string
+          listing_id?: string | null
           metadata?: Json | null
           price_currency?: string | null
           price_id?: string | null
@@ -441,6 +474,7 @@ export type Database = {
           product_id?: string | null
           product_metadata?: Json | null
           product_name?: string | null
+          purpose_sub?: string | null
           quantity?: number | null
           status?: Database["public"]["Enums"]["subscription_status"] | null
           trial_end?: string | null
@@ -456,6 +490,7 @@ export type Database = {
           current_period_start?: string
           ended_at?: string | null
           id?: string
+          listing_id?: string | null
           metadata?: Json | null
           price_currency?: string | null
           price_id?: string | null
@@ -468,6 +503,7 @@ export type Database = {
           product_id?: string | null
           product_metadata?: Json | null
           product_name?: string | null
+          purpose_sub?: string | null
           quantity?: number | null
           status?: Database["public"]["Enums"]["subscription_status"] | null
           trial_end?: string | null
@@ -499,23 +535,33 @@ export type Database = {
           book_value_range: string | null
           can_provide_financials: boolean | null
           can_provide_tax_returns: boolean | null
+          city: string | null
           contact_email: string | null
+          country_code: string | null
           county: string | null
           created_at: string | null
           description: string | null
           ebitda_range: string | null
           employee_count_range: string | null
+          geocode_confidence: number | null
+          geocode_place_id: string | null
+          geocoded_at: string | null
+          geocoded_lat: number | null
+          geocoded_lng: number | null
+          has_purchased_valuation: boolean | null
           id: string | null
           industry: string | null
           is_active: boolean | null
           is_promoted_effective: boolean | null
           listing_image_alt: string | null
+          listing_image_choice: string | null
           listing_image_h: number | null
           listing_image_path: string | null
           listing_image_w: number | null
-          location_city: string | null
           owner_id: string | null
           ownership_percentage: number | null
+          postal_code: string | null
+          state_code: string | null
           status: string | null
           title: string | null
           updated_at: string | null
@@ -526,23 +572,33 @@ export type Database = {
           book_value_range?: string | null
           can_provide_financials?: boolean | null
           can_provide_tax_returns?: boolean | null
+          city?: string | null
           contact_email?: string | null
+          country_code?: string | null
           county?: string | null
           created_at?: string | null
           description?: string | null
           ebitda_range?: string | null
           employee_count_range?: string | null
+          geocode_confidence?: number | null
+          geocode_place_id?: string | null
+          geocoded_at?: string | null
+          geocoded_lat?: number | null
+          geocoded_lng?: number | null
+          has_purchased_valuation?: never
           id?: string | null
           industry?: string | null
           is_active?: boolean | null
           is_promoted_effective?: never
           listing_image_alt?: string | null
+          listing_image_choice?: string | null
           listing_image_h?: number | null
           listing_image_path?: string | null
           listing_image_w?: number | null
-          location_city?: string | null
           owner_id?: string | null
           ownership_percentage?: number | null
+          postal_code?: string | null
+          state_code?: string | null
           status?: string | null
           title?: string | null
           updated_at?: string | null
@@ -553,23 +609,33 @@ export type Database = {
           book_value_range?: string | null
           can_provide_financials?: boolean | null
           can_provide_tax_returns?: boolean | null
+          city?: string | null
           contact_email?: string | null
+          country_code?: string | null
           county?: string | null
           created_at?: string | null
           description?: string | null
           ebitda_range?: string | null
           employee_count_range?: string | null
+          geocode_confidence?: number | null
+          geocode_place_id?: string | null
+          geocoded_at?: string | null
+          geocoded_lat?: number | null
+          geocoded_lng?: number | null
+          has_purchased_valuation?: never
           id?: string | null
           industry?: string | null
           is_active?: boolean | null
           is_promoted_effective?: never
           listing_image_alt?: string | null
+          listing_image_choice?: string | null
           listing_image_h?: number | null
           listing_image_path?: string | null
           listing_image_w?: number | null
-          location_city?: string | null
           owner_id?: string | null
           ownership_percentage?: number | null
+          postal_code?: string | null
+          state_code?: string | null
           status?: string | null
           title?: string | null
           updated_at?: string | null
