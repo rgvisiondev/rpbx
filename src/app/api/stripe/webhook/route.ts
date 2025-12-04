@@ -16,6 +16,34 @@ const BIZ_EQUITY_URL = process.env.BIZEQUITY_URL!;
 const CALENDLY_VALUATION_URL = process.env.CALENDLY_VALUATION_URL!;
 const resend = new Resend(process.env.RESEND_API_KEY!);
 
+
+  const subscribeNewsletter = async (email: string, membership: string) => {
+    if (!email) return;
+    const groups = ["172616011480041008", "172615978122740973"]; // Default newsletter group
+    
+    if (membership === "investor") {
+      groups.push("172616029418030559"); // Investor group
+    } else if (membership === "business") {
+      groups.push("172616046280181040"); // Business group
+    }
+
+    const res = await fetch("/api/ml-subscribe", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Accept": "application/json"
+      },
+      body: JSON.stringify({ email, groups }),
+    });
+
+
+    if (res.ok) {
+      return;
+    } else {
+      alert("Something went wrong. Try again.");
+    }
+  };
+
 function isDeletedCustomer(
   c: Stripe.Customer | Stripe.DeletedCustomer
 ): c is Stripe.DeletedCustomer {
@@ -327,6 +355,71 @@ export async function POST(req: NextRequest) {
           expand: ["items.data.price.product", "customer"],
         });
         await upsertSubscription(admin, sub);
+
+        // Send subscription confirmation email for initial subscriptions
+        try {
+          const uid = (sess.metadata?.["supabase_user_id"] ?? null) as string | null;
+          if (uid) {
+            // Check if user already had other subscriptions (excluding this one)
+            const { data: otherSubs } = await admin
+              .from("subscriptions")
+              .select("id")
+              .eq("user_id", uid)
+              .neq("id", sub.id)
+              .limit(1);
+
+            const hadPrevious = Array.isArray(otherSubs) && otherSubs.length > 0;
+            if (!hadPrevious) {
+              let toEmail: string | null =
+                (sess.customer_details?.email as string | null) ||
+                (sess.customer_email as string | null) ||
+                null;
+
+              if (!toEmail) {
+                const { data: invRow } = await admin
+                  .from("investor_profiles")
+                  .select("contact_email")
+                  .eq("user_id", uid)
+                  .maybeSingle();
+                toEmail = invRow?.contact_email ?? null;
+              }
+
+              if (!toEmail) {
+                const { data: listingRow } = await admin
+                  .from("business_listings")
+                  .select("contact_email")
+                  .eq("owner_id", uid)
+                  .limit(1)
+                  .maybeSingle();
+                toEmail = listingRow?.contact_email ?? null;
+              }
+
+              if (toEmail) {
+                const dashboardUrl = `${process.env.NEXT_PUBLIC_BASE_URL}/dashboard`;
+                const idemKey = `sub-confirm:${sess.id}`;
+                await resend.emails.send(
+                  {
+                    from: "RioPlex <info@rioplexbizx.com>",
+                    to: toEmail,
+                    subject: "Your RPBX subscription is active",
+                    react: SubscriptionConfirmationEmail({ dashboardUrl }),
+                  },
+                  { idempotencyKey: idemKey }
+                );
+                // for new subscribers, also subscribe to newsletter
+                const membership = resolveBaseRole(
+                  sub.items?.data?.[0]?.price,
+                  sub.metadata
+                ) ?? "business"; 
+                await subscribeNewsletter(toEmail, membership);
+              } else {
+                console.warn("No email found for subscription confirmation; skipped email send.");
+              }
+            }
+          }
+        } catch (e) {
+          console.error("Error sending subscription confirmation email:", e);
+        }
       }
 
       const meta = sess.metadata || {};

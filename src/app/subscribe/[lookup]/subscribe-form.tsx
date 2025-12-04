@@ -5,12 +5,15 @@ import * as React from "react";
 import { Eye, EyeOff } from "lucide-react";
 import Button from "../../components/Button";
 
-export function SubscribeForm({ lookup }: { lookup: string }) {
+export function SubscribeForm({ lookup, trialDays = 0 }: { lookup: string; trialDays?: number; }) {
   const [showPw, setShowPw] = React.useState(false);
 
   return (
     <form method="post" action="/api/subscribe" className="mt-6 space-y-3">
       <input name="lookup" type="hidden" value={lookup} />
+      {trialDays > 0 && (
+        <input name="trial_days" type="hidden" value={trialDays} />
+      )}
 
       <label className="block">
         <span>First name</span>

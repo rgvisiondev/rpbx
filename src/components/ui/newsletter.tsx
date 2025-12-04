@@ -3,23 +3,45 @@ import { useState } from "react";
 
 export default function NewsletterSignup() {
   const [email, setEmail] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // OPTIONAL: You can edit these or pass them dynamically based on the page
+  const groups = ["172616011480041008"]; // Default newsletter group
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
     if (!email) return;
 
-    const magicLink = `https://magic.beehiiv.com/v1/eda7b3a4-1d2e-4b31-b202-c1bb80431200?email=${encodeURIComponent(email)}&redirect_to=https://rioplexbusinessexchange.com`;
+    setLoading(true);
+    groups.push("172615978122740973"); // General
 
-    // Redirect user
-    window.location.href = magicLink;
+    const res = await fetch("/api/ml-subscribe", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Accept": "application/json"
+      },
+      body: JSON.stringify({ email, groups }),
+    });
+
+    setLoading(false);
+
+    if (res.ok) {
+      setSuccess(true);
+      setEmail("");
+    } else {
+      alert("Something went wrong. Try again.");
+    }
   };
+
 
   return (
     <div className="flex flex-col items-center bg-[url('/images/backgrounds/black-mint-bg.png')] bg-cover bg-center bg-fixed py-10 px-4 lg:px-0">
       <div className="bg-white flex flex-col items-center w-full lg:w-[900px] min-h-[300px] rounded-2xl py-10 px-6 lg:px-20 mx-4 shadow-lg border-2 border-grey-500 transition-transform duration-300 hover:scale-101 hover:shadow-xl">
+
         <h2 className="text-center mb-2">Unlock Your Growth with Expert Insights</h2>
-        <p className="text-center ">
+        <p className="text-center">
           Join our monthly RPBX newsletter for exclusive resources, investor opportunities, and expert advice to fuel your business success. It’s free, insightful, and spam-free!
         </p>
 
@@ -36,12 +58,16 @@ export default function NewsletterSignup() {
             type="submit"
             className="mt-5 w-full px-6 py-2 rounded-full font-medium transition bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-white"
           >
-            Sign Up
+            {loading ? "Submitting..." : "Sign Up"}
           </button>
         </form>
 
+        {success && (
+          <p className="mt-4 bg-green-100 w-full rounded-full py-2 text-center">Thank you for subscribing!</p>
+        )}
+
         <p className="mt-5 pt-2 border-t-2 border-[#A1A1A1] text-center small text-grey">
-          By submitting this form, you are consenting to receive marketing emails from: info@rioplexbizx.com. You can revoke your consent to receive emails at any time by using the Unsubscribe link, found at the bottom of every email. Emails are serviced by BeeHiiv. For more information, please review our Privacy Policy and Terms of Service.
+          By submitting this form, you agree to receive marketing emails from info@rioplexbizx.com. You can unsubscribe at any time. Emails are serviced by MailerLite.
         </p>
       </div>
     </div>
