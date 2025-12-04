@@ -5,7 +5,6 @@ import { signInWithGoogle } from '@/lib/google-signin';
 export default function AuthForm() {
   return (
     <>
-  <Link href="/login" className="w-full">
   <button className="mt-5 w-full px-6 py-2 rounded-full font-medium transition bg-[#60BC9B] hover:bg-[var(--color-primary-hover)] text-white border border-gray-300 hover:border-transparent flex items-center justify-center gap-2" onClick={() => signInWithGoogle('/dashboard')}>
     <img
       src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"
@@ -14,7 +13,6 @@ export default function AuthForm() {
     />
     Continue With Google
   </button>
-  </Link>
   <Link href="/login" className="w-full">
       <button className="mt-5 w-full px-6 py-2 rounded-full font-medium transition bg-white hover:bg-[var(--color-primary-hover)] text-black hover:text-white border border-gray-300 hover:border-transparent">
         Sign In With Email
