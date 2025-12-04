@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { signInWithGoogle } from "@/lib/google-signin";
 
 export interface LoginFormProps extends React.HTMLAttributes<HTMLDivElement> {
   next?: string;
@@ -97,15 +98,6 @@ export function LoginForm({ className, next = "", initialError, ...props }: Logi
     }
   }
 
-  async function signInWithGoogle() {
-    setErrorMsg(null);
-    setInfoMsg(null);
-    await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: { redirectTo: `${window.location.origin}/auth/callback` },
-    });
-  }
-
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
       <Card>
@@ -121,7 +113,7 @@ export function LoginForm({ className, next = "", initialError, ...props }: Logi
                 type="button"
                 variant="outline"
                 className="w-full"
-                onClick={signInWithGoogle}
+                onClick={ () => signInWithGoogle('/dashboard')}
                 disabled={loading}
               >
                 Login with Google
