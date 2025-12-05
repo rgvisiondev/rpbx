@@ -29,8 +29,8 @@ export default function NavBarActivate() {
           <Image
             src={
               scrolled
-                ? "/images/logos/Rio-Plex-Logo-Main-Mint-&-Charcoal.png"
-                : "/images/logos/Rio-Plex-Logo-Main-Mint-&-White.png"
+                ? "/images/logos/svg/Rio-Plex-Logo-Main-Mint-&-Charcoal.svg"
+                : "/images/logos/svg/Rio-Plex-Logo-Main-Mint-&-White.svg"
             }
             width={150}
             height={140}

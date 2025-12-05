@@ -38,7 +38,7 @@ export default function Footer() {
         </div>
 
         <Image
-          src="/images/logos/Rio-Plex-Logo-Main-White.png"
+          src="/images/logos/svg/Rio-Plex-Logo-Main-White.svg"
           alt="Footer Logo"
           width={150}
           height={50}
