@@ -41,10 +41,10 @@ export default function NavBarActivate() {
 
         {/* Button */}
         <Link
-          href="/pricing"
+          href="/subscribe/business_monthly?trial=30"
           className="px-4 py-2 rounded-full text-white font-medium bg-[var(--color-button)] hover:opacity-90 transition"
         >
-          Start 30 Days For Free
+          Start 30 Days Free
         </Link>
 
       </div>
