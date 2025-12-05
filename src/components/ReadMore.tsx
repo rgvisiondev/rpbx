@@ -22,7 +22,7 @@ export const ReadMore = ({ id, text, amountOfWords = 36 }: ReadMoreProps) => {
   }
 }
   return (
-    <p id={id}>
+    <p id={id} className='text-center'>
       {beginText}
       {itCanOverflow && (
         <>

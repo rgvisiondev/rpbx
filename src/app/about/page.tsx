@@ -149,7 +149,7 @@ export default function AboutPage() {
                         />
                       </div>
 
-                      <h4 className="mt-4 large">{expert.name}</h4>
+                      <h4 className="mt-4 mb-2 large">{expert.name}</h4>
                       <ReadMore
                         id={`read-more-expert-${expert.name}`}
                         text={expert.title}
