@@ -55,7 +55,7 @@ export default function Navbar() {
         <div className="flex items-center justify-between px-4 py-4 border-b">
           <Link href="/" className="flex items-center" onClick={() => setIsMobileMenuOpen(false)}>
             <Image
-              src="/images/logos/Rio-Plex-Logo-Main-Mint-&-Charcoal.png"
+              src="/images/logos/svg/Rio-Plex-Logo-Main-Mint-&-Charcoal.svg"
               width={120}
               height={160}
               alt="RioPlex logo"
@@ -79,6 +79,7 @@ export default function Navbar() {
           </button>
         </div>
         <ul className="flex flex-col gap-4 p-4">
+          <Link href="/" className="block text-lg text-slate-600 hover:text-[var(--color-button)]">Home</Link>
           {navItems.map((item) => (
             <li key={item.href}>
               <Link
@@ -107,7 +108,7 @@ export default function Navbar() {
         <div className="flex flex-wrap items-center justify-between text-slate-800">
           <Link href="/" className="flex items-center">
             <Image
-              src="/images/logos/Rio-Plex-Logo-Main-Mint-&-Charcoal.png"
+              src="/images/logos/svg/Rio-Plex-Logo-Main-Mint-&-Charcoal.svg"
               width={150}
               height={200}
               alt="RioPlex logo"
