@@ -83,7 +83,7 @@ export default function BillingClient() {
   }
 
   return (
-    <div className="w-full lg:w-[1140px] mx-auto py-10 px-5 lg:px-0">
+    <div className="w-full lg:max-w-[1140px] mx-auto py-10 px-5 lg:px-2">
       <h1 className="mb-4">Manage Subscription</h1>
       <p className="text-sm text-gray-600 mb-6">
         Use the customer portal to update payment methods, view invoices, or cancel plans.

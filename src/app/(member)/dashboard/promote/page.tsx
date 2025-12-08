@@ -8,7 +8,7 @@ export default function PromotePage() {
           <NavGate />
         </div>
 
-    <div className="w-full lg:w-[1140px] mx-auto py-10 px-5 lg:px-0">
+    <div className="w-full lg:max-w-[1140px] mx-auto py-10 px-5 lg:px-2">
       <h1 className="mb-4">Promote A Listing</h1>
       <p className="text-sm text-gray-600 mb-6">
         Choose a listing to boost. This creates a Stripe subscription tied to that listing.

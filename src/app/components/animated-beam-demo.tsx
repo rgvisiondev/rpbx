@@ -106,7 +106,7 @@ const Icons = {
   ),
   rpbx: () => (
     <Image
-      src="/images/icons/Logo-Icon-Mint.png"
+      src="/images/logos/svg/Rio-Plex-Logo-Icon-Mint.svg"
       alt="RPBX Logo"
       width={100}
       height={100}

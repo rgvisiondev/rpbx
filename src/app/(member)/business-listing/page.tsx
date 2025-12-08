@@ -6,7 +6,7 @@ import Image from "next/image";
 import type { Metadata } from "next";
 import { createClientRSC } from "@/../utils/supabase/server";
 import { redirect } from "next/navigation";
-import { BadgeCheckIcon} from "lucide-react"
+import { BadgeCheckIcon, Filter, ChevronDown } from "lucide-react"; // Added Icons
 import {
   Tooltip,
   TooltipContent,
@@ -147,7 +147,7 @@ export default async function Businesses({
   if (emp)      query = query.eq("employee_count_range", emp);
   if (county)   query = query.eq("county", county);
 
-  // sorting — stick to "date" (updated_at desc). (You can add others later.)
+  // sorting — stick to "date" (updated_at desc).
   query = query
   .order("is_promoted_effective", { ascending: false, nullsFirst: false})
   .order("updated_at", { ascending: false })
@@ -155,7 +155,6 @@ export default async function Businesses({
 
   const { data: rows, count, error } = await query;
   if (error) {
-    // basic fallback; you can render a nicer empty state if you prefer
     console.error("Listings query failed:", error.message);
   }
 
@@ -180,80 +179,105 @@ export default async function Businesses({
     <div className="flex flex-col bg-[url('/images/backgrounds/white-bg.png')] bg-repeat bg-top min-h-screen">
       <NavGate />
 
-      <div className="w-full lg:w-[1140px] mx-auto py-10 gap-10 px-5 lg:px-0">
+      <div className="w-full lg:max-w-[1140px] mx-auto py-10 gap-10 px-5 lg:px-2">
         <h1 className="text-center pb-15">Business Owners</h1>
 
-        <div className="flex flex-col lg:flex-row gap-10">
-          {/* LEFT: Filters (GET form keeps your styling, same spot) */}
-          <form id="filters" className="w-full lg:w-1/4 bg-white p-5 rounded-lg shadow-md h-fit">
-            {/* Categories (Industry) */}
-            <div className="mb-5 max-h-52 overflow-y-auto pr-2">
-              <p className="font-medium mb-2">Categories</p>
-              <ul className="space-y-2 text-md">
-                {INDUSTRIES.map((it) => (
-                  <li key={it.value || "all"} className="flex items-center gap-2">
-                    <input
-                      type="radio"
-                      name="industry"
-                      value={it.value}
-                      defaultChecked={sel(industry, it.value)}
-                    />
-                    <span>{it.label}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
+        <div className="flex flex-col md:flex-row gap-10">
+          
+          {/* LEFT: Filters Wrapper 
+            Moved width classes here. 
+            Added checkbox hack for mobile toggling.
+          */}
+          <div className="w-full md:w-1/3 lg:w-1/4 h-fit">
+            
+            {/* Mobile Toggle Button (Hidden on Desktop) */}
+            <input type="checkbox" id="filter-toggle" className="peer hidden" />
+            <label 
+              htmlFor="filter-toggle" 
+              className="md:hidden w-full bg-white p-4 rounded-lg shadow-md mb-4 flex justify-between items-center cursor-pointer select-none text-gray-700"
+            >
+              <div className="flex items-center gap-2">
+                <Filter size={20} />
+                <span className="font-semibold">Filters</span>
+              </div>
+              <ChevronDown size={20} />
+            </label>
 
-            {/* Annual Revenue */}
-            <div className="mb-4">
-              <label className="block mb-1 text-md">Annual Revenue</label>
-              <select name="annual" className="w-full border rounded px-2 py-1 text-md" defaultValue={annual}>
-                {ANNUAL.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
-              </select>
-            </div>
+            {/* The Form 
+                hidden by default on mobile, 
+                shown when peer (checkbox) is checked,
+                ALWAYS shown on md (desktop)
+            */}
+            <form id="filters" className="hidden peer-checked:block md:block w-full bg-white p-5 rounded-lg shadow-md">
+              {/* Categories (Industry) */}
+              <div className="mb-5 max-h-52 overflow-y-auto pr-2">
+                <p className="font-medium mb-2">Categories</p>
+                <ul className="space-y-2 text-md">
+                  {INDUSTRIES.map((it) => (
+                    <li key={it.value || "all"} className="flex items-center gap-2">
+                      <input
+                        type="radio"
+                        name="industry"
+                        value={it.value}
+                        defaultChecked={sel(industry, it.value)}
+                      />
+                      <span>{it.label}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
 
-            {/* EBITDA */}
-            <div className="mb-4">
-              <label className="block mb-1 text-md">Company EBITDA</label>
-              <select name="ebitda" className="w-full border rounded px-2 py-1 text-md" defaultValue={ebitda}>
-                {EBITDA.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
-              </select>
-            </div>
+              {/* Annual Revenue */}
+              <div className="mb-4">
+                <label className="block mb-1 text-md">Annual Revenue</label>
+                <select name="annual" className="w-full border rounded px-2 py-1 text-md" defaultValue={annual}>
+                  {ANNUAL.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+                </select>
+              </div>
 
-            {/* Years */}
-            <div className="mb-4">
-              <label className="block mb-1 text-md">Years in Business</label>
-              <select name="years" className="w-full border rounded px-2 py-1 text-md" defaultValue={years}>
-                {YEARS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
-              </select>
-            </div>
+              {/* EBITDA */}
+              <div className="mb-4">
+                <label className="block mb-1 text-md">Company EBITDA</label>
+                <select name="ebitda" className="w-full border rounded px-2 py-1 text-md" defaultValue={ebitda}>
+                  {EBITDA.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+                </select>
+              </div>
 
-            {/* Employees */}
-            <div className="mb-4">
-              <label className="block mb-1 text-md">Number of Employees</label>
-              <select name="emp" className="w-full border rounded px-2 py-1 text-md" defaultValue={emp}>
-                {EMP.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
-              </select>
-            </div>
+              {/* Years */}
+              <div className="mb-4">
+                <label className="block mb-1 text-md">Years in Business</label>
+                <select name="years" className="w-full border rounded px-2 py-1 text-md" defaultValue={years}>
+                  {YEARS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+                </select>
+              </div>
 
-            {/* County */}
-            <div className="mb-4">
-              <label className="block mb-1 text-md">County Business is Located In</label>
-              <select name="county" className="w-full border rounded px-2 py-1 text-md" defaultValue={county}>
-                {COUNTIES.map(opt => <option key={opt.value || "none"} value={opt.value}>{opt.label}</option>)}
-              </select>
-            </div>
+              {/* Employees */}
+              <div className="mb-4">
+                <label className="block mb-1 text-md">Number of Employees</label>
+                <select name="emp" className="w-full border rounded px-2 py-1 text-md" defaultValue={emp}>
+                  {EMP.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+                </select>
+              </div>
 
-            <Button className="mt-3 w-full">Filter</Button>
-          </form>
+              {/* County */}
+              <div className="mb-4">
+                <label className="block mb-1 text-md">County Business is Located In</label>
+                <select name="county" className="w-full border rounded px-2 py-1 text-md" defaultValue={county}>
+                  {COUNTIES.map(opt => <option key={opt.value || "none"} value={opt.value}>{opt.label}</option>)}
+                </select>
+              </div>
+
+              <Button className="mt-3 w-full">Filter</Button>
+            </form>
+          </div>
 
           {/* RIGHT: Listings */}
           <div className="flex-1">
             {/* Header + Sort (sort wired to ?sort=date for now) */}
             <div className="flex justify-between items-center mb-5">
-              <p>{total > 0 ? `Showing ${startIdx}-${endIdx} of ${total} results` : "No results"}</p>
-              <div>
-                <label className="text-md mr-2">Sort by</label>
+              <p className="text-sm md:text-base">{total > 0 ? `Showing ${startIdx}-${endIdx} of ${total} results` : "No results"}</p>
+              <div className="flex items-center">
+                <label className="text-md mr-2 hidden sm:block">Sort by</label>
                 <select
                   name="sort"
                   className="border rounded px-2 py-1 text-md bg-white"
@@ -332,7 +356,7 @@ export default async function Businesses({
                       <Image
                         src="/images/icons/location.png"
                         alt="Location"
-                        className="w-3 h-4 mr-2"
+                        className="w-4 h-4 mr-2"
                         width={16}
                         height={16}
                       />

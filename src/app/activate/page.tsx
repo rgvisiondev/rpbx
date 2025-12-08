@@ -53,7 +53,7 @@ export default async function Activate() {
         }
         
         .hero-bg {
-            background-image: linear-gradient(to bottom right, rgba(15, 23, 42, 0.9), rgba(30, 41, 59, 0.85)), url('https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?ixlib=rb-1.2.1&auto=format&fit=crop&w=1920&q=80');
+            background-image: linear-gradient(to bottom right, rgba(15, 23, 42, 0.9), rgba(30, 41, 59, 0.85)), url('/images/header/building2.png');
             background-size: cover;
             background-position: center;
             background-attachment: fixed;
@@ -97,7 +97,7 @@ export default async function Activate() {
                         {/* Glow effect behind form */}
                         <div className="absolute -inset-1 bg-[#60BC9B] rounded-2xl blur opacity-20"></div>
 
-                        <div className="relative bg-white rounded-2xl shadow-2xl overflow-hidden p-8">
+                        <div className="relative bg-white rounded-2xl shadow-2xl overflow-hidden p-5 md:p-8">
                             <div className="text-center mb-8">
                                 <h2 className="text-2xl font-bold text-slate-900">Start Your Free Trial</h2>
                                 <p className="text-slate-500 text-sm mt-2">30 days free access for Business Owners.</p>
@@ -130,7 +130,7 @@ export default async function Activate() {
             <section className="pb-20 bg-[url('/images/backgrounds/white-bg.png')] bg-repeat bg-top">
                 <div className="max-w-[1140px] container mx-auto px-6">
                     <div className="text-center mb-16 mx-auto">
-                        <h2 className="text-3xl font-bold text-slate-900 mb-4">Your Gateway to Local Investors</h2>
+                        <h2 className="text-3xl font-bold text-slate-900 mb-4 mt-2 lg:mt-0">Your Gateway To Local Investors</h2>
                         <p className="text-slate-600">RPBX gives your business direct access, local credibility, and targeted exposure to investors who are ready to engage.</p>
                     </div>
 

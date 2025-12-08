@@ -21,7 +21,7 @@ export default function Footer() {
           </Link>
         </div>
 
-        <div className="mt-5 pt-4 flex flex-wrap gap-x-15 gap-y-2 lg:gap-y-0 text-white border-t-2 border-white">
+        <div className="mt-5 pt-4 grid grid-rows-3 grid-cols-2 gap-x-4 gap-y-2 md:flex md:flex-wrap gap-x-15 gap-y-2 lg:gap-y-0 text-white border-t-2 border-white">
         <Link href="/terms">Terms of Service</Link>
         <Link href="/privacy">Privacy Policy</Link>
         <Link href="/cookies">Cookie Policy</Link>
@@ -38,7 +38,7 @@ export default function Footer() {
         </div>
 
         <Image
-          src="/images/logos/Rio-Plex-Logo-Main-White.png"
+          src="/images/logos/svg/Rio-Plex-Logo-Main-White.svg"
           alt="Footer Logo"
           width={150}
           height={50}

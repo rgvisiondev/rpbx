@@ -136,7 +136,7 @@ export default function Navbar({ userType }: { userType: UserType }) {
   );
 
   return (
-    <nav className="sticky top-0 z-30 w-full py-10 backdrop-saturate-150 px-5 lg:px-0 ">
+    <nav className="sticky top-0 z-30 w-full py-10 backdrop-saturate-150 px-5 lg:px-2 ">
       <div className="mx-auto w-full lg:max-w-[1140px] lg:px-10 px-7 py-2 bg-white rounded-full shadow-md">
         <div className="flex flex-wrap items-center justify-between text-slate-800">
           <Link href="/dashboard" className="flex items-center">

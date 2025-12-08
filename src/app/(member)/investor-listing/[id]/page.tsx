@@ -122,8 +122,10 @@ export default async function InvestorPage(
         <NavGate />
 
         {/* Content Wrapper */}
-        <div className="w-full lg:w-[1140px] mx-auto py-10 px-5 lg:px-0 flex flex-col lg:flex-row gap-5">
-          <div className="w-full lg:w-1/3">
+        <div className="w-full lg:max-w-[1140px] mx-auto py-10 px-5 lg:px-2 flex flex-col md:flex-row gap-5">
+          
+          {/* LEFT COLUMN - Sticky Logic Applied Here */}
+          <div className="w-full lg:w-1/3 md:sticky md:top-30 md:h-fit">
             <div className="flex flex-col bg-gray-200 rounded-lg overflow-hidden">
               <Image
                 src={avatarUrl ?? "/images/svg/def-inv.svg"}
@@ -148,7 +150,7 @@ export default async function InvestorPage(
             </div>
           </div>
 
-          <div className="w-full lg:w-2/3 lg:pr-10 gap-5 flex flex-col">
+          <div className="w-full lg:w-2/3 gap-5 flex flex-col">
             <div className="w-full bg-white rounded-lg shadow-lg overflow-hidden border p-6 lg:p-8">
               <h1 className="pb-2">{fullName}</h1>
               <p>

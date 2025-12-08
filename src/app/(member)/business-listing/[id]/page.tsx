@@ -130,7 +130,7 @@ export default async function ListingPage({
     <div className="flex flex-col bg-[url('/images/backgrounds/white-bg.png')] bg-repeat bg-top min-h-screen">
       <NavGate />
 
-      <div className="w-full lg:w-[1140px] mx-auto py-10 gap-10 px-5 lg:px-0">
+      <div className="w-full lg:max-w-[1140px] mx-auto py-10 gap-10 px-5 lg:px-2">
         <div className="bg-white rounded-lg shadow-lg overflow-hidden border p-6 lg:p-10 ">
           <div className="flex flex-row items-center gap-5  pb-5">
           <h1 className="text-2xl lg:text-3xl font-bold text-left flex ">
@@ -167,7 +167,7 @@ export default async function ListingPage({
             </div>
           )}
           </div>
-          <div className="flex flex-col lg:flex-row gap-5">
+          <div className="flex flex-col md:flex-row gap-5">
             {/* Left: image + description */}
             <div className="flex flex-col w-full lg:w-2/3">
               {imgSrc ? (
@@ -188,7 +188,7 @@ export default async function ListingPage({
               )}
 
               <p className="text-sm lg:text-base leading-relaxed whitespace-pre-wrap">
-                {listing.description || "—"}
+                <b>About Us: </b> {listing.description || "—"}
               </p>
             </div>
 

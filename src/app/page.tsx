@@ -8,10 +8,11 @@ import { redirect } from "next/navigation"
 import PricingTable from "./components/pricing-table";
 import NewsletterSignup from "../components/ui/newsletter";
 import MyCarousel from "../components/ui/myCarousel";
-import HoverGif from '../components/HoverGif'
-import ContactForm from "@/app/components/ContactForm";
+import HoverGif from '../components/HoverGif';
 import HomeSlider from "@/components/sliders/homeslider";
-import EvaluationCheckoutButton from "./components/EvaluationCheckoutButton";
+import Eval from "./components/popups/Eval";
+import Legal from "./components/popups/Legal";
+import Cpa from "./components/popups/Cpa";
 
 export default async function Home() {
   const supabase = await createClientRSC();
@@ -138,39 +139,7 @@ export default async function Home() {
                   />
                 }
               >
-              <div className="space-y-2">
-                <h2>Business Valuation</h2><br />
-                  <h4>What is Business Valuation?</h4>
-                  <p>
-                    Business valuation is the process of determining what a company is worth. It’s a crucial step for any
-                    business owner who’s looking to sell, merge, or even plan for future growth. Members save 50% on their valuation when they subscribe to RioPlex Business Exchange.
-                  </p><br />
-
-                  <h4>Key Components We Look At:</h4>
-                  <ul className="list-disc list-outside pl-6">
-                    <li><strong>Financials:</strong> We analyze the business’s revenue, profits, debts, and cash flow.</li>
-                    <li><strong>Industry &amp; Market Trends:</strong> We look at how the market and competitors are performing. This helps gauge how well your business stands in the current landscape.</li>
-                    <li><strong>Assets &amp; Liabilities:</strong> This includes tangible assets (like equipment) and intangible ones (like patents or brand reputation), as well as debts and other obligations.</li>
-                    <li><strong>Operations &amp; Customers:</strong> How well does the business run? Is the customer base stable? Recurring revenue streams and efficient operations add more value.</li>
-                  </ul><br />
-
-                  <h4>How We Valuate:</h4>
-                  <ul className="list-disc list-outside pl-6">
-                    <li><strong>Comparable Company Analysis:</strong> We compare your business to others in your industry that have recently sold or are publicly traded.</li>
-                    <li><strong>Discounted Cash Flow (DCF):</strong> We project future cash flow to find today’s value.</li>
-                    <li><strong>Asset-Based Valuation:</strong> Sometimes it’s as simple as the assets minus liabilities.</li>
-                  </ul><br />
-
-                  <h4>Why It Matters:</h4>
-                  <p>
-                    A fair valuation helps sellers get the best price and buyers make smart investments. It’s all about knowing what your business is truly worth.
-                  </p>
-
-                  <p>
-                    At RioPlex Business Exchange, we help make the process clear, accurate, and aligned with your goals, so whether you’re buying, selling, or planning for the future, you’ll have the right insights to move forward.
-                  </p><br />
-                  <EvaluationCheckoutButton color="green"/>
-              </div>
+              <Eval />
 
               
               
@@ -192,50 +161,7 @@ export default async function Home() {
                   />
                 }
               >
-              <div className="space-y-2">
-                <h2>Legal Representation</h2><br />
-
-                <h4>Protecting Your Interests in Every Transaction</h4>
-                <p>
-                  Every business decision carries legal implications — from structuring your company and managing assets to navigating transactions or disputes. 
-                  Having a trusted legal partner ensures your business is protected, compliant, and prepared for growth.
-                </p><br />
-
-                <p>
-                  That’s why the RioPlex Business Exchange has partnered with <strong>Juan Garcia</strong> and the <strong>Villeda Law Group</strong>, a respected firm with more than 40 years
-                   of experience serving businesses and individuals throughout the Rio Grande Valley. Backed by a team led by Antonio Villeda, 
-                   “The Valley’s Business Lawyer,” the firm combines legal expertise with practical business insight to help clients resolve challenges with confidence.
-                </p><br />
-
-                <h4>Comprehensive Legal Services Available Through Villeda Law Group</h4>
-                <ul className="list-disc list-outside pl-6">
-                  <li><strong>Estate Planning, Probate & Asset Protection</strong> – Safeguard your legacy and protect assets for future generations.</li>
-                  <li><strong>Business & Probate Litigation</strong> – Skilled representation to defend your interests in complex disputes.</li>
-                  <li><strong>IRS Representation</strong> – Guidance and advocacy for audits, disputes, and tax resolution.</li>
-                  <li><strong>Business Transactions</strong>– From contract drafting to deal negotiations, ensure every transaction is legally sound.</li>
-                  <li><strong>Business Immigration</strong> – Support for companies navigating employment-based immigration matters.</li>
-                  <li><strong>Property Tax Representation</strong> – Reduce risk and resolve issues involving property tax challenges.</li>
-                  <li><strong>Federal & State Forfeitures</strong> – Defense against government seizure actions.</li>
-                  <li><strong>Cross-Border Representation</strong> – Legal support for clients with matters in Mexico.</li>
-                </ul><br />
-
-                <h4>Why Partner with Villeda Law Group?</h4>
-                <p>
-                  With deep roots in McAllen and fluent Spanish support, Villeda Law Group offers personalized legal strategies that align with your goals. 
-                  Whether you are planning for the future, protecting assets, or managing the complexities of a business transaction, 
-                  Juan Garcia and his team provide clarity, confidence, and results.
-                </p><br />
-
-                <hr className="mb-6" />
-
-                <h2>Contact Form</h2><br />
-                <h4>Request Legal Services Available Through Villeda Law Group</h4>
-                <p>
-                  Interested in learning how legal representation can strengthen your business? Fill out the form below, and your inquiry will go directly to Juan Garcia at the Villeda Law Group.
-                </p><br />
-
-                <ContactForm />
-              </div>
+              <Legal />
 
               </Modal>
               <h4 className="text-center mt-2">Legal Representation</h4>
@@ -254,51 +180,7 @@ export default async function Home() {
                   />
                 }
               >
-              <div className="space-y-2">
-                <h2>Certified Public Accountant & Bookkeeping Assistant</h2><br />
-
-                <h4>Your Financial Backbone</h4>
-                <p>
-                  A Certified Public Accountant (CPA) and Bookkeeping Assistant play a crucial role in managing a business’s finances. 
-                  They ensure your financial records are accurate, up-to-date, and compliant with regulations, allowing you to make 
-                  informed decisions and maintain a healthy financial status. While CPAs focus on complex financial tasks such as 
-                  tax preparation, financial planning, and auditing, bookkeeping assistants handle the day-to-day tasks of recording 
-                  transactions, managing accounts payable and receivable, and reconciling bank statements.
-                </p><br />
-
-                <h4>Key Roles & Responsibilities:</h4>
-                <ul className="list-disc list-outside pl-6">
-                  <li><strong>Financial Record Keeping:</strong> The Bookkeeping Assistant maintains accurate and organized financial records, tracking income, expenses, and all other transactions.</li>
-                  <li><strong>Tax Preparation & Compliance:</strong> A CPA ensures your business complies with tax laws, preparing and filing taxes accurately while finding potential deductions and credits.</li>
-                  <li><strong>Budgeting & Forecasting:</strong> CPAs help create budgets and financial projections, allowing you to plan effectively for growth, expenses, and future investments.</li>
-                  <li><strong>Financial Reporting & Analysis:</strong> Both roles work together to produce financial reports, analyze performance, and identify areas of financial improvement or risk.</li>
-                  <li><strong>Payroll Management:</strong> The Bookkeeping Assistant can help manage payroll processes, ensuring employees are paid on time and accurately.</li>
-                </ul><br />
-
-                <h4>Why CPAs & Bookkeeping Assistants Matter:</h4>
-                <p>
-                  Having a CPA and Bookkeeping Assistant on your team ensures that your finances are managed efficiently and strategically. 
-                  From staying compliant with tax laws to tracking daily transactions, they help your business make sound financial decisions, 
-                  mitigate risks, and set a strong foundation for growth.
-                </p><br />
-
-                <p>
-                  At RioPlex Business Exchange, we provide financial expertise through qualified CPAs and bookkeeping assistants to support 
-                  your business’s financial health and growth strategy. Reach out to streamline your financial operations and make your numbers 
-                  work for you!
-                </p><br />
-
-                <hr className="mb-6" />
-
-                <h2>Contact Form</h2><br />
-                <h4>Strengthen Your Financial Foundation</h4>
-                <p>
-                  Let your finances drive your business forward with the support of expert CPAs and BKAs from RioPlex Business Exchange. From accurate record-keeping to strategic financial planning, we help manage your finances so you can focus on growing your business.
-                </p><br />
-
-
-                <ContactForm />
-              </div>
+              <Cpa />
 
               </Modal>
               <h4 className="text-center mt-2">CPA &amp; Book Keeping Assistant</h4>

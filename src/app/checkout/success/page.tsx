@@ -2,6 +2,7 @@
 import Stripe from "stripe";
 import { Resend } from "resend";
 import ValuationEmail from "@/emails/ValuationEmail";
+import NavGate from "@/app/components/NavGate";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -24,7 +25,7 @@ async function sendValuationEmail(email: string, sessionId: string) {
     const calendlyLink = "https://calendly.com/rioplex";
 
     await resend.emails.send({
-      from: "RioPlex <noreply@rioplex.com>",
+      from: "RioPlex <info@rioplexbizx.com>",
       to: email,
       subject: "Your RioPlex Business Valuation is Ready",
       react: ValuationEmail({
@@ -69,7 +70,9 @@ export default async function SuccessPage({
   }
 
   return (
-    <main className="mx-auto max-w-2xl px-6 py-16">
+    <div className="flex flex-col bg-[url('/images/backgrounds/white-bg.png')] bg-repeat bg-top min-h-screen">
+      <NavGate />
+    <div className="w-full lg:max-w-[1140px] mx-auto py-10 px-5 lg:px-2">
       <h1 className="text-2xl font-semibold">Thank you!</h1>
       <p className="mt-3">
         Your purchase was successful. We’ve emailed your valuation link
@@ -100,6 +103,7 @@ export default async function SuccessPage({
       <a href="/dashboard" className="mt-8 inline-block underline">
         Go to dashboard
       </a>
-    </main>
+    </div>
+        </div>
   );
 }

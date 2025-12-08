@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-export default function ContactForm() {
+export default function ContactForm({ to }: { to?: string }) {
   const [email, setEmail] = useState('');
   const [message, setMessage] = useState('');
   const [status, setStatus] = useState<'idle' | 'sending' | 'success' | 'error'>('idle');
@@ -17,7 +17,7 @@ export default function ContactForm() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          to: 'test@gmail.com', // temporary recipient
+          to: to ?? 'info@rioplexbizx.com',
           subject: 'New Contact Message',
           html: `<p><b>From:</b> ${email}</p><p>${message}</p>`,
         }),
