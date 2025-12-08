@@ -190,13 +190,16 @@ export default async function DetailsStep({
               className="mt-1 w-full border rounded px-3 py-2 hover:cursor-pointer"
             >
               <option value="">—</option>
-              <option value="25k_150k">25K–150K</option>
-              <option value="150k_750k">150K–750K</option>
-              <option value="750k_3m">750K–3M</option>
-              <option value="3m_7m">3M–7M</option>
+
+              <option value="0_50k">0–50K</option>
+              <option value="50k_150k">50K–150K</option>
+              <option value="150k_350k">150K–350K</option>
+              <option value="350k_750k">350K–750K</option>
+              <option value="750k_1_5m">750K–1.5M</option>
+              <option value="1_5m_5m">1.5M–5M</option>
+              <option value="5m_plus">5M+</option>
             </select>
           </label>
-
           <label className="block pt-4">
             <Tooltip>
               <span>
