@@ -3,6 +3,7 @@ import { Poppins, Saira_Condensed } from "next/font/google";
 import Footer from "./components/Footer";
 import CookieConsentWrapper from "@/components/cookieconsent";
 import Script from "next/script";
+import { Analytics } from "@vercel/analytics/next"
 import "./globals.css";
 
 const sairaCondensed = Saira_Condensed({
@@ -57,6 +58,7 @@ export default function RootLayout({
         className={`${poppins.variable} ${sairaCondensed.variable} antialiased`}
       >
         {children}
+        <Analytics />
         <Footer />
         <CookieConsentWrapper />
       </body>
