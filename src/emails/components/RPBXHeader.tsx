@@ -11,7 +11,7 @@ export function RPBXHeader() {
             alt="RPBX logo"
             width="120"
             height="100"
-            src="https://ivjjitljzagsnvwffcbm.supabase.co/storage/v1/object/public/Email/rpbx-logo-cropped.svg"
+            src="https://rioplexbizx.com/images/emails/rpbx-logo-cropped.svg"
             />
             </Link>
         </Column>
@@ -22,7 +22,7 @@ export function RPBXHeader() {
                   <Img
                     alt="Facebook"
                     height="25"
-                    src="https://ivjjitljzagsnvwffcbm.supabase.co/storage/v1/object/public/Email/email-icons/facebook2.svg"
+                    src="https://rioplexbizx.com/images/emails/facebook2.svg"
                     width="25"
                   />
                 </Link>
@@ -32,7 +32,7 @@ export function RPBXHeader() {
                   <Img
                     alt="LinkedIn"
                     height="25"
-                    src="https://ivjjitljzagsnvwffcbm.supabase.co/storage/v1/object/public/Email/email-icons/linkedin2.svg"
+                    src="https://rioplexbizx.com/images/emails/linkedin2.svg"
                     width="25"
                   />
                 </Link>
@@ -42,7 +42,7 @@ export function RPBXHeader() {
                   <Img
                     alt="Instagram"
                     height="25"
-                    src="https://ivjjitljzagsnvwffcbm.supabase.co/storage/v1/object/public/Email/email-icons/instagram2.svg"
+                    src="https://rioplexbizx.com/images/emails/instagram2.svg"
                     width="25"
                   />
                 </Link>

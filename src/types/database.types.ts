@@ -290,6 +290,63 @@ export type Database = {
         }
         Relationships: []
       }
+      legacy_pmpro_members: {
+        Row: {
+          billing_amount: number | null
+          cycle_number: number | null
+          cycle_period: string | null
+          discount_code: string | null
+          discount_code_id: number | null
+          email: string | null
+          expires: string | null
+          firstname: string | null
+          id: number | null
+          joined: string | null
+          lastname: string | null
+          membership: string | null
+          next_payment_date: string | null
+          startdate: string | null
+          subscription_transaction_id: string | null
+          username: string | null
+        }
+        Insert: {
+          billing_amount?: number | null
+          cycle_number?: number | null
+          cycle_period?: string | null
+          discount_code?: string | null
+          discount_code_id?: number | null
+          email?: string | null
+          expires?: string | null
+          firstname?: string | null
+          id?: number | null
+          joined?: string | null
+          lastname?: string | null
+          membership?: string | null
+          next_payment_date?: string | null
+          startdate?: string | null
+          subscription_transaction_id?: string | null
+          username?: string | null
+        }
+        Update: {
+          billing_amount?: number | null
+          cycle_number?: number | null
+          cycle_period?: string | null
+          discount_code?: string | null
+          discount_code_id?: number | null
+          email?: string | null
+          expires?: string | null
+          firstname?: string | null
+          id?: number | null
+          joined?: string | null
+          lastname?: string | null
+          membership?: string | null
+          next_payment_date?: string | null
+          startdate?: string | null
+          subscription_transaction_id?: string | null
+          username?: string | null
+        }
+        Relationships: []
+      }
       listing_evaluations: {
         Row: {
           created_at: string
@@ -419,6 +476,30 @@ export type Database = {
           user_type?: string
           username?: string | null
           wordpress_user_id?: number | null
+        }
+        Relationships: []
+      }
+      public_valuations: {
+        Row: {
+          created_at: string | null
+          email: string
+          id: string
+          stripe_payment_intent_id: string | null
+          stripe_session_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          email: string
+          id?: string
+          stripe_payment_intent_id?: string | null
+          stripe_session_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          email?: string
+          id?: string
+          stripe_payment_intent_id?: string | null
+          stripe_session_id?: string | null
         }
         Relationships: []
       }

@@ -58,7 +58,7 @@ export default function SubscriptionConfirmationEmail({ dashboardUrl }: Props) {
                     alt="Dashboard Icon"
                     height="48"
                     width="48"
-                    src="https://ivjjitljzagsnvwffcbm.supabase.co/storage/v1/object/public/Email/email-icons/dashboard.svg"
+                    src="https://rioplexbizx.com/images/emails/dashboard.svg"
                   />
                   <Text className="mt-[12px] text-[14px] font-semibold text-gray-700 leading-[20px]">
                     Access your personalized dashboard
@@ -70,7 +70,7 @@ export default function SubscriptionConfirmationEmail({ dashboardUrl }: Props) {
                     alt="Network Icon"
                     height="48"
                     width="48"
-                    src="https://ivjjitljzagsnvwffcbm.supabase.co/storage/v1/object/public/Email/email-icons/network.svg"
+                    src="https://rioplexbizx.com/images/emails/network.svg"
                   />
                   <Text className="mt-[12px] text-[14px] font-semibold text-gray-700 leading-[20px]">
                     Connect with businesses or investors
@@ -82,7 +82,7 @@ export default function SubscriptionConfirmationEmail({ dashboardUrl }: Props) {
                     alt="Tools Icon"
                     height="48"
                     width="48"
-                    src="https://ivjjitljzagsnvwffcbm.supabase.co/storage/v1/object/public/Email/email-icons/tools.svg"
+                    src="https://rioplexbizx.com/images/emails/tools.svg"
                   />
                   <Text className="mt-[12px] text-[14px] font-semibold text-gray-700 leading-[20px]">
                     Use platform tools to grow and explore

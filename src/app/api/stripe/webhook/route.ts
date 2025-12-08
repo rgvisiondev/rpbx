@@ -9,6 +9,7 @@ import type { Database, TablesInsert } from "@/types/database.types";
 import { Resend } from "resend";
 import ValuationEmail from "@/emails/ValuationEmail";
 import SubscriptionConfirmationEmail from "@/emails/SubscriptionConfirmationEmail";
+import BoostedListingEmail from "@/emails/BoostedListingEmail";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET!;
@@ -399,7 +400,7 @@ export async function POST(req: NextRequest) {
                 const idemKey = `sub-confirm:${sess.id}`;
                 await resend.emails.send(
                   {
-                    from: "RioPlex <info@rioplexbizx.com>",
+                    from: "RioPlex <notifications@rioplexbizx.com>",
                     to: toEmail,
                     subject: "Your RPBX subscription is active",
                     react: SubscriptionConfirmationEmail({ dashboardUrl }),
@@ -520,16 +521,13 @@ export async function POST(req: NextRequest) {
         }
 
         if (toEmail) {
-          const dashboardUrl = `${process.env.NEXT_PUBLIC_BASE_URL}/dashboard`;
           const idemKey = `promo-email:${sess.id}`;
           await resend.emails.send(
             {
-              from: "RioPlex <info@rioplexbizx.com>",
+              from: "RioPlex <notifications@rioplexbizx.com>",
               to: toEmail,
               subject: "Your Boosted Listing is now active",
-              react: SubscriptionConfirmationEmail({
-                dashboardUrl
-              }),
+              react: BoostedListingEmail(), 
             },
             { idempotencyKey: idemKey }
           );
@@ -578,7 +576,7 @@ export async function POST(req: NextRequest) {
           const idemKey = `eval-email:${piId ?? sess.id}`;
           await resend.emails.send(
             {
-              from: "RioPlex <info@rioplexbizx.com>",
+              from: "RioPlex <notifications@rioplexbizx.com>",
               to: toEmail,
               subject: "Your RPBX Valuation is ready to begin",
               react: ValuationEmail({
@@ -591,6 +589,50 @@ export async function POST(req: NextRequest) {
         } else {
           console.warn("No email found for valuation purchase; skipped email send.");
         }
+      }
+
+      if (purpose === "evaluation_public"){
+        const piId = 
+          typeof sess.payment_intent === "string"
+            ? (sess.payment_intent as string)
+            : (sess.payment_intent as Stripe.PaymentIntent | null)?.id ?? null;
+
+        const toEmail: string | null =
+          (sess.customer_details?.email as string | null) || 
+          (sess.customer_email as string | null) || 
+          null;
+
+        if (!toEmail){
+          console.warn("No email found for public valuation; skipped email send");
+          return new Response("ok", { status: 200 });
+        }
+
+        const evaluationLink = BIZ_EQUITY_URL;
+        const calendlyLink = CALENDLY_VALUATION_URL;
+
+        const idemKey = `public-eval-email:${piId ?? sess.id}`;
+        await resend.emails.send({
+          from: "RioPlex <notifications@rioplexbizx.com>",
+          to: toEmail,
+          subject: "Your RPBX Valuation is ready to begin",
+          react: ValuationEmail({
+            link: evaluationLink, 
+            calendlyLink,
+          }),
+        },
+        {idempotencyKey: idemKey},
+      );
+
+      try{
+        await admin.from("public_valuations").insert({
+          stripe_payment_intent_id: piId,
+          stripe_session_id: sess.id,
+          email: toEmail,
+        });
+      } catch(e){
+        console.error("Failed to insert public_valuation row", e);
+      }
+
       }
 
       return new Response("ok", { status: 200 });
