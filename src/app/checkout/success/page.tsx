@@ -18,11 +18,15 @@ function getCustomerEmail(
 export default async function SuccessPage({
   searchParams,
 }: {
-  searchParams: { [key: string]: string | string[] | undefined };
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const raw = searchParams?.session_id;
+  // ✅ match your original pattern: searchParams is a Promise
+  const params = await searchParams;
+
+  const raw = params?.session_id;
+  const type = params?.type;
+
   const sessionId = Array.isArray(raw) ? raw[0] : raw;
-  const type = searchParams?.type;
   const typeValue = Array.isArray(type) ? type[0] : type;
 
   let buyerEmail: string | null = null;
@@ -36,8 +40,7 @@ export default async function SuccessPage({
       buyerEmail =
         session.customer_details?.email ?? getCustomerEmail(session.customer);
 
-      // 🔹 No email send here anymore – webhook handles the initial send.
-      // This page only displays info + exposes a "Resend" action.
+      // 🔹 No email sending here anymore – webhook handles initial send.
       console.log("Success page loaded for session:", sessionId, {
         type: typeValue,
         buyerEmail,
