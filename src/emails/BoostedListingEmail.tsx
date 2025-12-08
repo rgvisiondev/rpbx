@@ -16,6 +16,7 @@ import {
 import { RPBXHeader } from "./components/RPBXHeader";
 import { RPBXFooter } from "./components/RPBXFooter";
 
+
 export default function BoostedListingEmail(){
     return(
         <Html>
@@ -49,7 +50,7 @@ export default function BoostedListingEmail(){
                                         <Img 
                                             alt="Search Icon"
                                             height="48"
-                                            src="https://ivjjitljzagsnvwffcbm.supabase.co/storage/v1/object/public/Email/email-icons/search.svg"
+                                            src="https://rioplexbizx.com/images/emails/search.svg"
                                             width="48"
                                         />
                                         <Text className="m-0 mt-[16px] font-semibold text=[16px] text-gray-700 leading-[24px]">
@@ -60,7 +61,7 @@ export default function BoostedListingEmail(){
                                         <Img 
                                             alt="Users Icon"
                                             height="48"
-                                            src="https://ivjjitljzagsnvwffcbm.supabase.co/storage/v1/object/public/Email/email-icons/users.svg"
+                                            src="https://rioplexbizx.com/images/emails/users.svg"
                                             width="48"
                                         />
                                         <Text className="m-0 mt-[16px] font-semibold text=[16px] text-gray-700 leading-[24px]">
@@ -71,7 +72,7 @@ export default function BoostedListingEmail(){
                                         <Img 
                                             alt="Boosted Icon"
                                             height="48"
-                                            src="https://ivjjitljzagsnvwffcbm.supabase.co/storage/v1/object/public/Email/email-icons/boosted.svg"
+                                            src="https://rioplexbizx.com/images/emails/boosted.svg"
                                             width="48"
                                         />
                                         <Text className="m-0 mt-[16px] font-semibold text=[16px] text-gray-700 leading-[24px]">

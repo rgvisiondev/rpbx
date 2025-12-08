@@ -113,7 +113,7 @@ export function LoginForm({ className, next = "", initialError, ...props }: Logi
                 type="button"
                 variant="outline"
                 className="w-full"
-                onClick={ () => signInWithGoogle('/dashboard')}
+                onClick={() => signInWithGoogle('/dashboard')}
                 disabled={loading}
               >
                 Login with Google
