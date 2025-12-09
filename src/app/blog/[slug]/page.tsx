@@ -45,44 +45,44 @@ export default async function PostPage({ params }: PostPageProps) {
 
   const postImageUrl = post.mainImage
     ? urlFor(post.mainImage)?.width(1200).url()
-    : null; 
+    : null;
   return (
 
-      <div className="flex flex-col bg-[url('/images/backgrounds/white-bg.png')] bg-repeat bg-top">
-        <div>
-            <NavGate />
-        </div>
-
-
-    
-    <div className="flex flex-col w-full lg:max-w-[1140px] mx-auto py-10 gap-3 px-5 lg:px-2 min-h-screen">
-
-      <h1 className="text-4xl font-bold mb-2">{post.title}</h1>
-
-      <span className="flex flex-row gap-3"><p className="flex">Published: {new Date(post.publishedAt).toLocaleDateString()}</p> <p>•</p> <p className="flex">{post.read} min read</p></span>
-      <div className="border-t-1 border-gray-400 my-5"></div>
-
-      {postImageUrl && (
-        <img
-          src={postImageUrl}
-          alt={post.mainImage?.alt || post.title}
-          className="w-full h-auto rounded-xl "
-        />
-      )}
-
-      <div className="prose">
-            {Array.isArray(post.body) && <PortableText value={post.body} />}
+    <div className="flex flex-col bg-[url('/images/backgrounds/white-bg.png')] bg-repeat bg-top">
+      <div>
+        <NavGate />
       </div>
 
-      <Link href="/blog" className="green-link hover:underline">
-        ← Back to posts
-      </Link>
 
-    </div>
+
+      <div className="flex flex-col w-full lg:max-w-[1140px] mx-auto py-10 gap-3 px-5 lg:px-2 min-h-screen">
+
+        <h1 className="text-4xl font-bold mb-2">{post.title}</h1>
+
+        <span className="flex flex-row gap-3"><p className="flex">Published: {new Date(post.publishedAt).toLocaleDateString()}</p> <p>•</p> <p className="flex">{post.read} min read</p></span>
+        <div className="border-t-1 border-gray-400 my-5"></div>
+
+        {postImageUrl && (
+          <img
+            src={postImageUrl}
+            alt={post.mainImage?.alt || post.title}
+            className="w-full h-auto rounded-xl "
+          />
+        )}
+
+        <div className="prose">
+          {Array.isArray(post.body) && <PortableText value={post.body} />}
+        </div>
+
+        <Link href="/blog" className="green-link hover:underline">
+          ← Back to posts
+        </Link>
+
+      </div>
 
       {/* Newsletter */}
       <NewsletterSignup />
 
-     </div>
+    </div>
   );
 }

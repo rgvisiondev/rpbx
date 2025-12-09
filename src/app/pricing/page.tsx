@@ -44,7 +44,7 @@ export default async function PricingPage() {
             <Accordion title="Are there any additional costs beyond the subscription fees?">
               <p>
                 No, the subscription fees cover all the features and services available through your membership.
-                There are no additional costs for using the platform&apos;s <b>core functions</b>. <br/><br/>Optional add-ons—such as requesting a professional valuation or boosting your business listing for higher visibility—are available at an additional cost and can be purchased as needed.
+                There are no additional costs for using the platform&apos;s <b>core functions</b>. <br /><br />Optional add-ons—such as requesting a professional valuation or boosting your business listing for higher visibility—are available at an additional cost and can be purchased as needed.
               </p>
             </Accordion>
 

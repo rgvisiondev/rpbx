@@ -83,8 +83,8 @@ const EMP = [
 const LABELS = {
   annual: Object.fromEntries(ANNUAL.filter(x => x.value).map(x => [x.value, x.label])),
   ebitda: Object.fromEntries(EBITDA.filter(x => x.value).map(x => [x.value, x.label])),
-  years:  Object.fromEntries(YEARS.filter(x => x.value).map(x => [x.value, x.label])),
-  emp:    Object.fromEntries(EMP.filter(x => x.value).map(x => [x.value, x.label])),
+  years: Object.fromEntries(YEARS.filter(x => x.value).map(x => [x.value, x.label])),
+  emp: Object.fromEntries(EMP.filter(x => x.value).map(x => [x.value, x.label])),
 } as const;
 
 type SearchParams = Promise<{
@@ -113,8 +113,8 @@ export default async function Businesses({
   const industry = INDUSTRIES.some(i => i.value === sp.industry) ? (sp.industry || "") : "";
   const annual = ANNUAL.some(a => a.value === sp.annual) ? (sp.annual || "") : "";
   const ebitda = EBITDA.some(e => e.value === sp.ebitda) ? (sp.ebitda || "") : "";
-  const years  = YEARS.some(y => y.value === sp.years) ? (sp.years || "") : "";
-  const emp    = EMP.some(e => e.value === sp.emp) ? (sp.emp || "") : "";
+  const years = YEARS.some(y => y.value === sp.years) ? (sp.years || "") : "";
+  const emp = EMP.some(e => e.value === sp.emp) ? (sp.emp || "") : "";
   const county = COUNTIES.some(c => c.value === sp.county) ? (sp.county || "") : "";
 
   const page = Math.max(1, Number(sp.page || "1") || 1);
@@ -141,17 +141,17 @@ export default async function Businesses({
     .eq("is_active", true);
 
   if (industry) query = query.eq("industry", industry);
-  if (annual)   query = query.eq("annual_revenue_range", annual);
-  if (ebitda)   query = query.eq("ebitda_range", ebitda);
-  if (years)    query = query.eq("years_in_business", years);
-  if (emp)      query = query.eq("employee_count_range", emp);
-  if (county)   query = query.eq("county", county);
+  if (annual) query = query.eq("annual_revenue_range", annual);
+  if (ebitda) query = query.eq("ebitda_range", ebitda);
+  if (years) query = query.eq("years_in_business", years);
+  if (emp) query = query.eq("employee_count_range", emp);
+  if (county) query = query.eq("county", county);
 
   // sorting — stick to "date" (updated_at desc).
   query = query
-  .order("is_promoted_effective", { ascending: false, nullsFirst: false})
-  .order("updated_at", { ascending: false })
-  .range(from, to);
+    .order("is_promoted_effective", { ascending: false, nullsFirst: false })
+    .order("updated_at", { ascending: false })
+    .range(from, to);
 
   const { data: rows, count, error } = await query;
   if (error) {
@@ -160,8 +160,8 @@ export default async function Businesses({
 
   // signed URLs for covers (private bucket)
   const covers: Record<string, string | null> = {};
-  if (rows?.length){
-    for (const r of rows){
+  if (rows?.length) {
+    for (const r of rows) {
       covers[r.id] = r.listing_image_choice
         ? imageUrl(r.listing_image_choice)
         : null;
@@ -180,20 +180,20 @@ export default async function Businesses({
       <NavGate />
 
       <div className="w-full lg:max-w-[1140px] mx-auto py-10 gap-10 px-5 lg:px-2">
-        <h1 className="text-center pb-15">Business Owners</h1>
+        <h1 className="text-center pb-15">Business Listings</h1>
 
         <div className="flex flex-col md:flex-row gap-10">
-          
+
           {/* LEFT: Filters Wrapper 
             Moved width classes here. 
             Added checkbox hack for mobile toggling.
           */}
           <div className="w-full md:w-1/3 lg:w-1/4 h-fit">
-            
+
             {/* Mobile Toggle Button (Hidden on Desktop) */}
             <input type="checkbox" id="filter-toggle" className="peer hidden" />
-            <label 
-              htmlFor="filter-toggle" 
+            <label
+              htmlFor="filter-toggle"
               className="md:hidden w-full bg-white p-4 rounded-lg shadow-md mb-4 flex justify-between items-center cursor-pointer select-none text-gray-700"
             >
               <div className="flex items-center gap-2">
@@ -313,33 +313,33 @@ export default async function Businesses({
 
                   <div className="p-5">
                     <div className="flex items-left gap-5">
-                    <h4 className="large">{r.industry + " Business" || "Business"}</h4>
-                    {r.is_promoted_effective && (
-                      <Tooltip>                    
-                        <TooltipTrigger>
-                          <div className="bg-[#9ed3c3] hover:bg-[#7fb8a9] text-black p-[3px] flex rounded-full items-center justify-center">
-                            <BadgeCheckIcon size={20} strokeWidth={2.5} className="text-white"/>
-                          </div>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          {`Boosted Listing Active`}
-                        </TooltipContent>
-                      </Tooltip>
+                      <h4 className="large">{r.industry + " Business" || "Business"}</h4>
+                      {r.is_promoted_effective && (
+                        <Tooltip>
+                          <TooltipTrigger>
+                            <div className="bg-[#9ed3c3] hover:bg-[#7fb8a9] text-black p-[3px] flex rounded-full items-center justify-center min-w-[25px] min-h-[25px]">
+                              <BadgeCheckIcon size={20} strokeWidth={2.5} className="text-white" />
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            {`Boosted Listing Active`}
+                          </TooltipContent>
+                        </Tooltip>
 
-                    )}
-                    {r.has_purchased_valuation && (
-                      <Tooltip>                    
-                        <TooltipTrigger>
-                          <div className="text-black flex rounded-full items-center justify-center">
-                            <Image src={"/images/icons/Logo-Icon-Mint.png"} alt="RPBX" width={25} height={25}/>
-                          </div>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          {`Valuated By RPBX`}
-                        </TooltipContent>
-                      </Tooltip>
+                      )}
+                      {r.has_purchased_valuation && (
+                        <Tooltip>
+                          <TooltipTrigger>
+                            <div className="text-black flex rounded-full items-center justify-center min-w-[25px] min-h-[25px]">
+                              <Image src={"/images/logos/svg/Rio-Plex-Logo-Icon-Mint.svg"} alt="RPBX" width={25} height={25} />
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            {`Valuated By RPBX`}
+                          </TooltipContent>
+                        </Tooltip>
 
-                    )}
+                      )}
                     </div>
                     <div className="flex justify-between mt-2">
                       <div>

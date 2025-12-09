@@ -60,8 +60,8 @@ export default async function Investors({ searchParams }: PageProps) {
 
   // filters come straight from URL; industry values live only in FiltersBar
   const industry = params.industry ?? "";
-  const ebitda   = params.ebitda ?? "";
-  const cash     = params.cash ?? "";
+  const ebitda = params.ebitda ?? "";
+  const cash = params.cash ?? "";
 
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login?next=/investor-listing");
@@ -73,8 +73,8 @@ export default async function Investors({ searchParams }: PageProps) {
     .eq("status", "published");
 
   if (industry) countQ = countQ.eq("primary_industry", industry);
-  if (ebitda)   countQ = countQ.eq("target_ebitda", ebitda);
-  if (cash)     countQ = countQ.eq("target_cash_flow", cash);
+  if (ebitda) countQ = countQ.eq("target_ebitda", ebitda);
+  if (cash) countQ = countQ.eq("target_cash_flow", cash);
 
   if (q) {
     const needle = `%${q.toLowerCase().replace(/[%_]/g, (m) => `\\${m}`)}%`;
@@ -109,8 +109,8 @@ export default async function Investors({ searchParams }: PageProps) {
     .eq("status", "published");
 
   if (industry) dataQ = dataQ.eq("primary_industry", industry);
-  if (ebitda)   dataQ = dataQ.eq("target_ebitda", ebitda);
-  if (cash)     dataQ = dataQ.eq("target_cash_flow", cash);
+  if (ebitda) dataQ = dataQ.eq("target_ebitda", ebitda);
+  if (cash) dataQ = dataQ.eq("target_cash_flow", cash);
 
   if (q) {
     const needle = `%${q.toLowerCase().replace(/[%_]/g, (m) => `\\${m}`)}%`;
@@ -121,7 +121,7 @@ export default async function Investors({ searchParams }: PageProps) {
     ? dataQ.order("full_name_lc", { ascending: true })
     : dataQ.order("updated_at", { ascending: false });
 
-  let rows: InvestorCard[] = []; 
+  let rows: InvestorCard[] = [];
   if (totalRows > 0) {
     const { data, error } = await dataQ.range(from, to);
     if (error) console.error("Listings query failed:", error.message);
@@ -166,16 +166,16 @@ export default async function Investors({ searchParams }: PageProps) {
             {rows.map((r) => {
               const imgSrc = investors[r.id] ?? "/images/svg/def-inv.svg";
               return (
-                <div key={r.id} className="flex-1 bg-gray-200 rounded-lg overflow-hidden">
+                <div key={r.id} className="flex-1 rounded-lg overflow-hidden">
                   <Image
                     src={imgSrc}
                     alt={`${r.first_name ?? ""} ${r.last_name ?? ""}`.trim() || "Investor Avatar"}
-                    className="rounded-t-lg w-full shadow-lg border-x-2 border-t-2 border-grey-500 object-cover h-[250px]"
+                    className="bg-gray-200 rounded-t-lg w-full shadow-lg border-x-2 border-t-2 object-cover h-[250px]"
                     width={640}
                     height={250}
                     unoptimized
                   />
-                  <div className="bg-white p-5 rounded-b-lg shadow-lg border-x-2 border-b-2 border-grey-500">
+                  <div className="bg-white p-5 rounded-b-lg shadow-lg border-x-2 border-b-2">
                     <h4 className="large">
                       {r.first_name} {r.last_name}
                     </h4>
@@ -216,11 +216,10 @@ export default async function Investors({ searchParams }: PageProps) {
             <Link
               key={p}
               href={`?page=${p}`}
-              className={`px-4 py-2 border rounded-xl shadow-lg ${
-                safePage === p
+              className={`px-4 py-2 border rounded-xl shadow-lg ${safePage === p
                   ? "bg-[#60BC9B] text-white"
                   : "hover:bg-[#60BC9B] hover:text-white bg-white"
-              }`}
+                }`}
             >
               {p}
             </Link>

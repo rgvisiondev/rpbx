@@ -67,17 +67,17 @@ export default async function PostPage({ params }: PostPageProps) {
   const eventDate = post.date ? new Date(post.date) : null;
   const formattedDate = eventDate
     ? eventDate.toLocaleDateString(undefined, {
-        weekday: "long",
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-      })
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    })
     : "";
   const formattedTime = eventDate
     ? eventDate.toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit",
-      })
+      hour: "2-digit",
+      minute: "2-digit",
+    })
     : "";
 
   return (

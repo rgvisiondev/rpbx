@@ -22,22 +22,22 @@ function readParam(
   return v
 }
 
-export default async function LoginPage({ searchParams }: { searchParams: SearchParams}) {
+export default async function LoginPage({ searchParams }: { searchParams: SearchParams }) {
 
   const params = await searchParams
   const next = readParam(params, "next")
   const initialError = readParam(params, "error")
   const supabase = await createClientRSC()
-  
+
   //Use getSession() instead of getUser() for consistency
   const { data: { user }, error: sessErr } = await supabase.auth.getUser()
 
-  if (sessErr && sessErr.status !== 400){
+  if (sessErr && sessErr.status !== 400) {
     console.error("Login page auth error: ", sessErr)
   }
 
   if (user) redirect("/dashboard")
-  
+
   return (
     <div className="bg-muted flex min-h-svh flex-col items-center justify-center gap-6 p-6 md:p-10 bg-[url('/images/backgrounds/white-bg.png')] bg-repeat bg-top">
       <div className="flex w-full max-w-sm flex-col gap-6">
