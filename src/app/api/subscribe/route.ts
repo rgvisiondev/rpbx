@@ -48,7 +48,7 @@ export async function POST(req: Request) {
       password,
       options: {
         data: { first_name: firstName, last_name: lastName, username }, // stored in user_metadata
-        // emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/confirm`,
+        emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/verified`,
       },
     })
 
