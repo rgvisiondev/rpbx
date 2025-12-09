@@ -11,7 +11,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 type Role = "business" | "investor" | "admin" | "member" | null;
 function nextPathForRole(role: Role, sessionId?: string | null) {
   if (role === "investor") return "/onboarding/investor/contact";
-    if (role === "business") {
+  if (role === "business") {
     if (sessionId) {
       return `/onboarding/business/claim?session_id=${encodeURIComponent(
         sessionId

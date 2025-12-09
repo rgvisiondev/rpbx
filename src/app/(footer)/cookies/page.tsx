@@ -8,14 +8,14 @@ export const metadata: Metadata = {
   description: "Connecting Local Business Owners With Investors"
 };
 
-export default function Cookies() {  
+export default function Cookies() {
 
   return (
     <div>
       {/* Div 1: 2 rows */}
       <div className="flex flex-col bg-[url('/images/backgrounds/white-bg.png')] bg-repeat bg-top min-h-screen">
         <div>
-            <NavGate />
+          <NavGate />
         </div>
 
         <div className="flex flex-col w-full lg:max-w-[1140px] mx-auto py-10 gap-10 px-5 lg:px-2">

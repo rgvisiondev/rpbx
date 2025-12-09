@@ -21,9 +21,8 @@ export default function Accordion({ title, children }: AccordionProps) {
       </button>
 
       <div
-  className={`overflow-hidden transition-all duration-300 ease-in-out ${
-    isOpen ? 'opacity-100 translate-y-0 border-t border-gray-300' : 'max-h-0 opacity-0 -translate-y-1'
-  }`}
+        className={`overflow-hidden transition-all duration-300 ease-in-out ${isOpen ? 'opacity-100 translate-y-0 border-t border-gray-300' : 'max-h-0 opacity-0 -translate-y-1'
+          }`}
       >
         <div className="p-5">{children}</div>
       </div>

@@ -6,7 +6,7 @@ import Link from "next/link";
 export function ActivateForm() {
     const lookup = process.env.NEXT_PUBLIC_STRIPE_LOOKUP_BUSINESS_LEGACY ?? "business_monthly";
     const [showPw, setShowPw] = React.useState(false);
-    
+
     return (
         <form method="post" action="/api/subscribe" className="space-y-4">
             <input name="lookup" type="hidden" value={lookup} />
@@ -35,7 +35,7 @@ export function ActivateForm() {
 
             <div>
                 <label htmlFor="password" className="block text-xs font-bold text-slate-700 uppercase mb-1">Password</label>
-                <input type={showPw ? "text" : "password"} id="password"  name="password" placeholder="••••••••" className="w-full px-4 py-3 rounded-lg bg-gray-50 border border-gray-200 focus:border-[#60BC9B] focus:ring-2 focus:ring-[#60BC9B]/20 outline-none transition-all font-medium text-slate-900" required />
+                <input type={showPw ? "text" : "password"} id="password" name="password" placeholder="••••••••" className="w-full px-4 py-3 rounded-lg bg-gray-50 border border-gray-200 focus:border-[#60BC9B] focus:ring-2 focus:ring-[#60BC9B]/20 outline-none transition-all font-medium text-slate-900" required />
                 <button
                     type="button"
                     aria-label={showPw ? "Hide password" : "Show password"}

@@ -35,8 +35,8 @@ export default function Navbar({ userType }: { userType: UserType }) {
   }, [isMobileMenuOpen]);
 
   const navItems = [
-    { name: "Business Listings", href: "/business-listing" , show: !isBusiness || isAdmin },
-    { name: "Browse Investors", href: "/investor-listing" , show: !isInvestor || isAdmin },
+    { name: "Business Listings", href: "/business-listing", show: !isBusiness || isAdmin },
+    { name: "Browse Investors", href: "/investor-listing", show: !isInvestor || isAdmin },
     { name: "Blog", href: "/blog" },
     { name: "Events", href: "/events" }
   ].filter((i) => i.show !== false);
@@ -67,7 +67,7 @@ export default function Navbar({ userType }: { userType: UserType }) {
         <div className="flex items-center justify-between px-4 py-4 border-b">
           <Link href="/dashboard" className="flex items-center" onClick={() => setIsMobileMenuOpen(false)}>
             <Image
-              src="/images/logos/Rio-Plex-Logo-Main-Mint-&-Charcoal.png"
+              src="/images/logos/svg/RPBX.svg"
               width={120}
               height={160}
               alt="RioPlex logo"
@@ -141,7 +141,7 @@ export default function Navbar({ userType }: { userType: UserType }) {
         <div className="flex flex-wrap items-center justify-between text-slate-800">
           <Link href="/dashboard" className="flex items-center">
             <Image
-              src="/images/logos/RPBX-logo.png"
+              src="/images/logos/svg/RPBX.svg"
               width={150}
               height={200}
               alt="RioPlex logo"
@@ -203,9 +203,9 @@ export default function Navbar({ userType }: { userType: UserType }) {
                   </Link>
                 </li>
               )}
-                <form action="/signout" method="post">
-                  <Button type="submit">Log Out</Button>
-                </form>
+              <form action="/signout" method="post">
+                <Button type="submit">Log Out</Button>
+              </form>
             </ul>
           </div>
         </div>

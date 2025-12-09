@@ -82,32 +82,32 @@ export default async function DetailsStep({
 
     const ownership_percentage =
       formData.get('ownership_percentage') !== null &&
-      String(formData.get('ownership_percentage')) !== ''
+        String(formData.get('ownership_percentage')) !== ''
         ? Number(formData.get('ownership_percentage'))
         : null;
 
-    const annual   = String(formData.get('annual_revenue_range') ?? '');
-    const book     = String(formData.get('book_value_range') ?? '');
-    const ebitda   = String(formData.get('ebitda_range') ?? '');
-    const years    = String(formData.get('years_in_business') ?? '');
+    const annual = String(formData.get('annual_revenue_range') ?? '');
+    const book = String(formData.get('book_value_range') ?? '');
+    const ebitda = String(formData.get('ebitda_range') ?? '');
+    const years = String(formData.get('years_in_business') ?? '');
     const empCount = String(formData.get('employee_count_range') ?? '');
     const description =
       (String(formData.get('description') ?? '').trim()) || null;
 
     const ALLOWED = {
-      annual: new Set(['0_50k','50k_100k','100k_250k','250k_1m','1m_plus']),
-      book:   new Set(['25k_150k','150k_750k','750k_3m','3m_7m']),
-      ebitda: new Set(['lt_50k','50k_150k','150k_500k','500k_1m','gt_1m']),
-      years:  new Set(['lt_1','1_3','3_5','5_10','gt_10']),
-      emp:    new Set(['1_4','5_10','11_25','26_50','51_100','gt_100']),
+      annual: new Set(['0_50k', '50k_100k', '100k_250k', '250k_1m', '1m_plus']),
+      book: new Set(['25k_150k', '150k_750k', '750k_3m', '3m_7m']),
+      ebitda: new Set(['lt_50k', '50k_150k', '150k_500k', '500k_1m', 'gt_1m']),
+      years: new Set(['lt_1', '1_3', '3_5', '5_10', 'gt_10']),
+      emp: new Set(['1_4', '5_10', '11_25', '26_50', '51_100', 'gt_100']),
     };
 
     const payload = {
       ownership_percentage,
       annual_revenue_range: ALLOWED.annual.has(annual) ? annual : null,
-      book_value_range:     ALLOWED.book.has(book) ? book : null,
-      ebitda_range:         ALLOWED.ebitda.has(ebitda) ? ebitda : null,
-      years_in_business:    ALLOWED.years.has(years) ? years : null,
+      book_value_range: ALLOWED.book.has(book) ? book : null,
+      ebitda_range: ALLOWED.ebitda.has(ebitda) ? ebitda : null,
+      years_in_business: ALLOWED.years.has(years) ? years : null,
       employee_count_range: ALLOWED.emp.has(empCount) ? empCount : null,
       description,
       status: 'draft' as const,
@@ -206,7 +206,7 @@ export default async function DetailsStep({
                 EBITDA <TooltipTrigger>ⓘ</TooltipTrigger>
               </span>
               <TooltipContent>
-                EBITDA (Earnings Before Interest, Taxes, Depreciation, and Amortization) shows your<br/>
+                EBITDA (Earnings Before Interest, Taxes, Depreciation, and Amortization) shows your<br />
                 business&#39;s profit from operations, before accounting for things like loans, taxes,
                 or depreciation.
               </TooltipContent>
@@ -262,9 +262,9 @@ export default async function DetailsStep({
             <Tooltip>
               <span>
                 Description<TooltipTrigger>ⓘ</TooltipTrigger>
-                </span>
+              </span>
               <TooltipContent>
-                Describe your business story, what you offer, and what makes your operation unique.<br /> 
+                Describe your business story, what you offer, and what makes your operation unique.<br />
                 Highlight your experience, customer loyalty, quality, or growth. Avoid listing confidential names, <br />
                 exact locations, or sensitive details. Focus on what sets your business apart and why it&#39;s a strong opportunity.
               </TooltipContent>

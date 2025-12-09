@@ -6,7 +6,7 @@ export default async function ResetPasswordPage() {
     const supabase = await createClientRSC()
     const { data, error } = await supabase.auth.getUser()
     if (error || !data?.user) redirect('/login')
-    
+
     return <ResetPasswordForm />
-    
+
 }

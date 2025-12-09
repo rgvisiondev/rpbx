@@ -35,7 +35,7 @@ export default async function ClaimPage({
   if (!user) {
     redirect(
       "/login?next=/onboarding/business/claim&session_id=" +
-        encodeURIComponent(sessionId)
+      encodeURIComponent(sessionId)
     );
   }
 
@@ -117,8 +117,8 @@ export default async function ClaimPage({
     await stripe.subscriptions.update(subId, {
       metadata: {
         ...(cs.subscription &&
-        typeof cs.subscription !== "string" &&
-        cs.subscription.metadata
+          typeof cs.subscription !== "string" &&
+          cs.subscription.metadata
           ? cs.subscription.metadata
           : {}),
         listing_id: listingId,

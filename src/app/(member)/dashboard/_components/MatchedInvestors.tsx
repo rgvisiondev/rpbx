@@ -52,14 +52,14 @@ export default async function MatchedInvestors({ matches }: { matches: InvestorM
           [m.first_name ?? "", m.last_name ?? ""].join(" ").trim() ||
           `Investor #${m.id.slice(0, 6)}`;
 
-        const imgSrc = m.avatar_url || "public/images/svg/def-inv.svg";
+        const imgSrc = m.avatar_url || "/images/svg/def-inv.svg";
 
         return (
           <div key={m.id} className="flex-1">
             <Image
               src={imgSrc}
               alt={`${name}'s profile photo`}
-              className="rounded-t-lg w-full shadow-lg border-x-2 border-t-2 border-gray-200 object-cover h-[220px]"
+              className="bg-gray-200 rounded-t-lg w-full shadow-lg border-x-2 border-t-2 border-gray-200 object-cover h-[220px]"
               width={400}
               height={220}
               loading="lazy"

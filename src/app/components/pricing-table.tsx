@@ -66,8 +66,8 @@ function PricingTab(props: PricingTabProps) {
   // --- FIX: For logged-in users, fallback to whichever priceId exists (so free plans work on either tab)
   const chosenPriceId = props.loggedIn
     ? (props.yearly
-        ? (props.priceIdYearly ?? props.priceIdMonthly ?? null)
-        : (props.priceIdMonthly ?? props.priceIdYearly ?? null))
+      ? (props.priceIdYearly ?? props.priceIdMonthly ?? null)
+      : (props.priceIdMonthly ?? props.priceIdYearly ?? null))
     : null;
 
   // For unauth users, href is provided by parent; we keep it as-is
@@ -117,11 +117,11 @@ function PricingTab(props: PricingTabProps) {
                       ⓘ
                     </TooltipTrigger>
                     <TooltipContent>
-                      <strong>Start with a 30-day free trial.</strong><br/>Your plan will renew at the regular monthly rate afterward. You can cancel anytime.
+                      <strong>Start with a 30-day free trial.</strong><br />Your plan will renew at the regular monthly rate afterward. You can cancel anytime.
                     </TooltipContent>
                   </Tooltip>
                 )}
-                
+
               </span>
             </div>
           </TooltipProvider>
@@ -130,11 +130,10 @@ function PricingTab(props: PricingTabProps) {
             href={href}
             onClick={handleClick}
             aria-disabled={!canCheckout}
-            className={`w-full inline-flex justify-center whitespace-nowrap rounded-full px-3.5 py-2.5 text-sm font-medium text-white transition-colors duration-150 ${
-              canCheckout
+            className={`w-full inline-flex justify-center whitespace-nowrap rounded-full px-3.5 py-2.5 text-sm font-medium text-white transition-colors duration-150 ${canCheckout
                 ? 'bg-[#60BC9B] hover:bg-[var(--color-primary-hover)] focus-visible:outline-none focus-visible:ring-[#60BC9B]'
                 : 'bg-slate-400 cursor-not-allowed'
-            }`}
+              }`}
           >
             {isTrial ? 'Start Free Trial' : (props.loggedIn ? 'Continue to Checkout' : 'Purchase Plan')}
           </Link>
@@ -190,27 +189,27 @@ export default function PricingTable({ dark, loggedIn }: PricingTableProps) {
   };
 
   const plans = useMemo(() => {
-      const map = new Map<string, Group>();
+    const map = new Map<string, Group>();
 
-      for (const p of prices) {
-        const stem = 
-          (p.lookup_key?.replace(/_(monthly|yearly)$/i, '') || 
+    for (const p of prices) {
+      const stem =
+        (p.lookup_key?.replace(/_(monthly|yearly)$/i, '') ||
           p.productName.toLowerCase().replace(/\s+/g, '_')) ?? 'plan';
 
-        const existing = map.get(stem);
+      const existing = map.get(stem);
 
-        const isPopular = 
-          (typeof p.popular === 'boolean' && p.popular) ||
-          ((p.metadata?.popular || '').toLowerCase() === 'true');
+      const isPopular =
+        (typeof p.popular === 'boolean' && p.popular) ||
+        ((p.metadata?.popular || '').toLowerCase() === 'true');
 
-        const isFree = (p.unit_amount ?? 0) === 0;
+      const isFree = (p.unit_amount ?? 0) === 0;
 
-        const rawOrder = 
-          (p.sortOrder as number | undefined) ?? 
-          parseInt((p.metadata?.sort_order ?? p.metadata?.order ?? ''), 10);
-        const order = Number.isFinite(rawOrder as number) ? (rawOrder as number) : 999;
+      const rawOrder =
+        (p.sortOrder as number | undefined) ??
+        parseInt((p.metadata?.sort_order ?? p.metadata?.order ?? ''), 10);
+      const order = Number.isFinite(rawOrder as number) ? (rawOrder as number) : 999;
 
-        const g: Group = 
+      const g: Group =
         existing ?? {
           planName: p.productName,
           planDescription: p.productDescription ?? '',
@@ -226,40 +225,40 @@ export default function PricingTable({ dark, loggedIn }: PricingTableProps) {
           sortOrder: order,
         };
 
-        if (p.interval === 'month'){
-          g.monthly = p.unit_amount;
-          g.lookupMonthly = p.lookup_key ?? null;
-          g.priceIdMonthly = p.id;
-        }
-        if (p.interval === 'year'){
-          g.yearly = p.unit_amount;
-          g.lookupYearly = p.lookup_key ?? null;
-          g.priceIdYearly = p.id;
-        }
-
-        g.popular = g.popular || isPopular;
-        g.isFree = g.isFree || isFree;
-        g.sortOrder = Math.min(g.sortOrder, order);
-
-        if (!g.features.length && p.metadata?.features){
-          g.features = p.metadata.features.split('|').map(s => s.trim()).filter(Boolean);
-        }
-
-        map.set(stem, g);
+      if (p.interval === 'month') {
+        g.monthly = p.unit_amount;
+        g.lookupMonthly = p.lookup_key ?? null;
+        g.priceIdMonthly = p.id;
+      }
+      if (p.interval === 'year') {
+        g.yearly = p.unit_amount;
+        g.lookupYearly = p.lookup_key ?? null;
+        g.priceIdYearly = p.id;
       }
 
+      g.popular = g.popular || isPopular;
+      g.isFree = g.isFree || isFree;
+      g.sortOrder = Math.min(g.sortOrder, order);
 
-      const arr = Array.from(map.values());
-
-      for (const g of arr){
-        if (g.planName === "Business Owner Legacy" && g.monthly != null){
-          g.trialDays = 30;
-        }
+      if (!g.features.length && p.metadata?.features) {
+        g.features = p.metadata.features.split('|').map(s => s.trim()).filter(Boolean);
       }
-        return arr.sort(
-          (a, b) => (a.sortOrder - b.sortOrder) || a.planName.localeCompare(b.planName)
-        );
-      }, [prices]);
+
+      map.set(stem, g);
+    }
+
+
+    const arr = Array.from(map.values());
+
+    for (const g of arr) {
+      if (g.planName === "Business Owner Legacy" && g.monthly != null) {
+        g.trialDays = 30;
+      }
+    }
+    return arr.sort(
+      (a, b) => (a.sortOrder - b.sortOrder) || a.planName.localeCompare(b.planName)
+    );
+  }, [prices]);
 
   // Show free always; otherwise require interval for selected tab
   const visiblePlans = useMemo(() => {
@@ -306,16 +305,14 @@ export default function PricingTable({ dark, loggedIn }: PricingTableProps) {
         <div className="relative flex w-full p-1 bg-white rounded-full">
           <span className="absolute inset-0 m-1 pointer-events-none" aria-hidden="true">
             <span
-              className={`absolute inset-0 w-1/2 bg-[#60BC9B] rounded-full shadow-sm shadow-[#60BC9B] transition-transform duration-150 ease-in-out  ${
-                !isAnnual ? 'translate-x-0' : 'translate-x-full'
-              }`}
+              className={`absolute inset-0 w-1/2 bg-[#60BC9B] rounded-full shadow-sm shadow-[#60BC9B] transition-transform duration-150 ease-in-out  ${!isAnnual ? 'translate-x-0' : 'translate-x-full'
+                }`}
             />
           </span>
 
           <button
-            className={`relative flex-1 text-sm font-medium h-8 rounded-full  ${
-              !isAnnual ? 'text-white' : 'text-slate-500 hover:text-[#60BC9B] cursor-pointer'
-            }`}
+            className={`relative flex-1 text-sm font-medium h-8 rounded-full  ${!isAnnual ? 'text-white' : 'text-slate-500 hover:text-[#60BC9B] cursor-pointer'
+              }`}
             onClick={() => setIsAnnual(false)}
             aria-pressed={!isAnnual}
           >
@@ -323,9 +320,8 @@ export default function PricingTable({ dark, loggedIn }: PricingTableProps) {
           </button>
 
           <button
-            className={`relative flex-1 text-sm font-medium h-8 rounded-full ${
-              isAnnual ? 'text-white' : 'text-slate-500 hover:text-[#60BC9B] cursor-pointer'
-            }`}
+            className={`relative flex-1 text-sm font-medium h-8 rounded-full ${isAnnual ? 'text-white' : 'text-slate-500 hover:text-[#60BC9B] cursor-pointer'
+              }`}
             onClick={() => setIsAnnual(true)}
             aria-pressed={isAnnual}
           >
@@ -346,7 +342,7 @@ export default function PricingTable({ dark, loggedIn }: PricingTableProps) {
               planDescription={p.planDescription}
               price={{ monthly: p.monthly, yearly: p.yearly }}
               features={p.features}
-              trialDays={!isAnnual ? p.trialDays: undefined}
+              trialDays={!isAnnual ? p.trialDays : undefined}
               // --- FIX: For unauth users, free plan falls back to whichever lookup exists
               checkoutLookup={
                 p.isFree

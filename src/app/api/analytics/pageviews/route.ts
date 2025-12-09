@@ -158,15 +158,15 @@ export async function POST(req: NextRequest) {
 
     const code =
       typeof err === "object" &&
-      err !== null &&
-      "code" in err
+        err !== null &&
+        "code" in err
         ? (err as { code?: unknown }).code
         : undefined;
 
     const details =
       typeof err === "object" &&
-      err !== null &&
-      "details" in err
+        err !== null &&
+        "details" in err
         ? (err as { details?: unknown }).details
         : undefined;
 

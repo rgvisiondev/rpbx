@@ -185,11 +185,10 @@ export default function BlogList() {
             key={i}
             onClick={() => setPage(i + 1)}
             disabled={loading} // disable while loading
-            className={`px-4 py-2 border rounded-xl shadow-lg disabled:opacity-50 ${
-              page === i + 1
+            className={`px-4 py-2 border rounded-xl shadow-lg disabled:opacity-50 ${page === i + 1
                 ? "bg-[#60BC9B] text-white"
                 : "hover:bg-[#60BC9B] hover:text-white bg-white"
-            }`}
+              }`}
           >
             {i + 1}
           </button>

@@ -78,12 +78,12 @@ export default async function Investor() {
                 </div>
               </div>
             </div>
-  
+
           </div>
 
           <div className="flex flex-col items-center text-center w-full lg:w-[560px]">
             <CarouselInvestor />
-  
+
           </div>
 
         </div>
@@ -95,7 +95,7 @@ export default async function Investor() {
         <div className="w-full px-4 lg:max-w-[1140px] md:px-2 mx-auto flex flex-col md:flex-row gap-y-6 md:gap-y-0 md:gap-x-10 py-10">
 
           <div className="flex-1 flex flex-col items-center rounded-2xl">
-              <Image
+            <Image
               src="/images/other/investor-mockup.png"
               alt="Investors Feed"
               width={2000}

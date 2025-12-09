@@ -85,8 +85,13 @@
 }
 
 @keyframes stepRotate {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 
@@ -131,7 +136,7 @@ a.blue-link {
 }
 
 button.small {
-    font-size: 12px;
+  font-size: 12px;
 }
 
 p.small {
@@ -167,7 +172,9 @@ button.text-grey {
 }
 
 
-h1, h2, h3 {
+h1,
+h2,
+h3 {
   font-family: var(--font-saira), sans-serif;
   font-weight: 600;
   font-size: 48px;
@@ -175,7 +182,9 @@ h1, h2, h3 {
   color: #333333;
 }
 
-h1.text-white, h2.text-white, h3.text-white {
+h1.text-white,
+h2.text-white,
+h3.text-white {
   font-family: var(--font-saira), sans-serif;
   font-weight: 600;
   font-size: 48px;
@@ -216,7 +225,8 @@ h4.large {
 }
 
 .swiper-pagination-bullet-active {
-  background-color: #60BC9B !important; /* Tailwind blue-700 */
+  background-color: #60BC9B !important;
+  /* Tailwind blue-700 */
 }
 
 .swiper-button-next,
@@ -225,7 +235,8 @@ h4.large {
 }
 
 .always-scroll {
-  overflow-x: scroll;          /* forces scrollbar */
+  overflow-x: scroll;
+  /* forces scrollbar */
   scrollbar-gutter: stable both-edges;
 }
 
@@ -242,7 +253,7 @@ h1.activatepage {
   h1.activatepage {
     font-size: 60px;
   }
-  
+
 }
 
 
@@ -284,6 +295,7 @@ h1.activatepage {
   * {
     @apply border-border outline-ring/50;
   }
+
   body {
     @apply bg-background text-foreground;
   }
