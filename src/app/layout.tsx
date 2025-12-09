@@ -38,19 +38,34 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
+        {/* Existing GA4 script */}
         <Script
           async
-          src={`https://www.googletagmanager.com/gtag/js?id=${process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID}`} /* Change this to production when live with site*/
+          src={`https://www.googletagmanager.com/gtag/js?id=${process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID}`}
           strategy="afterInteractive"
         />
+
+        {/* Google Ads additional tag */}
+        <Script
+          async
+          src="https://www.googletagmanager.com/gtag/js?id=AW-17790035839"
+          strategy="afterInteractive"
+        />
+
         <Script id="ga-init" strategy="afterInteractive">
           {`
             window.dataLayer = window.dataLayer || [];
             function gtag(){dataLayer.push(arguments);}
+
             gtag('js', new Date());
+
+            // Existing GA4 config
             gtag('config', '${process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID}', {
               page_path: window.location.pathname,
             });
+
+            // Additional Google Ads tag
+            gtag('config', 'AW-17790035839');
           `}
         </Script>
       </head>
