@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import Stripe from "stripe";
 import { createClientRSC } from "@/../utils/supabase/server";
 import EmailVerifiedCTA from "@/components/EmailVerifiedCTA";
+import Script from "next/script";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
@@ -101,6 +102,15 @@ export default async function Welcome({
         <a href="tel:9563225942">956-322-5942</a> or{" "}
         <a href="mailto:info@rioplexbizx.com">info@rioplexbizx.com</a>.
       </div>
+      <Script id="gads-conversion" strategy="afterInteractive">
+        {`
+          gtag('event', 'conversion', {
+            'send_to': 'AW-17790035839/DGPOCPLrsc4bEP_O-aJC',
+            'value': 1.0,
+            'currency': 'USD'
+          });
+        `}
+      </Script>
     </div>
   );
 }
