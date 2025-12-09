@@ -52,13 +52,13 @@ export async function POST(req: NextRequest) {
   const flowData =
     action === "cancel"
       ? {
-          type: "subscription_cancel" as const,
-          subscription_cancel: { subscription: subscriptionId },
-        }
+        type: "subscription_cancel" as const,
+        subscription_cancel: { subscription: subscriptionId },
+      }
       : {
-          type: "subscription_update" as const,
-          subscription_update: { subscription: subscriptionId },
-        };
+        type: "subscription_update" as const,
+        subscription_update: { subscription: subscriptionId },
+      };
 
   try {
     const session = await stripe.billingPortal.sessions.create({

@@ -29,25 +29,25 @@ export default function BusinessSlider() {
       viewport={{ once: true, amount: 0.2 }}
       className="bg-white shadow-lg border-y-2 border-r-2 border-grey-500 flex-1 flex justify-center lg:justify-end rounded-tr-2xl rounded-br-2xl "
     >
-            <div className="flex flex-col items-start w-full lg:w-[560px] py-8 lg:py-10 px-6 lg:px-2">
-              <h2>Get Your Business Valuation</h2>
-              <p className="lg:pr-15  pt-1">
-                 Know the true value of your business with a valuation powered by Biz Equity. RPBX members get 50% off their valuations, making it easier than ever to make informed decisions whether you’re planning to sell, grow, or invest.
-              </p>
-              <EvaluationCheckoutButton color="white" />
+      <div className="flex flex-col items-start w-full lg:w-[560px] py-8 lg:py-10 px-6 lg:px-2">
+        <h2>Get Your Business Valuation</h2>
+        <p className="lg:pr-15  pt-1">
+          Know the true value of your business with a valuation powered by Biz Equity. RPBX members get 50% off their valuations, making it easier than ever to make informed decisions whether you’re planning to sell, grow, or invest.
+        </p>
+        <EvaluationCheckoutButton color="white" />
 
-              {/* Learn More button */}
-              <Modal
-                trigger={
-                  <Button className="mt-3 lg:mt-3 w-full sm:w-auto" variant="white">Learn More</Button>
-                }
-              >
-                <Eval />
+        {/* Learn More button */}
+        <Modal
+          trigger={
+            <Button className="mt-3 lg:mt-3 w-full sm:w-auto" variant="white">Learn More</Button>
+          }
+        >
+          <Eval />
 
-              
-              </Modal>
 
-            </div>
+        </Modal>
+
+      </div>
     </motion.div>
   );
 }

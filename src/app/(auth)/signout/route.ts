@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
 
     // Sign out - this clears the session and refresh tokens
     const { error } = await supabase.auth.signOut()
-    
+
     if (error) {
       console.error('Signout error:', error)
       // Still proceed with redirect even if there's an error

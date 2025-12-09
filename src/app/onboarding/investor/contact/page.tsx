@@ -9,16 +9,16 @@ import {
   TooltipTrigger
 } from "@/components/ui/tooltip";
 
-export default async function Contact() {  
+export default async function Contact() {
   const supabase = await createClientRSC();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect("/login?next=/onboarding/investor/contact");
 
-  const fullFromAuth = 
+  const fullFromAuth =
     (user.user_metadata?.full_name ?? user.user_metadata?.name ?? "").trim();
-    const { first: authFirst, last: authLast } = splitName(fullFromAuth);
+  const { first: authFirst, last: authLast } = splitName(fullFromAuth);
   // Prefill from existing profile (any status)
   const { data: draft } = await supabase
     .from("investor_profiles")
@@ -46,8 +46,8 @@ export default async function Contact() {
     } = await sb.auth.getUser();
     if (!user) redirect("/login?next=/onboarding/investor/contact");
 
-    const authFull = 
-        (user.user_metadata?.full_name ?? user.user_metadata?.name ?? "").trim();
+    const authFull =
+      (user.user_metadata?.full_name ?? user.user_metadata?.name ?? "").trim();
     const { first: authFirst, last: authLast } = splitName(authFull)
 
     const first_name = String(formData.get("first_name") ?? "").trim() || authFirst;
@@ -121,110 +121,110 @@ export default async function Contact() {
         <Progress value={0} />
       </div>
 
-    <div className=" bg-white mx-auto max-w-lg lg:min-w-[550px] p-6 my-5 rounded-xl border border-neutral-200 shadow">
-    <form action={save}>
-      <h1 className="text-2xl font-semibold">Introduce Yourself</h1>
-      <p className="mt-2">Let the community get to know you! Share a few basics so business owners can see who’s behind the investment. A great profile helps you make authentic local connections from the start.</p>
-      <hr className="mb-1 mt-4" />
+      <div className=" bg-white mx-auto max-w-lg lg:min-w-[550px] p-6 my-5 rounded-xl border border-neutral-200 shadow">
+        <form action={save}>
+          <h1 className="text-2xl font-semibold">Introduce Yourself</h1>
+          <p className="mt-2">Let the community get to know you! Share a few basics so business owners can see who’s behind the investment. A great profile helps you make authentic local connections from the start.</p>
+          <hr className="mb-1 mt-4" />
 
-      <div className="grid grid-cols-2 gap-3 pt-4">
-        <label className="block">
-          <span>First name</span>
-          <input
-            name="first_name"
-            required
-            defaultValue={draft?.first_name ?? authFirst ?? ""}
-            className="mt-1 w-full border rounded px-3 py-2"
-          />
-        </label>
-        <label className="block">
-          <span>Last name</span>
-          <input
-            name="last_name"
-            required
-            defaultValue={draft?.last_name ?? authLast ?? ""}
-            className="mt-1 w-full border rounded px-3 py-2"
-          />
-        </label>
-      </div>
+          <div className="grid grid-cols-2 gap-3 pt-4">
+            <label className="block">
+              <span>First name</span>
+              <input
+                name="first_name"
+                required
+                defaultValue={draft?.first_name ?? authFirst ?? ""}
+                className="mt-1 w-full border rounded px-3 py-2"
+              />
+            </label>
+            <label className="block">
+              <span>Last name</span>
+              <input
+                name="last_name"
+                required
+                defaultValue={draft?.last_name ?? authLast ?? ""}
+                className="mt-1 w-full border rounded px-3 py-2"
+              />
+            </label>
+          </div>
 
-      <label className="block pt-4">
-        <span>Contact Email</span>
-        <input
-          type="email"
-          name="email"
-          defaultValue={user.email ?? ""}
-          className="mt-1 w-full border rounded px-3 py-2 bg-gray-50 text-gray-600"
-        />
-      </label>
+          <label className="block pt-4">
+            <span>Contact Email</span>
+            <input
+              type="email"
+              name="email"
+              defaultValue={user.email ?? ""}
+              className="mt-1 w-full border rounded px-3 py-2 bg-gray-50 text-gray-600"
+            />
+          </label>
 
-      <div className="grid grid-cols-2 gap-3 pt-4">
-        <label className="block col-span-2 sm:col-span-1">
-          <span>City</span>
-          <input
-            name="city"
-            required
-            defaultValue={draft?.city ?? ""}
-            className="mt-1 w-full border rounded px-3 py-2"
-          />
-        </label>
+          <div className="grid grid-cols-2 gap-3 pt-4">
+            <label className="block col-span-2 sm:col-span-1">
+              <span>City</span>
+              <input
+                name="city"
+                required
+                defaultValue={draft?.city ?? ""}
+                className="mt-1 w-full border rounded px-3 py-2"
+              />
+            </label>
 
-        <label className="block col-span-2 sm:col-span-1">
-          <span>Organization / Entity (optional)</span>
-          <input
-            name="org"
-            defaultValue={draft?.organization_entity ?? ""}
-            className="mt-1 w-full border rounded px-3 py-2"
-          />
-        </label>
-      </div>
+            <label className="block col-span-2 sm:col-span-1">
+              <span>Organization / Entity (optional)</span>
+              <input
+                name="org"
+                defaultValue={draft?.organization_entity ?? ""}
+                className="mt-1 w-full border rounded px-3 py-2"
+              />
+            </label>
+          </div>
 
-      <label className="block pt-4">
-        <span>Profile Photo</span>
-        <input name="avatar" type="file" accept="image/*" className="mt-1 w-full border rounded border-neutral-200 px-3 py-2 hover:cursor-pointer" />
-        {previewUrl && (
-          <img
-            src={previewUrl}
-            alt="Profile photo preview"
-            className="mt-2 h-32 w-32 object-cover rounded-full border"
-          />
-        )}
-      </label>
+          <label className="block pt-4">
+            <span>Profile Photo</span>
+            <input name="avatar" type="file" accept="image/*" className="mt-1 w-full border rounded border-neutral-200 px-3 py-2 hover:cursor-pointer" />
+            {previewUrl && (
+              <img
+                src={previewUrl}
+                alt="Profile photo preview"
+                className="mt-2 h-32 w-32 object-cover rounded-full border"
+              />
+            )}
+          </label>
 
-      <label className="block pt-4">
-          <span>Bio </span>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button
-                type="button"
-                className="text-xs text-gray-500 hover:text-gray-700"
-                aria-label="What to include in your bio"
-              >
-                ⓘ
-              </button>
-            </TooltipTrigger>
-            <TooltipContent className="max-w-xs text-sm leading-snug">
-              Share a brief overview of your background, investment interests, and experience.
-              Highlight industries you focus on, your years of experience, your investment goals,
-              and what types of opportunities you&apos;re looking for. Avoid sensitive personal details.
-            </TooltipContent>
-          </Tooltip>
-        <textarea
-          name="bio"
-          rows={4}
-          defaultValue={draft?.bio ?? ""}
-          className="mt-1 w-full border rounded px-3 py-2"
-          placeholder="Investor with experience in regional businesses, specializing in growth-stage opportunities. 
+          <label className="block pt-4">
+            <span>Bio </span>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  className="text-xs text-gray-500 hover:text-gray-700"
+                  aria-label="What to include in your bio"
+                >
+                  ⓘ
+                </button>
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs text-sm leading-snug">
+                Share a brief overview of your background, investment interests, and experience.
+                Highlight industries you focus on, your years of experience, your investment goals,
+                and what types of opportunities you&apos;re looking for. Avoid sensitive personal details.
+              </TooltipContent>
+            </Tooltip>
+            <textarea
+              name="bio"
+              rows={4}
+              defaultValue={draft?.bio ?? ""}
+              className="mt-1 w-full border rounded px-3 py-2"
+              placeholder="Investor with experience in regional businesses, specializing in growth-stage opportunities. 
           I focus on sectors such as services, real estate, and light manufacturing, and I enjoy partnering with owners 
           looking to scale, expand, or transition their businesses."
-        />
-      </label>
+            />
+          </label>
 
-      <div className="mt-4 flex gap-3">
-        <Button type="submit" className="w-full">Save & Continue</Button>
+          <div className="mt-4 flex gap-3">
+            <Button type="submit" className="w-full">Save & Continue</Button>
+          </div>
+        </form>
       </div>
-    </form>
-    </div>
     </div>
   );
 }

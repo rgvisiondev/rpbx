@@ -55,7 +55,7 @@ export default async function Events() {
 
               return (
                 <div key={event._id} className="bg-white rounded-lg shadow-lg border-2 border-grey-500 flex flex-col lg:flex-row gap-5 transition-all duration-300 hover:scale-101 hover:shadow-xl">
-                  
+
                   {/* Event Image */}
                   <div className="flex min-w-1/4">
                     <img
@@ -72,7 +72,7 @@ export default async function Events() {
 
                     {/* Event Meta */}
                     <div className="flex flex-col lg:flex-row items-left mt-0 mb-0 lg:mt-3 lg:mb-3 flex-wrap gap-1 lg:gap-4">
-                      
+
                       <div className="flex items-center">
                         <Image
                           src="/images/icons/calendar.png"

@@ -18,32 +18,32 @@ const CALENDLY_VALUATION_URL = process.env.CALENDLY_VALUATION_URL!;
 const resend = new Resend(process.env.RESEND_API_KEY!);
 
 
-  const subscribeNewsletter = async (email: string, membership: string) => {
-    if (!email) return;
-    const groups = ["172616011480041008", "172615978122740973"]; // Default newsletter group
-    
-    if (membership === "investor") {
-      groups.push("172616029418030559"); // Investor group
-    } else if (membership === "business") {
-      groups.push("172616046280181040"); // Business group
-    }
+const subscribeNewsletter = async (email: string, membership: string) => {
+  if (!email) return;
+  const groups = ["172616011480041008", "172615978122740973"]; // Default newsletter group
 
-    const res = await fetch("/api/ml-subscribe", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Accept": "application/json"
-      },
-      body: JSON.stringify({ email, groups }),
-    });
+  if (membership === "investor") {
+    groups.push("172616029418030559"); // Investor group
+  } else if (membership === "business") {
+    groups.push("172616046280181040"); // Business group
+  }
+
+  const res = await fetch("/api/ml-subscribe", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Accept": "application/json"
+    },
+    body: JSON.stringify({ email, groups }),
+  });
 
 
-    if (res.ok) {
-      return;
-    } else {
-      alert("Something went wrong. Try again.");
-    }
-  };
+  if (res.ok) {
+    return;
+  } else {
+    alert("Something went wrong. Try again.");
+  }
+};
 
 function isDeletedCustomer(
   c: Stripe.Customer | Stripe.DeletedCustomer
@@ -196,17 +196,17 @@ async function upsertSubscription(
 
   // 2) Fallback: from Stripe customer metadata (old flows)
   if (!userId) {
-      const cust =
-        typeof sub.customer === "string"
-          ? await stripe.customers.retrieve(sub.customer)
-          : sub.customer;
+    const cust =
+      typeof sub.customer === "string"
+        ? await stripe.customers.retrieve(sub.customer)
+        : sub.customer;
 
-      if (!cust || isDeletedCustomer(cust)) {
-        console.warn(
-          "upsertSubscription: Stripe customer is deleted or missing, cannot resolve supabase_user_id"
-        );
-        return;
-      }
+    if (!cust || isDeletedCustomer(cust)) {
+      console.warn(
+        "upsertSubscription: Stripe customer is deleted or missing, cannot resolve supabase_user_id"
+      );
+      return;
+    }
     const metaUserId = cust.metadata?.supabase_user_id as string | undefined;
     if (metaUserId) {
       userId = metaUserId;
@@ -411,7 +411,7 @@ export async function POST(req: NextRequest) {
                 const membership = resolveBaseRole(
                   sub.items?.data?.[0]?.price,
                   sub.metadata
-                ) ?? "business"; 
+                ) ?? "business";
                 await subscribeNewsletter(toEmail, membership);
               } else {
                 console.warn("No email found for subscription confirmation; skipped email send.");
@@ -428,57 +428,57 @@ export async function POST(req: NextRequest) {
       const listingId = String(meta["listing_id"] ?? "");
 
       if (purpose === "listing_plan" && sess.subscription) {
-  const subId = typeof sess.subscription === "string"
-    ? sess.subscription
-    : (sess.subscription as Stripe.Subscription).id;
+        const subId = typeof sess.subscription === "string"
+          ? sess.subscription
+          : (sess.subscription as Stripe.Subscription).id;
 
-  // fetch sub with expand so we have everything we need
-  const sub = await stripe.subscriptions.retrieve(subId, {
-    expand: ["items.data.price.product", "customer"],
-  });
+        // fetch sub with expand so we have everything we need
+        const sub = await stripe.subscriptions.retrieve(subId, {
+          expand: ["items.data.price.product", "customer"],
+        });
 
-  const userId = (sess.metadata?.["supabase_user_id"] ?? null) as string | null;
-  if (!userId) {
-    console.error("Missing supabase_user_id on listing_plan session");
-    return new Response("ok", { status: 200 });
-  }
+        const userId = (sess.metadata?.["supabase_user_id"] ?? null) as string | null;
+        if (!userId) {
+          console.error("Missing supabase_user_id on listing_plan session");
+          return new Response("ok", { status: 200 });
+        }
 
-  // If listing_id already present, skip creation (idempotency)
-  const existingListingId = (sub.metadata?.["listing_id"] ?? "") as string;
+        // If listing_id already present, skip creation (idempotency)
+        const existingListingId = (sub.metadata?.["listing_id"] ?? "") as string;
 
-  let listingId = existingListingId;
-  if (!listingId) {
-    // Create the draft listing now (post-payment)
-    const { data: newDraft, error: draftErr } = await admin
-      .from("business_listings")
-      .insert({
-        owner_id: userId,
-        title: "Untitled Listing",
-        industry: "Unspecified",
-        status: "draft",
-        is_active: false,
-      })
-      .select("id")
-      .maybeSingle();
+        let listingId = existingListingId;
+        if (!listingId) {
+          // Create the draft listing now (post-payment)
+          const { data: newDraft, error: draftErr } = await admin
+            .from("business_listings")
+            .insert({
+              owner_id: userId,
+              title: "Untitled Listing",
+              industry: "Unspecified",
+              status: "draft",
+              is_active: false,
+            })
+            .select("id")
+            .maybeSingle();
 
-    if (draftErr || !newDraft?.id) {
-      console.error("Failed to create draft listing post-payment", draftErr);
-      return new Response("ok", { status: 200 });
-    }
+          if (draftErr || !newDraft?.id) {
+            console.error("Failed to create draft listing post-payment", draftErr);
+            return new Response("ok", { status: 200 });
+          }
 
-    listingId = newDraft.id;
+          listingId = newDraft.id;
 
-    // Stamp listing_id onto the Stripe subscription metadata
-    const mergedMeta = { ...(sub.metadata ?? {}), listing_id: listingId };
-    await stripe.subscriptions.update(sub.id, { metadata: mergedMeta });
-  }
+          // Stamp listing_id onto the Stripe subscription metadata
+          const mergedMeta = { ...(sub.metadata ?? {}), listing_id: listingId };
+          await stripe.subscriptions.update(sub.id, { metadata: mergedMeta });
+        }
 
-  // Re-upsert subscription so subscriptions.metadata includes listing_id
-  const refreshed = await stripe.subscriptions.retrieve(sub.id, {
-    expand: ["items.data.price.product", "customer"],
-  });
-  await upsertSubscription(admin, refreshed);
-}
+        // Re-upsert subscription so subscriptions.metadata includes listing_id
+        const refreshed = await stripe.subscriptions.retrieve(sub.id, {
+          expand: ["items.data.price.product", "customer"],
+        });
+        await upsertSubscription(admin, refreshed);
+      }
 
 
       // Boosted Listing
@@ -527,7 +527,7 @@ export async function POST(req: NextRequest) {
               from: "RioPlex <notifications@rioplexbizx.com>",
               to: toEmail,
               subject: "Your Boosted Listing is now active",
-              react: BoostedListingEmail(), 
+              react: BoostedListingEmail(),
             },
             { idempotencyKey: idemKey }
           );
@@ -591,18 +591,18 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      if (purpose === "evaluation_public"){
-        const piId = 
+      if (purpose === "evaluation_public") {
+        const piId =
           typeof sess.payment_intent === "string"
             ? (sess.payment_intent as string)
             : (sess.payment_intent as Stripe.PaymentIntent | null)?.id ?? null;
 
         const toEmail: string | null =
-          (sess.customer_details?.email as string | null) || 
-          (sess.customer_email as string | null) || 
+          (sess.customer_details?.email as string | null) ||
+          (sess.customer_email as string | null) ||
           null;
 
-        if (!toEmail){
+        if (!toEmail) {
           console.warn("No email found for public valuation; skipped email send");
           return new Response("ok", { status: 200 });
         }
@@ -616,22 +616,22 @@ export async function POST(req: NextRequest) {
           to: toEmail,
           subject: "Your RPBX Valuation is ready to begin",
           react: ValuationEmail({
-            link: evaluationLink, 
+            link: evaluationLink,
             calendlyLink,
           }),
         },
-        {idempotencyKey: idemKey},
-      );
+          { idempotencyKey: idemKey },
+        );
 
-      try{
-        await admin.from("public_valuations").insert({
-          stripe_payment_intent_id: piId,
-          stripe_session_id: sess.id,
-          email: toEmail,
-        });
-      } catch(e){
-        console.error("Failed to insert public_valuation row", e);
-      }
+        try {
+          await admin.from("public_valuations").insert({
+            stripe_payment_intent_id: piId,
+            stripe_session_id: sess.id,
+            email: toEmail,
+          });
+        } catch (e) {
+          console.error("Failed to insert public_valuation row", e);
+        }
 
       }
 

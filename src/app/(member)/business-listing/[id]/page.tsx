@@ -132,40 +132,42 @@ export default async function ListingPage({
 
       <div className="w-full lg:max-w-[1140px] mx-auto py-10 gap-10 px-5 lg:px-2">
         <div className="bg-white rounded-lg shadow-lg overflow-hidden border p-6 lg:p-10 ">
-          <div className="flex flex-row items-center gap-5  pb-5">
-          <h1 className="text-2xl lg:text-3xl font-bold text-left flex ">
-            { listing.industry + " Business" || "Business Listing"}
-          </h1>
-          {listing.is_promoted_effective && (
-            <div className="flex">
-                      <Tooltip>                    
-                        <TooltipTrigger>
-                          <div className="bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-black px-3 py-1 gap-3 flex rounded-full items-center justify-centern ">
-                            <BadgeCheckIcon size={20} strokeWidth={2.5} className="text-white"/>
-                            <p className="text-white">Boosted</p>
-                          </div>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          {`Boosted Listing Active`}
-                        </TooltipContent>
-                      </Tooltip>
+          <div className="flex flex-col lg:flex-row lg:items-center gap-5  pb-5">
+            <h1 className="text-2xl lg:text-3xl font-bold text-left flex ">
+              {listing.industry + " Business" || "Business Listing"}
+            </h1>
+            <div className="flex flex-row gap-2">
+              {listing.is_promoted_effective && (
+                <div className="flex">
+                  <Tooltip>
+                    <TooltipTrigger>
+                      <div className="min-w-[130px] bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-black px-3 py-1 gap-3 flex rounded-full items-center justify-center ">
+                        <BadgeCheckIcon size={20} strokeWidth={2.5} className="text-white" />
+                        <p className="text-white">Boosted</p>
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      {`Boosted Listing Active`}
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+              )}
+              {listing.has_purchased_valuation && (
+                <div className="flex">
+                  <Tooltip>
+                    <TooltipTrigger>
+                      <div className="min-w-[130px] bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-black px-3 py-1 gap-3 flex rounded-full items-center justify-center ">
+                        <Image src={"/images/logos/svg/Rio-Plex-Logo-Icon-White.svg"} alt="RPBX" width={20} height={20} />
+                        <p className="text-white">Valuated</p>
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      {`Valuated By RPBX`}
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+              )}
             </div>
-          )}
-          {listing.has_purchased_valuation && (
-            <div className="flex">
-                      <Tooltip>                    
-                        <TooltipTrigger>
-                          <div className="bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-black px-3 py-1 gap-3 flex rounded-full items-center justify-centern ">
-                            <Image src={"/images/icons/Logo-Icon-White.png"} alt="RPBX" width={20} height={20}/>
-                            <p className="text-white">Valuated</p>
-                          </div>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          {`Valuated By RPBX`}
-                        </TooltipContent>
-                      </Tooltip>
-            </div>
-          )}
           </div>
           <div className="flex flex-col md:flex-row gap-5">
             {/* Left: image + description */}

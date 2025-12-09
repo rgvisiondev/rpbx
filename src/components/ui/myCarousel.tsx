@@ -26,7 +26,7 @@ export default function MyCarousel() {
 
   return (
     <Swiper
-      modules={[ Pagination, Autoplay]}
+      modules={[Pagination, Autoplay]}
       spaceBetween={25}
       slidesPerView={1}
       pagination={{ clickable: true, dynamicBullets: true, }}

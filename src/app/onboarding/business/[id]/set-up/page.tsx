@@ -60,9 +60,9 @@ export default async function Setup({
       redirect('/dashboard/listings?err=no_draft_for_listing');
     }
 
-    const title    = String(formData.get('title') ?? '').trim();
+    const title = String(formData.get('title') ?? '').trim();
     const industry = String(formData.get('industry') ?? '').trim();
-    const address  = String(formData.get('address') ?? '').trim();
+    const address = String(formData.get('address') ?? '').trim();
     const listing_image_choice =
       String(formData.get('listing_image_choice') ?? '').trim() || null;
 

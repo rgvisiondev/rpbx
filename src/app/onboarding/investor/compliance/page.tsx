@@ -55,71 +55,71 @@ export default async function Compliance() {
         <Progress value={60} />
       </div>
 
-    <div className=" bg-white mx-auto max-w-lg lg:min-w-[550px] p-6 my-5 rounded-xl border border-neutral-200 shadow">
-    <Link href="/onboarding/investor/preferences" className="text-sm underline hover:text-[#60BC9B]">&larr; Define Your Investment Style</Link>
-    <form action={save}>
-      <h1 className="text-2xl font-semibold mt-2">Compliance & Confidentiality</h1>
-      <p className="mt-2">A few quick questions to keep everything secure and transparent. Confirm your confidentiality preferences and investor status to help us tailor your matches responsibly.</p>
-      <hr className="mb-1 mt-4" />
+      <div className=" bg-white mx-auto max-w-lg lg:min-w-[550px] p-6 my-5 rounded-xl border border-neutral-200 shadow">
+        <Link href="/onboarding/investor/preferences" className="text-sm underline hover:text-[#60BC9B]">&larr; Define Your Investment Style</Link>
+        <form action={save}>
+          <h1 className="text-2xl font-semibold mt-2">Compliance & Confidentiality</h1>
+          <p className="mt-2">A few quick questions to keep everything secure and transparent. Confirm your confidentiality preferences and investor status to help us tailor your matches responsibly.</p>
+          <hr className="mb-1 mt-4" />
 
-      {/* NDA */}
-      <fieldset className="space-y-2">
-        <legend className=" pt-4">Willing to sign an NDA?</legend>
-        <div className="flex gap-4">
-          <label className="inline-flex items-center gap-2">
-            <input
-              type="radio"
-              name="willing_to_sign_nda"
-              value="yes"
-              defaultChecked={profile?.willing_to_sign_nda === true}
-            />
-            <span>Yes</span>
-          </label>
-          <label className="inline-flex items-center gap-2">
-            <input
-              type="radio"
-              name="willing_to_sign_nda"
-              value="no"
-              defaultChecked={profile?.willing_to_sign_nda === false}
-            />
-            <span>No</span>
-          </label>
-        </div>
-      </fieldset>
+          {/* NDA */}
+          <fieldset className="space-y-2">
+            <legend className=" pt-4">Willing to sign an NDA?</legend>
+            <div className="flex gap-4">
+              <label className="inline-flex items-center gap-2">
+                <input
+                  type="radio"
+                  name="willing_to_sign_nda"
+                  value="yes"
+                  defaultChecked={profile?.willing_to_sign_nda === true}
+                />
+                <span>Yes</span>
+              </label>
+              <label className="inline-flex items-center gap-2">
+                <input
+                  type="radio"
+                  name="willing_to_sign_nda"
+                  value="no"
+                  defaultChecked={profile?.willing_to_sign_nda === false}
+                />
+                <span>No</span>
+              </label>
+            </div>
+          </fieldset>
 
-      {/* Accredited */}
-      <fieldset className="space-y-2">
-        <legend className=" pt-4">Are you an accredited investor?</legend>
-        <div className="flex gap-4">
-          <label className="inline-flex items-center gap-2">
-            <input
-              type="radio"
-              name="is_accredited_investor"
-              value="yes"
-              defaultChecked={profile?.is_accredited_investor === true}
-            />
-            <span>Yes</span>
-          </label>
-          <label className="inline-flex items-center gap-2">
-            <input
-              type="radio"
-              name="is_accredited_investor"
-              value="no"
-              defaultChecked={profile?.is_accredited_investor === false}
-            />
-            <span>No</span>
-          </label>
-        </div>
-        <p className="text-xs text-gray-500 mt-4">
-          You can complete formal verification later; this just guides matching.
-        </p>
-      </fieldset>
+          {/* Accredited */}
+          <fieldset className="space-y-2">
+            <legend className=" pt-4">Are you an accredited investor?</legend>
+            <div className="flex gap-4">
+              <label className="inline-flex items-center gap-2">
+                <input
+                  type="radio"
+                  name="is_accredited_investor"
+                  value="yes"
+                  defaultChecked={profile?.is_accredited_investor === true}
+                />
+                <span>Yes</span>
+              </label>
+              <label className="inline-flex items-center gap-2">
+                <input
+                  type="radio"
+                  name="is_accredited_investor"
+                  value="no"
+                  defaultChecked={profile?.is_accredited_investor === false}
+                />
+                <span>No</span>
+              </label>
+            </div>
+            <p className="text-xs text-gray-500 mt-4">
+              You can complete formal verification later; this just guides matching.
+            </p>
+          </fieldset>
 
-      <div className="mt-4 flex gap-3">
-        <Button type="submit" className="w-full">Save & Continue</Button>
+          <div className="mt-4 flex gap-3">
+            <Button type="submit" className="w-full">Save & Continue</Button>
+          </div>
+        </form>
       </div>
-    </form>
-    </div>
     </div>
   );
 }

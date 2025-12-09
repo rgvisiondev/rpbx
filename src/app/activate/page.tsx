@@ -72,14 +72,17 @@ export default async function Activate() {
 
                     {/* Hero Copy */}
                     <div className="w-full relative z-10">
-                        <div className="inline-block px-3 py-1 mb-6 border border-[#60BC9B]/50 bg-[#60BC9B]/20 rounded-full text-[#60BC9B] text-sm font-bold tracking-wide uppercase shadow-sm">
+                        <div className="hidden lg:inline-block px-3 py-1 mb-6 border border-[#60BC9B]/50 bg-[#60BC9B]/20 rounded-full text-[#60BC9B] text-sm font-bold tracking-wide uppercase shadow-sm">
                             START WITH 30 DAYS FOR FREE
                         </div>
                         <h1 className="activatepage text-4xl sm:text-5xl lg:text-6xl font-extrabold leading-tight mb-6 text-white">
                             Connect With Investors Today!
                         </h1>
-                        {/* Trust Indicators */}
-                        <div className="flex flex-col sm:flex-row gap-4 sm:gap-8 text-slate-300 text-sm font-medium">
+                        <div className="text-slate-300 text-lg font-medium pb-8">
+                            Get a professional business valuation at 50% off when you join RPBX. Know exactly what your company is worth so you can sell, raise capital, or scale with confidence.
+                        </div>
+
+                        <div className="flex flex-col sm:flex-row gap-4 sm:gap-8 text-slate-300 text-lg lg:text-sm  font-medium">
                             <div className="flex items-center gap-2">
                                 <BadgeCheck /> Verified Partners
                             </div>

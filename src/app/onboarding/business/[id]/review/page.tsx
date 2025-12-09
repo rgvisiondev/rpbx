@@ -56,22 +56,22 @@ export default async function ReviewStep({
 
   const LABELS = {
     annual: {
-      '0_50k':'0–50K','50k_100k':'50K–100K','100k_250k':'100K–250K','250k_1m':'250K–1M','1m_plus':'1M+',
+      '0_50k': '0–50K', '50k_100k': '50K–100K', '100k_250k': '100K–250K', '250k_1m': '250K–1M', '1m_plus': '1M+',
     },
     book: {
-      '25k_150k':'25K–150K','150k_750k':'150K–750K','750k_3m':'750K–3M','3m_7m':'3M–7M',
+      '25k_150k': '25K–150K', '150k_750k': '150K–750K', '750k_3m': '750K–3M', '3m_7m': '3M–7M',
     },
     ebitda: {
-      'lt_50k':'Under 50K','50k_150k':'50K–150K','150k_500k':'150K–500K','500k_1m':'500K–1M','gt_1m':'1M+',
+      'lt_50k': 'Under 50K', '50k_150k': '50K–150K', '150k_500k': '150K–500K', '500k_1m': '500K–1M', 'gt_1m': '1M+',
     },
     years: {
-      'lt_1':'< 1 year','1_3':'1–3 years','3_5':'3–5 years','5_10':'5–10 years','gt_10':'10+ years',
+      'lt_1': '< 1 year', '1_3': '1–3 years', '3_5': '3–5 years', '5_10': '5–10 years', 'gt_10': '10+ years',
     },
     emp: {
-      '1_4':'1–4','5_10':'5–10','11_25':'11–25','26–50':'26–50','51_100':'51–100','gt_100':'100+',
+      '1_4': '1–4', '5_10': '5–10', '11_25': '11–25', '26–50': '26–50', '51_100': '51–100', 'gt_100': '100+',
     },
   } as const;
-  const fmt = (v: string | null | undefined, m: Record<string,string>) =>
+  const fmt = (v: string | null | undefined, m: Record<string, string>) =>
     (v && m[v]) || '—';
 
   const coverKey = draft.listing_image_choice as string | null;

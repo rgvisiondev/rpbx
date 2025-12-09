@@ -4,7 +4,7 @@
 import { useState } from "react";
 import Button from "./Button";
 
-export default function EvaluationCheckoutButton( { color }: { color?: "white" | "green" } ) {
+export default function EvaluationCheckoutButton({ color }: { color?: "white" | "green" }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 

@@ -15,20 +15,20 @@ export const ReadMore = ({ id, text, amountOfWords = 36 }: ReadMoreProps) => {
     ? splittedText.slice(0, amountOfWords - 1).join(' ')
     : text
   const endText = splittedText.slice(amountOfWords - 1).join(' ')
-  
+
   const handleKeyboard = (e: React.KeyboardEvent<HTMLSpanElement>) => {
-  if (e.code === 'Space' || e.code === 'Enter') {
-    setIsExpanded(!isExpanded)
+    if (e.code === 'Space' || e.code === 'Enter') {
+      setIsExpanded(!isExpanded)
+    }
   }
-}
   return (
     <p id={id} className='text-center'>
       {beginText}
       {itCanOverflow && (
         <>
           {!isExpanded && <span>... </span>}
-          <span 
-            className={`${!isExpanded && 'hidden'}`} 
+          <span
+            className={`${!isExpanded && 'hidden'}`}
             aria-hidden={!isExpanded}
           >
             {endText}

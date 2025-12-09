@@ -6,7 +6,7 @@ import "swiper/css";
 import "swiper/css/pagination";
 
 export default function CarouselBusiness() {
-  const slides = [{link: "step1-RPBX", num: 1}, {link: "step2-business", num: 2 }, {link: "step3-business", num: 3 }];
+  const slides = [{ link: "step1-RPBX", num: 1 }, { link: "step2-business", num: 2 }, { link: "step3-business", num: 3 }];
 
   return (
     <Swiper
@@ -26,9 +26,9 @@ export default function CarouselBusiness() {
             }}
             className="bg-cover bg-center rounded-lg h-full flex justify-end items-end p-3"
           >
-                <div className="flex items-center justify-center w-12 h-12 bg-[#61BD9C] rounded-full">
-                  <h4 className="text-white">{slide.num}</h4>
-                </div>
+            <div className="flex items-center justify-center w-12 h-12 bg-[#61BD9C] rounded-full">
+              <h4 className="text-white">{slide.num}</h4>
+            </div>
           </div>
         </SwiperSlide>
       ))}

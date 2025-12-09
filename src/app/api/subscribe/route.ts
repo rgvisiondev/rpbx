@@ -20,7 +20,7 @@ function deriveUserTypeFromPrice(price: Stripe.Price): 'investor' | 'business' |
 
 export async function POST(req: Request) {
   const origin = req.headers.get('origin') ?? process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
-  
+
   try {
     const form = await req.formData()
     const lookup = String(form.get('lookup') ?? '')
@@ -32,7 +32,7 @@ export async function POST(req: Request) {
     const password = String(form.get('password') ?? '')
 
     const trialDaysRaw = form.get('trial_days')
-    const trialDays = 
+    const trialDays =
       typeof trialDaysRaw === 'string' && /^\d+$/.test(trialDaysRaw)
         ? parseInt(trialDaysRaw, 10)
         : 0
@@ -51,26 +51,26 @@ export async function POST(req: Request) {
         // emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/confirm`,
       },
     })
-    
+
     if (signUpErr) {
       console.error('Sign up error:', signUpErr)
-      
+
       // Check for "user already exists" error
-      if (String(signUpErr.message).toLowerCase().includes('already registered') || 
-          String(signUpErr.message).toLowerCase().includes('user already registered')) {
+      if (String(signUpErr.message).toLowerCase().includes('already registered') ||
+        String(signUpErr.message).toLowerCase().includes('user already registered')) {
         return Response.redirect(`${origin}/subscribe/${lookup}?error=account_exists`, 303)
       }
-      
+
       // Check for rate limiting
-      if (String(signUpErr.message).toLowerCase().includes('rate') || 
-          String(signUpErr.message).toLowerCase().includes('too many')) {
+      if (String(signUpErr.message).toLowerCase().includes('rate') ||
+        String(signUpErr.message).toLowerCase().includes('too many')) {
         return Response.redirect(`${origin}/subscribe/${lookup}?error=rate_limit`, 303)
       }
-      
+
       // Generic error - redirect back with unknown error
       return Response.redirect(`${origin}/subscribe/${lookup}?error=unknown`, 303)
     }
-    
+
     const userId = signUpRes.user?.id
     if (!userId) {
       return Response.redirect(`${origin}/subscribe/${lookup}?error=unknown`, 303)
@@ -90,7 +90,7 @@ export async function POST(req: Request) {
     } else if (priceIdFromForm) {
       price = await stripe.prices.retrieve(priceIdFromForm, { expand: ['product'] })
     }
-    
+
     if (!price || !price.active || !((price.product as Stripe.Product)?.active)) {
       return Response.redirect(`${origin}/subscribe/${lookup}?error=invalid_plan`, 303)
     }
@@ -99,7 +99,7 @@ export async function POST(req: Request) {
     const intendedUserType = deriveUserTypeFromPrice(price)
 
     // 3) Ensure Stripe Customer mapped to this user
-    const customerId = await ensureCustomer({id: userId, email: signUpRes.user?.email ?? email})
+    const customerId = await ensureCustomer({ id: userId, email: signUpRes.user?.email ?? email })
 
     // 4) Create Checkout Session (subscription) with helpful metadata
     const session = await stripe.checkout.sessions.create({
@@ -108,7 +108,7 @@ export async function POST(req: Request) {
       line_items: [{ price: price.id, quantity: 1 }],
       client_reference_id: userId, // convenient for reconciling
       subscription_data: {
-        trial_period_days: trialDays > 0 ? trialDays: undefined,
+        trial_period_days: trialDays > 0 ? trialDays : undefined,
         metadata: {
           supabase_user_id: userId,                 // webhook uses this
           plan_lookup: lookup || '',                // optional for logging
@@ -124,14 +124,14 @@ export async function POST(req: Request) {
     return Response.redirect(session.url!, 303)
   } catch (e) {
     console.error('Subscribe flow error:', e)
-    
+
     // Get lookup from form if available for redirect
     let lookup = ''
     try {
       const form = await req.formData()
       lookup = String(form.get('lookup') ?? '')
-    } catch {}
-    
+    } catch { }
+
     // Redirect back to subscribe page with error instead of showing black screen
     return Response.redirect(`${origin}/subscribe/${lookup || 'business_monthly'}?error=unknown`, 303)
   }

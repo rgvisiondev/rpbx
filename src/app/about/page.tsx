@@ -107,36 +107,36 @@ export default function AboutPage() {
       </div>
 
       {/* Div 3: Experts Section */}
-        <div className="flex flex-col items-center bg-[url('/images/backgrounds/white-bg.png')] bg-repeat bg-top py-[15px] overflow-hidden">
-          <div className="w-full px-4 lg:max-w-[1140px] lg:px-2 mx-auto py-10">
-            <h2 className="text-center -mt-4">Meet Our Experts</h2>
+      <div className="flex flex-col items-center bg-[url('/images/backgrounds/white-bg.png')] bg-repeat bg-top py-[15px] overflow-hidden">
+        <div className="w-full px-4 lg:max-w-[1140px] lg:px-2 mx-auto py-10">
+          <h2 className="text-center -mt-4">Meet Our Experts</h2>
 
-            <Carousel
-              opts={{ align: "start", loop: true }}
-              className="w-full mt-8"              // ⬅ full width of the 1140px container
-            >
-              <CarouselContent className="-ml-4">   {/* optional: for spacing between slides */}
-                {experts.map((expert) => (
-                  <CarouselItem
-                    key={expert.index}
-                    className="pl-4 basis-full sm:basis-1/2 lg:basis-1/3"
-                    // full-width on mobile, 2-up on small, 3-up on large
+          <Carousel
+            opts={{ align: "start", loop: true }}
+            className="w-full mt-8"              // ⬅ full width of the 1140px container
+          >
+            <CarouselContent className="-ml-4">   {/* optional: for spacing between slides */}
+              {experts.map((expert) => (
+                <CarouselItem
+                  key={expert.index}
+                  className="pl-4 basis-full sm:basis-1/2 lg:basis-1/3"
+                // full-width on mobile, 2-up on small, 3-up on large
+                >
+                  <div
+                    className="rounded-2xl shadow-lg overflow-hidden flex flex-col items-center bg-white transition-all duration-300 h-full"
                   >
-                    <div
-                      className="rounded-2xl shadow-lg overflow-hidden flex flex-col items-center bg-white transition-all duration-300 h-full"
-                    >
-                      {/* Top gray section */}
-                      <div className="relative bg-[#272727] w-full h-[120px]">
-                        <a
-                          href={`mailto:${expert.email}`}
-                          className="absolute top-3 right-3 text-white hover:text-[#9ed3c3] transition-colors"
-                        >
-                          <Mail size={22} />
-                        </a>
-                      </div>
+                    {/* Top gray section */}
+                    <div className="relative bg-[#272727] w-full h-[120px]">
+                      <a
+                        href={`mailto:${expert.email}`}
+                        className="absolute top-3 right-3 text-white hover:text-[#9ed3c3] transition-colors"
+                      >
+                        <Mail size={22} />
+                      </a>
+                    </div>
 
-                      {/* Bottom white section */}
-                      <div className="bg-white w-full flex flex-col items-center p-5">
+                    {/* Bottom white section */}
+                    <div className="bg-white w-full flex flex-col items-center p-5">
                       <div
                         className="w-[144px] h-[144px] bg-white rounded-full border-4 border-[#272727] flex justify-center items-center -mt-[96px] relative z-10"
                       >
@@ -155,18 +155,18 @@ export default function AboutPage() {
                         text={expert.title}
                       />
                     </div>
-                    </div>
-                  </CarouselItem>
-                ))}
-              </CarouselContent>
+                  </div>
+                </CarouselItem>
+              ))}
+            </CarouselContent>
 
-              <CarouselPrevious />
-              <CarouselNext />
-            </Carousel>
-          </div>
+            <CarouselPrevious />
+            <CarouselNext />
+          </Carousel>
         </div>
+      </div>
       {/* Div 4: video */}
-      <VideoSection videoUrl="https://youtube.com/embed/BUpPR2Bi9uQ"/>
+      <VideoSection videoUrl="https://youtube.com/embed/BUpPR2Bi9uQ" />
     </div>
   );
 }
