@@ -16,15 +16,15 @@ import Cpa from "./components/popups/Cpa";
 
 export default async function Home() {
   const supabase = await createClientRSC();
-  
+
   // Use getSession instead of getUser for better performance
   const { data: { session }, error } = await supabase.auth.getSession();
-  
+
   // Only log non-authentication errors
   if (error && error.message !== 'Auth session missing!' && error.status !== 400) {
     console.error('Unexpected auth error:', error);
   }
-  
+
   // Redirect if user is authenticated
   if (session?.user) {
     return redirect("/dashboard");
@@ -32,7 +32,7 @@ export default async function Home() {
 
   const dark = false;
 
-    
+
   return (
     <div>
       {/* Div 1: 2 rows */}
@@ -58,9 +58,9 @@ export default async function Home() {
 
 
       {/* Div 2: 1 div containing 3 div columns */}
-      
+
       <div className="bg-[url('/images/backgrounds/black-bg.png')] bg-cover bg-center bg-fixed lg:bg-fixed flex justify-center py-10 px-4 lg:px-0">
-      <PricingTable dark={dark} loggedIn={false} />
+        <PricingTable dark={dark} loggedIn={false} />
       </div>
 
 
@@ -139,10 +139,10 @@ export default async function Home() {
                   />
                 }
               >
-              <Eval />
+                <Eval />
 
-              
-              
+
+
               </Modal>
               <h4 className="text-center mt-2">Business Valuation</h4>
             </div>
@@ -161,7 +161,7 @@ export default async function Home() {
                   />
                 }
               >
-              <Legal />
+                <Legal />
 
               </Modal>
               <h4 className="text-center mt-2">Legal Representation</h4>
@@ -180,7 +180,7 @@ export default async function Home() {
                   />
                 }
               >
-              <Cpa />
+                <Cpa />
 
               </Modal>
               <h4 className="text-center mt-2">CPA &amp; Book Keeping Assistant</h4>

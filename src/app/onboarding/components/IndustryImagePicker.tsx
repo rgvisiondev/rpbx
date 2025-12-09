@@ -4,31 +4,31 @@ import * as React from 'react'
 import { INDUSTRY_IMAGES, toSlug, imageUrl } from '@/lib/industryImages'
 
 type Props = {
-    
-    allIndustries: string[]
-    defaultIndustry?: string | null
-    defaultImageKey?: string | null
+
+  allIndustries: string[]
+  defaultIndustry?: string | null
+  defaultImageKey?: string | null
 
 }
 
 export default function IndustryImagePicker({ allIndustries, defaultIndustry, defaultImageKey }: Props) {
 
-    const [industry, setIndustry] = React.useState<string>(defaultIndustry ?? '')
-    const [selectedKey, setSelectedKey] = React.useState<string | undefined>(defaultImageKey ?? undefined)
+  const [industry, setIndustry] = React.useState<string>(defaultIndustry ?? '')
+  const [selectedKey, setSelectedKey] = React.useState<string | undefined>(defaultImageKey ?? undefined)
 
-    const slug = toSlug(industry || '')
+  const slug = toSlug(industry || '')
 
-    const keys = slug ? (INDUSTRY_IMAGES[slug] ?? []) : []
+  const keys = slug ? (INDUSTRY_IMAGES[slug] ?? []) : []
 
-    // if industry changes adn current key doesn't belong, clear selection
+  // if industry changes adn current key doesn't belong, clear selection
 
-    React.useEffect(() => {
-        if (selectedKey && (!slug || !keys.includes(selectedKey))){
-            setSelectedKey(undefined)
-        }
-    }, [slug])
+  React.useEffect(() => {
+    if (selectedKey && (!slug || !keys.includes(selectedKey))) {
+      setSelectedKey(undefined)
+    }
+  }, [slug])
 
-    return (
+  return (
     <div className="space-y-4">
       {/* Industry select (this will be posted as part of the form) */}
       <label className="block pt-4">

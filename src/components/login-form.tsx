@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label"
 import Link from "next/link"
 import { login } from "@/app/login/actions"
 
-export interface LoginFormProps extends React.HTMLAttributes<HTMLDivElement>{
+export interface LoginFormProps extends React.HTMLAttributes<HTMLDivElement> {
   next?: string
 }
 
@@ -48,7 +48,7 @@ export function LoginForm({ className, next = "", ...props }: LoginFormProps) {
                 <div className="flex items-center">
                   <Label htmlFor="password">Password</Label>
                   <Link href="/forgot-password" className="ml-auto text-sm underline-offset-4 hover:underline">
-                  Forgot your password?
+                    Forgot your password?
                   </Link>
                 </div>
                 <Input id="password" name="password" type="password" required autoComplete="current-password" />

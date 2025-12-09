@@ -2,9 +2,9 @@
 
 import { createClientRSC } from '@/../utils/supabase/server'
 
-export async function requestReset(_: unknown, formData: FormData){
+export async function requestReset(_: unknown, formData: FormData) {
     const email = String(formData.get(`email`) || '').trim()
-    if (!email) return { ok: false, message: 'Email is required'}
+    if (!email) return { ok: false, message: 'Email is required' }
 
     const supabase = await createClientRSC()
 
@@ -13,7 +13,7 @@ export async function requestReset(_: unknown, formData: FormData){
     const redirectTo = `${base}/reset-password`
 
     const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo })
-    if (error) return { ok: false, message: error.message}
+    if (error) return { ok: false, message: error.message }
 
-    return { ok: true, message: "Check your email for the reset link."}
+    return { ok: true, message: "Check your email for the reset link." }
 }

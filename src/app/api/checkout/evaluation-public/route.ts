@@ -33,7 +33,7 @@ export async function POST(req: Request) {
       allow_promotion_codes: true,
       success_url: `${origin}/checkout/success?type=evaluation&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}?eval=canceled`,
-      metadata:{ 
+      metadata: {
         purpose: "evaluation_public",
       }
     });

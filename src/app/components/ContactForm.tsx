@@ -55,9 +55,8 @@ export default function ContactForm({ to }: { to?: string }) {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -50 }}
             transition={{ duration: 0.3 }}
-            className={`fixed top-5 left-1/2 transform -translate-x-1/2 px-5 py-3 rounded-xl shadow-lg text-white font-medium z-50 ${
-              status === 'success' ? 'bg-green-600' : 'bg-red-600'
-            }`}
+            className={`fixed top-5 left-1/2 transform -translate-x-1/2 px-5 py-3 rounded-xl shadow-lg text-white font-medium z-50 ${status === 'success' ? 'bg-green-600' : 'bg-red-600'
+              }`}
           >
             {status === 'success'
               ? '✅ Email sent successfully!'
@@ -90,11 +89,10 @@ export default function ContactForm({ to }: { to?: string }) {
           <button
             type="submit"
             disabled={status === 'sending'}
-            className={`rounded-full p-2 text-white transition ${
-              status === 'sending'
+            className={`rounded-full p-2 text-white transition ${status === 'sending'
                 ? 'bg-gray-400 cursor-not-allowed'
                 : 'bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] hover:border-[var(--color-primary-hover)]'
-            }`}
+              }`}
           >
             {status === 'sending' ? 'Sending...' : 'Send Message'}
           </button>

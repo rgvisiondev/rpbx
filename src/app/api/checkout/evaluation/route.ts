@@ -68,7 +68,7 @@ export async function POST(req: Request) {
       "http://localhost:3000";
 
     const successUrl = `${origin}/api/evaluations/redirect?listing_id=${encodeURIComponent(listingId)}`;
-    const cancelUrl  = `${origin}/dashboard/listings?eval=canceled`;
+    const cancelUrl = `${origin}/dashboard/listings?eval=canceled`;
 
     const session = await stripe.checkout.sessions.create({
       mode: "payment",

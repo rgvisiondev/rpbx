@@ -39,17 +39,17 @@ export async function GET() {
 
       const mf: string[] = Array.isArray(prod.marketing_features)
         ? prod.marketing_features
-            .map(f => (f?.name || "").trim())
-            .filter(Boolean)
+          .map(f => (f?.name || "").trim())
+          .filter(Boolean)
         : [];
 
       const metaFeatures = (prod.metadata?.features || p.metadata?.features || "")
         .split("|")
         .map(s => s.trim())
         .filter(Boolean);
-        
-    
-        const features = mf.length ? mf : metaFeatures;
+
+
+      const features = mf.length ? mf : metaFeatures;
 
       // Merge product + price metadata (price overrides product on key collisions)
       const mergedMeta: Record<string, string> = {

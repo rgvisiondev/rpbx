@@ -18,10 +18,10 @@ export default function Verified() {
 
         {/* Success badge */}
         <div className="mx-auto mt-8 mb-3 flex h-14 w-14 items-center justify-center rounded-full"
-             style={{ backgroundColor: "#EAF7F3", color: "#2F3E38", border: "1px solid #D7EEE8" }}>
+          style={{ backgroundColor: "#EAF7F3", color: "#2F3E38", border: "1px solid #D7EEE8" }}>
           {/* Checkmark */}
           <svg viewBox="0 0 24 24" className="h-7 w-7" aria-hidden="true">
-            <path fill="currentColor" d="M9.00049 16.2002L4.80049 12.0002L3.40039 13.4003L9.00049 19.0004L21.0005 7.00039L19.6004 5.60029L9.00049 16.2002Z"/>
+            <path fill="currentColor" d="M9.00049 16.2002L4.80049 12.0002L3.40039 13.4003L9.00049 19.0004L21.0005 7.00039L19.6004 5.60029L9.00049 16.2002Z" />
           </svg>
         </div>
 

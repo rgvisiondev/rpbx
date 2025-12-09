@@ -7,16 +7,16 @@ type PromoMeta = { listing_id: string; title?: string | null; status?: string | 
 type EvalMeta = { listing_id: string; title?: string | null; status?: "purchased" | "completed" }
 
 // Known events
-type ListingCreated   = { id: string; type: "listing_created";      at: string; meta?: ListingMeta }
-type ListingUpdated   = { id: string; type: "listing_updated";      at: string; meta?: ListingMeta }
-type MembershipUpdated= { id: string; type: "membership_updated";   at: string; meta?: MembershipMeta }
-type ProfileUpdated   = { id: string; type: "profile_updated";      at: string; meta?: ProfileMeta }
-type PromoStarted     = { id: string; type: "listing_promo_started";at: string; meta?: PromoMeta }
-type PromoCanceled    = { id: string; type: "listing_promo_canceled";at: string; meta?: PromoMeta }
-type EvalPurchased    = { id: string; type: "evaluation_purchased"; at: string; meta?: EvalMeta }
+type ListingCreated = { id: string; type: "listing_created"; at: string; meta?: ListingMeta }
+type ListingUpdated = { id: string; type: "listing_updated"; at: string; meta?: ListingMeta }
+type MembershipUpdated = { id: string; type: "membership_updated"; at: string; meta?: MembershipMeta }
+type ProfileUpdated = { id: string; type: "profile_updated"; at: string; meta?: ProfileMeta }
+type PromoStarted = { id: string; type: "listing_promo_started"; at: string; meta?: PromoMeta }
+type PromoCanceled = { id: string; type: "listing_promo_canceled"; at: string; meta?: PromoMeta }
+type EvalPurchased = { id: string; type: "evaluation_purchased"; at: string; meta?: EvalMeta }
 
 // Catch-all (unknown/extra) event
-type UnknownActivity  = { id: string; type: string;                 at: string; meta?: Record<string, unknown> }
+type UnknownActivity = { id: string; type: string; at: string; meta?: Record<string, unknown> }
 
 type Activity =
   | ListingCreated
@@ -101,8 +101,8 @@ function formatLabel(a: Activity): { label: string; detail?: string } {
   if (a.type === "membership_updated") {
     const m = a.meta
     const label: string = typeof m?.product_name === "string" && m.product_name.trim().length > 0
-  ? m.product_name
-  : "Membership";
+      ? m.product_name
+      : "Membership";
     return { label, detail: m?.status ? `status: ${m.status}` : undefined }
   }
 
