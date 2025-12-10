@@ -32,7 +32,7 @@ export default function ContactForm({ to, subject }: { to?: string, subject?: st
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           to: to ?? 'info@rioplexbizx.com',
-          subject: 'New Contact Message',
+          subject: subject ?? 'New Contact Message',
           html: `<p><b>From:</b> ${email}</p><p>${message}</p>`,
           turnstileToken,
         }),
