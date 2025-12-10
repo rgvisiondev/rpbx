@@ -39,6 +39,22 @@ const urlFor = (source: SanityImageSource) =>
 
 const options = { next: { revalidate: 30 } };
 
+export async function generateMetadata({ params }: PostPageProps) {
+  const { slug } = await params;
+
+  const post = await eventClient.fetch<SanityDocument>(
+    POST_QUERY,
+    { slug }
+  );
+
+  return {
+    title: post.title,
+    description:
+      post?.body?.[0]?.children?.[0]?.text ||
+      "Read this post.",
+  };
+}
+
 export default async function PostPage({ params }: PostPageProps) {
   const { slug } = await params;
 

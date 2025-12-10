@@ -126,7 +126,7 @@ export default async function InvestorPage(
           
           {/* LEFT COLUMN - Sticky Logic Applied Here */}
           <div className="w-full lg:w-1/3 md:sticky md:top-30 md:h-fit">
-            <div className="flex flex-col bg-gray-200 rounded-lg overflow-hidden">
+            <div className="flex flex-col bg-gray-200 rounded-t-lg overflow-hidden">
               <Image
                 src={avatarUrl ?? "/images/svg/def-inv.svg"}
                 alt={fullName}

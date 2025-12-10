@@ -1,6 +1,6 @@
 // app/owner/listings/page.tsx
 export const dynamic = "force-dynamic";
-
+import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -13,6 +13,11 @@ import { headers } from "next/headers";
 const PRICE_LISTING_MONTHLY = process.env.NEXT_PUBLIC_STRIPE_PRICE_BUSINESS_MONTHLY!;
 const PRICE_LISTING_YEARLY = process.env.NEXT_PUBLIC_STRIPE_PRICE_BUSINESS_YEARLY!;
 const ORIGIN = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+
+export const metadata: Metadata = {
+  title: "Your Listings | RioPlex Business Exchange",
+  description: "Manage your business listings and subscriptions on RioPlex Business Exchange.",
+};
 
 // ---- SERVER ACTIONS ----
 async function startListingPriceCheckout(priceId: string) {

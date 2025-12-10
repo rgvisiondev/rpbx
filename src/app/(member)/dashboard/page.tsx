@@ -26,7 +26,7 @@ import {
 import { requireEntitlementOrNull } from "@/lib/serverGuard";
 
 export const metadata: Metadata = {
-  title: "User Dashboard | RioPlex Business Exchange",
+  title: "Dashboard | RioPlex Business Exchange",
   description: "Connecting Local Business Owners With Investors",
 };
 
