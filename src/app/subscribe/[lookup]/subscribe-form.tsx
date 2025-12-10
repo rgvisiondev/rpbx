@@ -4,16 +4,39 @@
 import * as React from "react";
 import { Eye, EyeOff } from "lucide-react";
 import Button from "../../components/Button";
+import { TurnstileWidget } from "@/app/components/TurnstileWidget";
+import { useState, useRef } from "react";
 
 export function SubscribeForm({ lookup, trialDays = 0 }: { lookup: string; trialDays?: number; }) {
   const [showPw, setShowPw] = React.useState(false);
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const formRef = useRef<HTMLFormElement | null>(null);
+
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    if (!turnstileToken){
+      e.preventDefault();
+      setErrorMsg("Verification failed. Please refresh and try again");
+      return;
+    }
+
+    setErrorMsg(null);
+    e.preventDefault();
+    formRef.current?.submit();
+  }
 
   return (
-    <form method="post" action="/api/subscribe" className="mt-6 space-y-3">
+    <form  ref={formRef} method="post" action="/api/subscribe" onSubmit={handleSubmit} className="mt-6 space-y-3">
       <input name="lookup" type="hidden" value={lookup} />
       {trialDays > 0 && (
         <input name="trial_days" type="hidden" value={trialDays} />
       )}
+
+      <input 
+        type="hidden"
+        name="turnstile_token"
+        value={turnstileToken ?? ""}
+      />
 
       <label className="block">
         <span>First name</span>
@@ -77,6 +100,19 @@ export function SubscribeForm({ lookup, trialDays = 0 }: { lookup: string; trial
           </button>
         </div>
       </label>
+
+      <TurnstileWidget 
+        action="signup"
+        onVerify={(token) => {
+          setTurnstileToken(token);
+        }}
+      />
+
+      {errorMsg && (
+        <p className="text-sm text-red-600 mt-2" aria-live="polite">
+          {errorMsg}
+        </p>
+      )}
 
       <Button className="w-full">Continue to secure checkout</Button>
     </form>

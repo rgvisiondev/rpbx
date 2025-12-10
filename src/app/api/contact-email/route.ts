@@ -1,25 +1,28 @@
 import { Resend } from "resend";
-
+import { verifyTurnstileToken } from "@/lib/verifyTurnstile";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
+const from = process.env.EMAIL_FROM ?? "RioPlex <info@rioplexbizx.com>";
 
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { to, subject, html } = body as {
-      to?: string;
-      subject?: string;
-      html?: string;
-    };
+    const { to, subject, html, turnstileToken } = body;
 
-    if (!to || !subject || !html) {
+    if (!to || !subject || !html || !turnstileToken) {
       return new Response(JSON.stringify({ error: "Missing fields" }), {
         status: 400,
         headers: { "Content-Type": "application/json" },
       });
     }
 
-    const from = process.env.EMAIL_FROM ?? "RioPlex <info@rioplexbizx.com>";
+    const ok = await verifyTurnstileToken(turnstileToken);
+    if (!ok) {
+      return new Response(
+        JSON.stringify({ error: "Failed human verification." }),
+        { status: 400 }
+      );
+    }
 
     await resend.emails.send({
       from,
@@ -32,8 +35,9 @@ export async function POST(req: Request) {
       status: 200,
       headers: { "Content-Type": "application/json" },
     });
+
   } catch (err) {
-    console.error("/api/send-email error:", err);
+    console.error("/api/contact-email error:", err);
     return new Response(JSON.stringify({ error: "Server error" }), {
       status: 500,
       headers: { "Content-Type": "application/json" },
