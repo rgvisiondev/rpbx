@@ -13,10 +13,16 @@ import {
   TooltipTrigger
 } from "@/components/ui/tooltip";
 import AddressAutocomplete from '@/app/onboarding/components/AddressAutocomplete'
+import type { Metadata } from "next";
 
 
 type Params = { listingId: string }
 type PageProps = { params: Promise<Params> }
+
+export const metadata: Metadata = {
+  title: "Edit Listing | RioPlex Business Exchange",
+  description: "Manage your business listings and subscriptions on RioPlex Business Exchange.",
+};
 
 export default async function EditListingPage({ params }: PageProps) {
     const { listingId } = await params;

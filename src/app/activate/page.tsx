@@ -1,6 +1,6 @@
 
 import NavBarActivate from "../components/NavBarActivate";
-
+import type { Metadata } from "next";
 
 // Utils
 import { createClientRSC } from "@/../utils/supabase/server"
@@ -12,6 +12,11 @@ import { BadgeCheck } from 'lucide-react';
 import { Network } from 'lucide-react';
 import { Map } from 'lucide-react';
 import { Goal } from 'lucide-react';
+
+export const metadata: Metadata = {
+    title: "Start 30 Days Free | RioPlex Business Exchange",
+    description: "Connect with local investors and grow your business on RioPlex Business Exchange.",
+};
 
 export default async function Activate() {
     const supabase = await createClientRSC();

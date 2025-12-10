@@ -30,6 +30,14 @@ function readParam(
   return Array.isArray(v) ? v[0] : v;
 }
 
+export async function generateMetadata() {
+  return {
+    title: "Subscribe | RioPlex Business Exchange",
+    description: "Choose your subscription plan and create your account.",
+  };
+}
+
+
 export default async function SubscribePage({
   params,
   searchParams,

@@ -1,15 +1,26 @@
 // app/pricing/page.tsx
+import { Metadata } from "next";
 import PricingTable from "../components/pricing-table";
 import Accordion from "../../components/ui/accordion";
 import NavGate from "../components/NavGate";
 import Link from "next/link";
 import { createClientRSC } from "@/../utils/supabase/server";
 
+
+export const metadata: Metadata = {
+  title: "Pricing | RioPlex Business Exchange",
+  description: "Choose the best plan for your business or investment needs on RioPlex Business Exchange.",
+};
+
+
+
 export default async function PricingPage() {
   const supabase = await createClientRSC();
   const {
     data: { user },
   } = await supabase.auth.getUser();
+
+
 
   const dark = true;
 

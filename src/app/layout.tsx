@@ -26,7 +26,18 @@ export const metadata: Metadata = {
     icon: "/favicon.png",
   },
   openGraph: {
-    images: '/images/logos/Rio-Plex-Logo-Main-Mint-&-Charcoal.png'
+    images: [
+      {
+        url: "/RPBX-opengraph-logo.png",
+        width: 1200,
+        height: 630,
+      },
+      {
+        url: "/RPBX-opengraph-icon.png",
+        width: 800,
+        height: 800,
+      },
+    ],
   },
 };
 
