@@ -184,7 +184,7 @@ Guidelines
 
 PR process
 
-- Create a feature branch and open a PR against `main` (or the repo default) with a clear description and testing steps.
+- Create a feature branch and open a PR against `main` (or the repo default) with a clear description and testing steps. Do not merge your own branch without having it reviewed by another developer.
 
 **Useful Commands**
 
@@ -211,7 +211,3 @@ PR process
 
 - Anthony Ramirez: `github.com/ajram01`
 - Salvador Pruneda: `github.com/spruneda134`
-
----
-
-Generated: developer guide for the RPBX repository. Keep this file updated as architecture or env requirements change.
