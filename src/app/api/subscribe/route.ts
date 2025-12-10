@@ -5,6 +5,7 @@ import Stripe from 'stripe'
 import { stripe } from '@/lib/stripe'
 import { createClientRSC } from '@/../utils/supabase/server'
 import { ensureCustomer } from '@/lib/ensure-customer' // make sure the path matches your file
+import { verifyTurnstileToken } from '@/lib/verifyTurnstile'
 
 function deriveUserTypeFromPrice(price: Stripe.Price): 'investor' | 'business' | 'member' {
   const fromMeta = (price.metadata?.user_type ?? '').toLowerCase()
@@ -30,6 +31,7 @@ export async function POST(req: Request) {
     const username = String(form.get('username') ?? '')
     const email = String(form.get('email') ?? '')
     const password = String(form.get('password') ?? '')
+    const turnstileToken = form.get('turnstile_token')
 
     const trialDaysRaw = form.get('trial_days')
     const trialDays =
@@ -39,6 +41,20 @@ export async function POST(req: Request) {
 
     if ((!lookup && !priceIdFromForm) || !email || !password) {
       return Response.redirect(`${origin}/subscribe/${lookup}?error=missing_fields`, 303)
+    }
+    if (!turnstileToken || typeof turnstileToken !== "string"){
+      return Response.redirect(
+        `${origin}/subscribe/${lookup}?error=verification_failed`,
+        303
+      );
+    }
+
+    const ok = await verifyTurnstileToken(turnstileToken);
+    if (!ok){
+      return Response.redirect(
+        `${origin}/subscribe/${lookup}?error=verification_failed`,
+        303
+      );
     }
 
     // 1) Create Supabase user (session may be null if email confirmations are ON)

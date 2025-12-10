@@ -8,8 +8,6 @@ export default function NewsletterSignup() {
   const [success, setSuccess] = useState(false);
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  
-  // OPTIONAL: You can edit these or pass them dynamically based on the page
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
