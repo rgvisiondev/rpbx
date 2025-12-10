@@ -78,8 +78,8 @@ export default function ContactForm({ to, subject }: { to?: string, subject?: st
               }`}
           >
             {status === 'success'
-              ? '✅ Email sent successfully!'
-              : '❌ Failed to send email. Please try again.'}
+              ? 'Email sent successfully!'
+              : 'Failed to send email. Please try again.'}
           </motion.div>
         )}
       </AnimatePresence>

@@ -1,28 +1,39 @@
 "use client";
 import { useState } from "react";
+import { TurnstileWidget } from "@/app/components/TurnstileWidget";
 
 export default function NewsletterSignup() {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
-
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  
   // OPTIONAL: You can edit these or pass them dynamically based on the page
-  const groups = ["172616011480041008"]; // Default newsletter group
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email) return;
+    setErrorMsg(null);
+    if (!email){
+      setErrorMsg("Please fill out all fields");
+      return;
+    }
+
+    if (!turnstileToken){
+      setErrorMsg("Verification failed. Please refresh and try again");
+      return;
+    }
 
     setLoading(true);
-    groups.push("172615978122740973"); // General
+    const groups = ["172616011480041008", "172615978122740973"];
 
-    const res = await fetch("/api/ml-subscribe", {
+    const res = await fetch("/api/ml-subscribe-public", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Accept": "application/json"
+        "Accept": "application/json",
       },
-      body: JSON.stringify({ email, groups }),
+      body: JSON.stringify({ email, groups, turnstileToken }),
     });
 
     setLoading(false);
@@ -30,8 +41,10 @@ export default function NewsletterSignup() {
     if (res.ok) {
       setSuccess(true);
       setEmail("");
+      setTurnstileToken(null);
     } else {
-      alert("Something went wrong. Try again.");
+      const data = await res.json().catch(() => null);
+      setErrorMsg(data?.error ?? "Failed to signup. Please try again.");
     }
   };
 
@@ -56,14 +69,24 @@ export default function NewsletterSignup() {
           />
           <button
             type="submit"
-            className="mt-5 w-full px-6 py-2 rounded-full font-medium transition bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-white"
+            disabled={loading}
+            className="mt-5 w-full px-6 py-2 rounded-full font-medium transition bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-white disabled:opacity-60 disabled:cursor-not-allowed"
           >
             {loading ? "Submitting..." : "Sign Up"}
           </button>
+          <TurnstileWidget 
+            action="newsletter"
+            onVerify={(token) => {
+              setTurnstileToken(token);
+            }}
+          />
         </form>
 
         {success && (
           <p className="mt-4 bg-green-100 w-full rounded-full py-2 text-center">Thank you for subscribing!</p>
+        )}
+        {!success && errorMsg && (
+          <p className='mt-4 bg-red-100 w-full rounded-full py-2 text-center'>{errorMsg}</p>
         )}
 
         <p className="mt-5 pt-2 border-t-2 border-[#A1A1A1] text-center small text-grey">
