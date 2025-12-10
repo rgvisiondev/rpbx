@@ -50,7 +50,7 @@ export default function Legal() {
       </p><br />
 
 
-      <ContactForm to="aymurray.cpa@gmail.com" />
+      <ContactForm to="aymurray.cpa@gmail.com" subject="RPBX Contact Form Submission - CPA Inquiry" />
     </div>
   );
 }

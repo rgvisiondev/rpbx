@@ -2,15 +2,29 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { TurnstileWidget } from './TurnstileWidget';
 
-export default function ContactForm({ to }: { to?: string }) {
+export default function ContactForm({ to, subject }: { to?: string, subject?: string }) {
   const [email, setEmail] = useState('');
   const [message, setMessage] = useState('');
   const [status, setStatus] = useState<'idle' | 'sending' | 'success' | 'error'>('idle');
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setStatus('sending');
+    setErrorMsg(null);
+
+    if (!email || !message){
+      setErrorMsg("Please fill out all fields");
+      return;
+    }
+
+    if (!turnstileToken){
+      setErrorMsg("Verification failed. Please refresh and try again.");
+      return;
+    }
+    setStatus("sending");
 
     try {
       const res = await fetch('/api/send-email', {
@@ -20,6 +34,7 @@ export default function ContactForm({ to }: { to?: string }) {
           to: to ?? 'info@rioplexbizx.com',
           subject: 'New Contact Message',
           html: `<p><b>From:</b> ${email}</p><p>${message}</p>`,
+          turnstileToken,
         }),
       });
 
@@ -27,11 +42,15 @@ export default function ContactForm({ to }: { to?: string }) {
         setStatus('success');
         setEmail('');
         setMessage('');
+        setTurnstileToken(null);
       } else {
+        const data = await res.json().catch(() => null);
+        setErrorMsg(data?.error ?? "Failed to send email. Please try again.");
         setStatus('error');
       }
     } catch (err) {
       console.error(err);
+      setErrorMsg("Failed to send email. Please try again.");
       setStatus('error');
     }
   }
@@ -96,7 +115,16 @@ export default function ContactForm({ to }: { to?: string }) {
           >
             {status === 'sending' ? 'Sending...' : 'Send Message'}
           </button>
+          <TurnstileWidget 
+            action="advisor_contact"
+            onVerify={(token) => {
+              setTurnstileToken(token);
+            }}
+          />
         </form>
+        {errorMsg && status === 'idle' && (
+          <p className='mt-2 text-xs text-red-600'>{errorMsg}</p>
+        )}
       </div>
     </>
   );
