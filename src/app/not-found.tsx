@@ -1,5 +1,4 @@
 // app/not-found.tsx
-import Link from "next/link";
 import NavGate from "./components/NavGate";
 import Button from "./components/Button";
 
@@ -36,7 +35,7 @@ export default function NotFound() {
               Page Not Found
             </h1>
             <p className="text-lg lg:text-xl text-slate-600 mb-10 leading-relaxed">
-              We couldn't find the page you're looking for. It might have been moved, deleted, or perhaps it never existed.
+              We could not find the page you are looking for. It might have been moved, deleted, or perhaps it never existed.
             </p>
 
             {/* CTA Buttons */}
