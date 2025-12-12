@@ -28,7 +28,7 @@ export default function Support() {
             <Accordion title="How do I contact RioPlex Business Exchange support?">
               <p>
                 You can reach our support team by filling out the contact form on our website or emailing us directly at{" "}
-                <Link href="mailto:info@rgvisionmedia.com" className="green-link">info@rgvisionmedia.com</Link>.
+                <Link href="mailto:info@rioplexbizx.com" className="green-link">info@rioplexbizx.com</Link>.
               </p>
             </Accordion>
 
@@ -66,7 +66,7 @@ export default function Support() {
                 If you have any questions, please contact us at:
               </p><br />
               <p>
-                Phone: (956) 322-5942<br />
+                Phone: +1 877-816-0013<br />
                 Email: <Link href="mailto:info@rioplexbizx.com" className="green-link">info@rioplexbizx.com</Link>
               </p>
             </Accordion>
