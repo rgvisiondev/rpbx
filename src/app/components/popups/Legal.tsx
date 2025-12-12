@@ -7,8 +7,8 @@ export default function Legal() {
 
       <h4>Protecting Your Interests in Every Transaction</h4>
       <p>
-        Every business decision carries legal implications — from structuring your company and managing assets to navigating transactions or disputes.
-        Having a trusted legal partner ensures your business is protected, compliant, and prepared for growth.
+        Every business decision carries legal implications — from structuring your company and managing assets to navigating business sales, mergers and acquisitions, or disputes.
+        Whether you’re working with business brokers to sell your business, understanding asset vs stock purchase decisions, or preparing a confidential information memorandum (CIM), having a trusted legal partner ensures your business is protected, compliant, and prepared for growth.
       </p><br />
 
       <p>
@@ -22,7 +22,7 @@ export default function Legal() {
         <li><strong>Estate Planning, Probate & Asset Protection</strong> – Safeguard your legacy and protect assets for future generations.</li>
         <li><strong>Business & Probate Litigation</strong> – Skilled representation to defend your interests in complex disputes.</li>
         <li><strong>IRS Representation</strong> – Guidance and advocacy for audits, disputes, and tax resolution.</li>
-        <li><strong>Business Transactions</strong>– From contract drafting to deal negotiations, ensure every transaction is legally sound.</li>
+        <li><strong>Business Transactions</strong>– From contract drafting to deal negotiations, including seller financing agreements, stock versus asset purchase decisions, and confidential information memorandums (CIM) for business sales. Ensure every transaction is legally sound when working with business brokers.</li>
         <li><strong>Business Immigration</strong> – Support for companies navigating employment-based immigration matters.</li>
         <li><strong>Property Tax Representation</strong> – Reduce risk and resolve issues involving property tax challenges.</li>
         <li><strong>Federal & State Forfeitures</strong> – Defense against government seizure actions.</li>

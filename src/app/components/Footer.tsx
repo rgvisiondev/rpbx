@@ -33,7 +33,7 @@ export default function Footer() {
 
           <div className="mt-10 flex items-end justify-between">
             <div className="flex flex-col justify-end">
-              <p className="text-white">(956) 322-5942</p>
+              <p className="text-white">+1 877-816-0013</p>
               <p className="text-white">info@rioplexbizx.com</p>
             </div>
 

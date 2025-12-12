@@ -30,10 +30,7 @@ export default function HomeSlider() {
       <div className="flex flex-col items-start w-full lg:w-[560px] py-8 lg:py-10 px-6 lg:px-2">
         <h2>Who is RPBX for?</h2>
         <p className="lg:pr-15 pt-1">
-          Connecting small business owners with the right investors to help them
-          grow, succeed, and achieve their goals. Join RioPlex Business Exchange
-          and be part of a platform built for ambitious businesses and
-          forward-thinking investors.
+          Whether you’re a business owner ready to sell your business or an investor searching for small businesses for sale, RPBX is the business broker platform for you. We connect sellers with qualified buyers, provide business valuation services, and facilitate transactions with seller financing options.
         </p>
         <Link href="/business">
           <Button className="mt-3 lg:mt-3 w-full sm:w-auto" variant="white">
