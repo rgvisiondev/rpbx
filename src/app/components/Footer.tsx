@@ -11,13 +11,13 @@ export default function Footer() {
           <p className="text-white">Follow us on:</p>
           <div className="flex justify-left gap-4 mt-2">
             <Link href="https://www.facebook.com/profile.php?id=61567482254380" target="_blank">
-              <Image src="/images/icons/facebook.png" alt="Facebook" width={24} height={24} />
+              <Image src="/images/icons/facebook.png" alt="Follow RPBX Business Brokers on Facebook" width={24} height={24} />
             </Link>
             <Link href="https://www.instagram.com/rioplexbe/" target="_blank">
-              <Image src="/images/icons/instagram.png" alt="Instagram" width={24} height={24} />
+              <Image src="/images/icons/instagram.png" alt="Follow RPBX on Instagram for business opportunities" width={24} height={24} />
             </Link>
             <Link href="https://www.linkedin.com/company/rioplex-business-exchange" target="_blank">
-              <Image src="/images/icons/linkedin.png" alt="LinkedIn" width={24} height={24} />
+              <Image src="/images/icons/linkedin.png" alt="Connect with RPBX on LinkedIn" width={24} height={24} />
             </Link>
           </div>
 
@@ -39,7 +39,7 @@ export default function Footer() {
 
             <Image
               src="/images/logos/svg/Rio-Plex-Logo-Main-White.svg"
-              alt="Footer Logo"
+              alt="RPBX - Business Broker Platform for Buying and Selling Businesses"
               width={150}
               height={50}
               className="object-contain"

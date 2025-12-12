@@ -40,7 +40,7 @@ export default function CardCarousel() {
           >
             <Image
               src={src}
-              alt={`Slide ${index + 1}`}
+              alt={`Business listing gallery image ${index + 1}`}
               fill
               className="object-cover rounded-3xl"
             />
@@ -71,7 +71,7 @@ export default function CardCarousel() {
                 <SwiperSlide key={index} className="relative h-full">
                   <Image
                     src={src}
-                    alt={`Slide ${index + 1}`}
+                    alt={`Business listing gallery image ${index + 1}`}
                     fill
                     className="object-contain"
                   />

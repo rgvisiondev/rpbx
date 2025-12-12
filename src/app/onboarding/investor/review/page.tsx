@@ -93,7 +93,7 @@ export default async function Review() {
         <div className="flex items-center gap-4 mt-2">
           {avatarUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={avatarUrl} alt="" className="h-16 w-16 rounded-full border object-cover" />
+            <img src={avatarUrl} alt="Investor profile avatar" className="h-16 w-16 rounded-full border object-cover" />
           ) : (
             <div className="h-16 w-16 rounded-full border bg-gray-100" />
           )}

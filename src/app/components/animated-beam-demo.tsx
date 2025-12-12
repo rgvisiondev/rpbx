@@ -98,7 +98,7 @@ const Icons = {
   user1: () => (
     <Image
       src="/images/svg/building-solid-full.svg"
-      alt="User Icon"
+      alt="Business for sale"
       width={100}
       height={100}
       className="w-25 h-25 object-contain"
@@ -107,7 +107,7 @@ const Icons = {
   rpbx: () => (
     <Image
       src="/images/logos/svg/Rio-Plex-Logo-Icon-Mint.svg"
-      alt="RPBX Logo"
+      alt="RPBX Business Broker Platform connecting buyers and sellers"
       width={100}
       height={100}
       className="w-25 h-25 object-contain"
@@ -116,7 +116,7 @@ const Icons = {
   user2: () => (
     <Image
       src="/images/svg/building-solid-full.svg"
-      alt="User Icon"
+      alt="Business listing"
       width={100}
       height={100}
       className="w-25 h-25 object-contain"
@@ -125,7 +125,7 @@ const Icons = {
   user3: () => (
     <Image
       src="/images/svg/building-solid-full.svg"
-      alt="User Icon"
+      alt="Small business for sale"
       width={100}
       height={100}
       className="w-25 h-25 object-contain"
@@ -134,7 +134,7 @@ const Icons = {
   user4: () => (
     <Image
       src="/images/svg/user-solid-full.svg"
-      alt="User Icon"
+      alt="Business buyer investor"
       width={100}
       height={100}
       className="w-25 h-25 object-contain"
@@ -143,7 +143,7 @@ const Icons = {
   user5: () => (
     <Image
       src="/images/svg/user-solid-full.svg"
-      alt="User Icon"
+      alt="Qualified buyer"
       width={100}
       height={100}
       className="w-25 h-25 object-contain"
@@ -152,7 +152,7 @@ const Icons = {
   user6: () => (
     <Image
       src="/images/svg/user-solid-full.svg"
-      alt="User Icon"
+      alt="Investor looking to acquire business"
       width={100}
       height={100}
       className="w-25 h-25 object-contain"

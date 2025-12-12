@@ -70,7 +70,7 @@ export default function IndustryImagePicker({ allIndustries, defaultIndustry, de
                       checked={checked || false}
                       onChange={() => setSelectedKey(key)}
                     />
-                    <img src={imageUrl(key)} alt="" className="h-40 w-full object-cover" />
+                    <img src={imageUrl(key)} alt={`${industry} business listing cover image`} className="h-40 w-full object-cover" />
                     <div className={`absolute inset-0 pointer-events-none ${checked ? 'ring-inset ring-2 ring-[#7fb8a9]' : ''}`} />
                   </label>
                 )

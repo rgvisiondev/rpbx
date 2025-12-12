@@ -46,7 +46,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Search
             src="/images/logos/Rio-Plex-Logo-Main-Mint-&-Charcoal.png"
             width={150}
             height={200}
-            alt="RioPlex logo"
+            alt="RPBX Business Broker Platform - Login to Access Business Listings"
             className="h-auto w-[150px]"
             priority
           />
