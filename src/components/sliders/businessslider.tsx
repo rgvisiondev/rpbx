@@ -32,7 +32,7 @@ export default function BusinessSlider() {
       <div className="flex flex-col items-start w-full lg:w-[560px] py-8 lg:py-10 px-6 lg:px-2">
         <h2>Get Your Business Valuation</h2>
         <p className="lg:pr-15  pt-1">
-          Know the true value of your business with a professional small business valuation powered by Biz Equity. Essential for business brokers and sellers, our valuations help you understand how to value a small company. RPBX members save 50% on valuations.
+          Know the true value of your business with a professional small business valuation powered by Biz Equity. Essential for sellers preparing to list their business, our valuations help you understand how to value a small company. RPBX members save 50% on valuations.
         </p>
         <EvaluationCheckoutButton color="white" />
 

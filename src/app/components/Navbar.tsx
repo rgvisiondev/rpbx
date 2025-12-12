@@ -58,7 +58,7 @@ export default function Navbar() {
               src="/images/logos/svg/Rio-Plex-Logo-Main-Mint-&-Charcoal.svg"
               width={120}
               height={160}
-              alt="RPBX - Business Broker Platform for Buying and Selling Businesses"
+              alt="RPBX - Business Marketplace for Buying and Selling Businesses"
               className="h-auto w-[120px]"
             />
           </Link>
@@ -111,7 +111,7 @@ export default function Navbar() {
               src="/images/logos/svg/Rio-Plex-Logo-Main-Mint-&-Charcoal.svg"
               width={150}
               height={200}
-              alt="RPBX - Business Brokers, Sell Your Business, Businesses for Sale"
+              alt="RPBX - Business Marketplace, Sell Your Business, Businesses for Sale"
               className="h-auto w-[150px]"
               priority
             />

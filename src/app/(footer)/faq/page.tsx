@@ -5,7 +5,7 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "FAQ | RioPlex Business Exchange",
-  description: "Common questions about business brokers, selling your business, business valuations, confidential information memorandums (CIM), seller financing, and how to find the best business broker for your needs."
+  description: "Common questions about using a business marketplace vs business brokers, selling your business, business valuations, confidential information memorandums (CIM), seller financing, and connecting with investors directly."
 };
 
 export default function FAQ() {
@@ -20,14 +20,14 @@ export default function FAQ() {
 
         <div className="flex flex-col w-full lg:max-w-[1140px] mx-auto py-10 gap-10 px-5 lg:px-2">
           <h1>Frequently Asked Questions</h1>
-          <p className="-mt-2">Here are some of the most common questions about RioPlex Business Exchange memberships, business broker services, selling your business, and investment opportunities.</p>
+          <p className="-mt-2">Here are some of the most common questions about RioPlex Business Exchange memberships, our marketplace platform, selling your business, and investment opportunities.</p>
 
           {/* Accordion Section */}
           <div className="gap-5 flex flex-col">
 
             <Accordion title="How much does it cost for a Business Valuation?">
               <p>
-                Our professional small business valuation service is priced at $1,850 for non-members and $850 for members. Business Owner Lite trial members do not qualify for the member discount during their 30-day trial. Business valuations are essential when working with business brokers to sell your business or determine a fair asking price. Our valuation experts help you understand how to value a small company for sale or investment purposes.
+                Our professional small business valuation service is priced at $1,850 for non-members and $850 for members. Business Owner Lite trial members do not qualify for the member discount during their 30-day trial. Business valuations are essential when preparing to sell your business or determine a fair asking price. Our valuation experts help you understand how to value a small company for sale or investment purposes.
               </p><br/>
 
               <p>
@@ -87,21 +87,21 @@ export default function FAQ() {
               </p>
             </Accordion>
 
-            <Accordion title="What is a Business Broker?">
+            <Accordion title="What is a Business Broker and how is RPBX different?">
               <p>
-                A business broker is a professional who facilitates the buying and selling of businesses. Business brokers help with business valuations, prepare confidential information memorandums (CIM), match buyers with sellers, and guide parties through the transaction process including negotiations and due diligence.
+                A business broker is a licensed professional who represents buyers or sellers in business transactions, typically earning a commission. Traditional business brokers manage valuations, negotiations, and guide parties through the full transaction process. RPBX is different—we’re a business marketplace that connects business owners directly with investors, without acting as brokers. We provide the platform and tools for you to manage your own transactions, saving on traditional brokerage fees.
               </p>
             </Accordion>
 
             <Accordion title="What is a Confidential Information Memorandum (CIM)?">
               <p>
-                A confidential information memorandum (CIM) is a detailed document that provides comprehensive information about a business for sale. The CIM typically includes financial statements, business operations, market analysis, growth opportunities, and other key data that potential buyers need to evaluate the business. This document is essential in mergers and acquisitions and business brokerage transactions.
+                A confidential information memorandum (CIM) is a detailed document that provides comprehensive information about a business for sale. The CIM typically includes financial statements, business operations, market analysis, growth opportunities, and other key data that potential buyers need to evaluate the business. This document is essential in mergers and acquisitions transactions.
               </p>
             </Accordion>
 
-            <Accordion title="How do I find the best business broker?">
+            <Accordion title="How does RPBX compare to working with a business broker?">
               <p>
-                To find the best business broker, look for professionals with experience in your industry, a proven track record of successful transactions, and strong local market knowledge. RPBX connects you with top business brokers in Texas including Houston business brokers, Austin business brokers, and small business brokers throughout the region. Our platform features business broker services tailored to your needs.
+                RPBX offers a direct marketplace alternative to traditional business brokers. Instead of paying commission fees to brokers, our platform connects business owners directly with investors in Texas including Houston, Austin, and throughout the region. You maintain control of your transaction, set your own terms, and pay a flat membership fee instead of percentage-based commissions. For those who prefer traditional representation, you can still work with independent brokers while using our platform to increase visibility.
               </p>
             </Accordion>
 
@@ -113,19 +113,19 @@ export default function FAQ() {
 
             <Accordion title="What is the difference between an asset purchase and a stock purchase?">
               <p>
-                An asset purchase (asset deal) is when the buyer purchases specific assets and liabilities of a business, while a stock purchase (stock deal) involves buying the ownership shares of the company itself. Asset vs stock purchase decisions affect tax implications, liability transfer, and transaction structure. Your business broker or legal advisor can help determine which is best for your situation.
+                An asset purchase (asset deal) is when the buyer purchases specific assets and liabilities of a business, while a stock purchase (stock deal) involves buying the ownership shares of the company itself. Asset vs stock purchase decisions affect tax implications, liability transfer, and transaction structure. Consult with your legal advisor or CPA to help determine which is best for your situation.
               </p>
             </Accordion>
 
             <Accordion title="How do I sell my business fast?">
               <p>
-                To sell your business quickly, start by getting a professional business valuation, prepare a comprehensive confidential information memorandum (CIM), list your business on multiple business broker sites like RPBX, consider offering seller financing, and work with experienced business brokers who have access to qualified buyers. Proper preparation and realistic pricing are key to selling your business fast.
+                To sell your business quickly, start by getting a professional business valuation, prepare a comprehensive confidential information memorandum (CIM), list your business on marketplace platforms like RPBX to reach qualified investors directly, consider offering seller financing, and maintain competitive pricing. Proper preparation and realistic pricing are key to selling your business fast.
               </p>
             </Accordion>
 
             <Accordion title="Where can I find businesses for sale near me?">
               <p>
-                RPBX is one of the best business broker websites for finding businesses for sale near you. Our platform features small businesses for sale, internet businesses, franchise opportunities, and more across Texas. You can search by location, industry, and other criteria to find businesses for sale that match your investment goals.
+                RPBX is a leading business marketplace for finding businesses for sale near you. Our platform features small businesses for sale, internet businesses, franchise opportunities, and more across Texas. You can search by location, industry, and other criteria to find businesses for sale that match your investment goals—connecting directly with business owners.
               </p>
             </Accordion>
 

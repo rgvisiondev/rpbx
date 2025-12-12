@@ -52,7 +52,7 @@ const experts = [
 
 export const metadata: Metadata = {
   title: "About RPBX | RioPlex Business Exchange",
-  description: "RPBX is a leading business brokerage firm connecting business owners with investors. Learn about our business broker services, small business valuations, and how we help you sell your business in Texas."
+  description: "RPBX is a leading business marketplace connecting business owners directly with investors. Learn about our business exchange platform, business valuation services, and how we help you sell your business in Texas without traditional broker fees."
 };
 
 
@@ -95,7 +95,7 @@ export default function AboutPage() {
           <div className="flex-1 flex flex-col gap-y-6 justify-center">
             <h2 className="text-white">About RPBX</h2>
 
-            <p className="text-white">Welcome to RioPlex Business Exchange, your trusted business brokerage platform connecting business owners with investors across Texas. As one of the best business broker websites, we serve Houston business brokers, Austin business brokers, and small business brokers throughout the state. Whether you’re ready to sell your business fast, need a confidential information memorandum (CIM), or want to find businesses for sale near you, RPBX provides the tools and connections you need. We specialize in small business brokerage, business valuations, and facilitating transactions including seller financing options.</p>
+            <p className="text-white">Welcome to RioPlex Business Exchange, your trusted business marketplace connecting business owners directly with investors across Texas. As a leading business broker alternative, we serve Houston, Austin, and throughout the state. Whether you’re ready to sell your business, need a confidential information memorandum (CIM), or want to find businesses for sale near you, RPBX provides the tools and connections you need. We specialize in business valuations and facilitating transactions including seller financing options—all without traditional brokerage fees.</p>
 
             <div className="flex flex-row gap-4">
               <Link href="/business"><Button>Looking for an Investor</Button></Link>
