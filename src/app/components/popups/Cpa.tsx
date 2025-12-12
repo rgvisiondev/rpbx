@@ -7,10 +7,9 @@ export default function Legal() {
 
       <h4>Your Financial Backbone</h4>
       <p>
-        informed decisions and maintain a healthy financial status for small business sales.
-
-        A Certified Public Accountant (CPA) and Bookkeeping Assistant play a crucial role in managing a business’s finances, especially when preparing to sell your business or work with business brokers.
-        They ensure your financial records are accurate, up-to-date, and compliant with regulations—essential for business valuations, confidential information memorandums (CIM), and transactions involving seller financing. From understanding taxes on selling a business to preparing for mergers and acquisitions, CPAs help you make      </p><br />
+        A Certified Public Accountant (CPA) and Bookkeeping Assistant play a crucial role in managing a business’s finances, especially when preparing to sell your business.
+        They ensure your financial records are accurate, up-to-date, and compliant with regulations—essential for business valuations, confidential information memorandums (CIM), and transactions involving seller financing. From understanding taxes on selling a business to preparing for mergers and acquisitions, CPAs help you make informed decisions and maintain a healthy financial status for small business sales.
+      </p><br/>
 
       <h4>Key Roles & Responsibilities:</h4>
       <ul className="list-disc list-outside pl-6">

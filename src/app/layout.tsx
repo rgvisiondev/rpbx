@@ -21,7 +21,7 @@ const poppins = Poppins({
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://rioplexbizx.com"),
   title: "RioPlex Business Exchange",
-  description: "Premier business brokerage platform connecting business owners with investors. Find business brokers, sell your business fast, search businesses for sale near you. Serving Texas including Houston, Austin business brokers. Expert business valuations and CIM services.",
+  description: "Premier business marketplace connecting business owners directly with investors. Business broker alternative - sell your business, search businesses for sale near you. Serving Texas including Houston, Austin. Expert business valuations and CIM services.",
   keywords: [
     "business broker business",
     "confidential information memorandum",
