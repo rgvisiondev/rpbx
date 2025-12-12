@@ -51,7 +51,7 @@ const experts = [
 
 
 export const metadata: Metadata = {
-  title: "About RPBX | Top Business Brokers & Business Brokerage Firm",
+  title: "About RPBX | RioPlex Business Exchange",
   description: "RPBX is a leading business brokerage firm connecting business owners with investors. Learn about our business broker services, small business valuations, and how we help you sell your business in Texas."
 };
 

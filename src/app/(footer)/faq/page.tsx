@@ -4,7 +4,7 @@ import Link from 'next/link';
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "FAQ | Business Broker Questions | Selling Your Business | RPBX",
+  title: "FAQ | RioPlex Business Exchange",
   description: "Common questions about business brokers, selling your business, business valuations, confidential information memorandums (CIM), seller financing, and how to find the best business broker for your needs."
 };
 

@@ -8,7 +8,7 @@ import { createClientRSC } from "@/../utils/supabase/server";
 
 
 export const metadata: Metadata = {
-  title: "Pricing | Business Broker Services | List Your Business for Sale | RPBX",
+  title: "Pricing | RioPlex Business Exchange",
   description: "Affordable business broker services pricing. List your business for sale or find businesses to buy. Plans for small business brokers, sellers, and investors. Business valuation and CIM services available.",
 };
 
