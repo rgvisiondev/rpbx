@@ -76,7 +76,7 @@ export default async function Events() {
                       <div className="flex items-center">
                         <Image
                           src="/images/icons/calendar.png"
-                          alt="Date"
+                          alt="Event date for business networking"
                           className="min-w-4 min-h-4 mr-2"
                           width={16}
                           height={16}
@@ -87,7 +87,7 @@ export default async function Events() {
                       <div className="flex items-center">
                         <Image
                           src="/images/icons/clock.png"
-                          alt="Time"
+                          alt="Event time"
                           className="min-w-4 min-h-4 mr-2"
                           width={16}
                           height={16}
@@ -99,7 +99,7 @@ export default async function Events() {
                         <div className="flex items-center">
                           <Image
                             src="/images/icons/user.png"
-                            alt="Host"
+                            alt="Event host"
                             className="min-w-5 min-h-4 mr-2"
                             width={16}
                             height={16}
@@ -112,7 +112,7 @@ export default async function Events() {
                         <div className="flex items-center">
                           <Image
                             src="/images/icons/location.png"
-                            alt="Location"
+                            alt="Event location"
                             className="min-w-4 min-h-4 mr-2"
                             width={16}
                             height={16}

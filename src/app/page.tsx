@@ -46,7 +46,6 @@ export default async function Home() {
           <div className="flex-1 flex justify-center lg:justify-end items-center px-4 lg:p-[15px] order-2 lg:order-1">
             <div className="flex flex-col items-center w-full lg:w-[560px] max-w-lg">
               <h1 className="text-center">Unlock Your Business Potential</h1>
-
               <AuthForm />
             </div>
           </div>
@@ -190,7 +189,7 @@ export default async function Home() {
         </div>
       </div>
 
-      {/* Div 4: 1 div */}
+      {/* Div 5: Newsletter */}
       <NewsletterSignup />
 
     </div>

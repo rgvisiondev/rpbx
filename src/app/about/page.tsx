@@ -52,7 +52,7 @@ const experts = [
 
 export const metadata: Metadata = {
   title: "About RPBX | RioPlex Business Exchange",
-  description: "Connecting Local Business Owners With Investors"
+  description: "RPBX is a leading business brokerage firm connecting business owners with investors. Learn about our business broker services, small business valuations, and how we help you sell your business in Texas."
 };
 
 
@@ -95,9 +95,9 @@ export default function AboutPage() {
           <div className="flex-1 flex flex-col gap-y-6 justify-center">
             <h2 className="text-white">About RPBX</h2>
 
-            <p className="text-white">Welcome to RioPlex Business Exchange, your gateway to connecting businesses and investors across Texas. We champion local entrepreneurship and regional growth. Whether you’re a business owner seeking visibility and expansion or an investor looking for promising opportunities, RPBX provides a dynamic, secure platform to make it happen. Explore our services and learn more about which membership fits your needs best.</p>
+            <p className="text-white">Welcome to RioPlex Business Exchange, your trusted business brokerage platform connecting business owners with investors across Texas. As one of the best business broker websites, we serve Houston business brokers, Austin business brokers, and small business brokers throughout the state. Whether you’re ready to sell your business fast, need a confidential information memorandum (CIM), or want to find businesses for sale near you, RPBX provides the tools and connections you need. We specialize in small business brokerage, business valuations, and facilitating transactions including seller financing options.</p>
 
-            <div className="flex flex-col gap-4">
+            <div className="flex flex-row gap-4">
               <Link href="/business"><Button>Looking for an Investor</Button></Link>
               <Link href="/investor"><Button variant="white">Looking to Invest</Button></Link>
             </div>

@@ -6,7 +6,7 @@ export default function LogoLoader() {
     <div className="flex justify-center items-center flex-col space-y-4">
       <Image
         src="/images/icons/Logo-Icon-White.png"
-        alt="Loading..."
+        alt="RPBX Business Broker Platform Loading"
         width={60}
         height={60}
         className="flex animate-[stepRotate_1s_steps(6)_infinite]"

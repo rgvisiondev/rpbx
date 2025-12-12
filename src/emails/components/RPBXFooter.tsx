@@ -79,7 +79,7 @@ export function RPBXFooter({
               100 E Nolana Ave #130, McAllen, TX 78504
             </Text>
             <Text className="mt-[4px] mb-0 font-semibold text-[14px] text-gray-500 leading-[20px]">
-              info@rioplexbizx.com · +1 (956) 322-5942
+              info@rioplexbizx.com · +1 877-816-0013
             </Text>
           </td>
         </tr>

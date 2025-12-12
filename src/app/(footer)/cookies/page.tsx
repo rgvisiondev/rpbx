@@ -77,7 +77,7 @@ export default function Cookies() {
                 If you have any questions about our cookie practices, please contact us at:
               </p><br />
               <p>
-                Phone: (956) 322-5942<br />
+                Phone: +1 877-816-0013<br />
                 Email: <Link href="mailto:info@rioplexbizx.com" className="green-link">info@rioplexbizx.com</Link>
               </p>
             </Accordion>

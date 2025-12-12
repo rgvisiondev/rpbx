@@ -1,0 +1,14 @@
+# *
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /dashboard/
+Disallow: /business-listing/
+Disallow: /investor-listing/
+Disallow: /onboarding/
+
+# Host
+Host: https://rioplexbizx.com
+
+# Sitemaps
+Sitemap: https://rioplexbizx.com/sitemap.xml
