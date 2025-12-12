@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import Button from '@/app/components/Button';
 import { Progress } from "@/components/ui/progress";
+import { DescriptionAiAssist } from '@/app/onboarding/components/DescriptionAIAssist';
 
 import {
   Tooltip,
@@ -34,13 +35,15 @@ export default async function DetailsStep({
     .from('business_listings')
     .select(`
       id,
+      title,
       ownership_percentage,
       annual_revenue_range,
       book_value_range,
       ebitda_range,
       years_in_business,
       employee_count_range,
-      description
+      description,
+      address
     `)
     .eq('id', listingId)
     .eq('owner_id', user.id)
@@ -257,7 +260,7 @@ export default async function DetailsStep({
               <option value="gt_100">100+</option>
             </select>
           </label>
-
+          <DescriptionAiAssist address={draft.address} business_name={draft.title}/>
           <label className="block pt-4">
             <Tooltip>
               <span>
