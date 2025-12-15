@@ -7,6 +7,7 @@ import { TurnstileWidget } from './TurnstileWidget';
 export default function ContactForm({ to, subject }: { to?: string, subject?: string }) {
   const [email, setEmail] = useState('');
   const [message, setMessage] = useState('');
+  const [phone, setPhone] = useState('');
   const [status, setStatus] = useState<'idle' | 'sending' | 'success' | 'error'>('idle');
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -33,7 +34,7 @@ export default function ContactForm({ to, subject }: { to?: string, subject?: st
         body: JSON.stringify({
           to: to ?? 'info@rioplexbizx.com',
           subject: subject ?? 'New Contact Message',
-          html: `<p><b>From:</b> ${email}</p><p>${message}</p>`,
+          html: `<p><b>Email:</b> ${email}</p><p><b>Phone:</b> ${phone}</p><p>${message}</p>`,
           turnstileToken,
         }),
       });
@@ -41,6 +42,7 @@ export default function ContactForm({ to, subject }: { to?: string, subject?: st
       if (res.ok) {
         setStatus('success');
         setEmail('');
+        setPhone('');
         setMessage('');
         setTurnstileToken(null);
       } else {
@@ -93,6 +95,15 @@ export default function ContactForm({ to, subject }: { to?: string, subject?: st
             placeholder="Your email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
+            required
+            className="border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-gray-700"
+          />
+
+          <input
+            type="tel"
+            placeholder="Your phone number"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
             required
             className="border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-gray-700"
           />
