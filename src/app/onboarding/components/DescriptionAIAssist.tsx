@@ -9,6 +9,13 @@ type DescriptionAiAssistProps = {
   onGenerated: (value: string | null) => void;
 };
 
+type BusinessDescriptionResponse = {
+  description?: string;
+  error?: string;
+  reset?: number;
+};
+
+
 export function DescriptionAiAssist({ address, business_name, onGenerated }: DescriptionAiAssistProps) {
   const [open, setOpen] = useState(false);
   const [url, setUrl] = useState('');
@@ -79,7 +86,13 @@ export function DescriptionAiAssist({ address, business_name, onGenerated }: Des
         }),
       });
 
-      const data = await res.json().catch(() => ({} as any));
+      let data: BusinessDescriptionResponse = {};
+
+      try{
+        data = (await res.json()) as BusinessDescriptionResponse;
+      } catch {
+        data = {};
+      }
 
       if (!res.ok) {
         if (res.status === 429) {

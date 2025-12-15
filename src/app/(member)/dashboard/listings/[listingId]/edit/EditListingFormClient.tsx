@@ -44,13 +44,11 @@ type EditListing = {
 };
 
 type EditListingFormClientProps = {
-  listingId: string;
   listing: EditListing;
   updateListing: (formData: FormData) => Promise<void>;
 };
 
 export default function EditListingFormClient({
-  listingId,
   listing,
   updateListing,
 }: EditListingFormClientProps) {

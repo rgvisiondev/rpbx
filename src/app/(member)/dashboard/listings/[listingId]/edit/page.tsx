@@ -170,7 +170,6 @@ export default async function EditListingPage({ params }: PageProps) {
 
   return (
     <EditListingFormClient
-      listingId={listingId}
       listing={listing}
       updateListing={updateListing}
     />
