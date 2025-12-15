@@ -110,6 +110,16 @@ export default function EditListingFormClient({
           </label>
 
           {/* Contact flags */}
+          <label className="block pt-4">
+            <span>Contact email</span>
+            <input
+              name="contact_email"
+              type="email"
+              required
+              defaultValue={listing?.contact_email ?? ""}
+              className="mt-1 w-full border rounded px-3 py-2"
+            />
+          </label>
           <label className="flex items-center gap-2 pt-4">
             <input
               type="checkbox"
