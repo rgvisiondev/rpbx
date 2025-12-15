@@ -19,7 +19,7 @@ export async function POST(req: Request) {
       });
     }
 
-    const from = process.env.EMAIL_FROM ?? "RioPlex <info@rioplexbizx.com>";
+    const from = process.env.EMAIL_FROM ?? "RioPlex <notifications@rioplexbizx.com>";
 
     await resend.emails.send({
       from,
