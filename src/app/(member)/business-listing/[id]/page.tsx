@@ -14,6 +14,9 @@ import {
 
 import { imageUrl } from "@/lib/industryImages";
 
+import Modal from "@/app/components/Modal";
+import ContactBusiness from "@/app/components/popups/ContactBusiness";
+
 // Optional: dynamic metadata from the listing
 export async function generateMetadata(
   { params }: { params: Promise<{ id: string }> }
@@ -83,6 +86,30 @@ export default async function ListingPage({
   // Require login
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect(`/login?next=/business-listing/${id}`);
+
+  // Fetch investor information if logged in
+  let investorName: string | undefined;
+  let investorOrganization: string | undefined;
+  let investorIndustry: string | undefined;
+  let investorLocation: string | undefined;
+
+  if (user) {
+    const { data: investor } = await supabase
+      .from("investor_profiles")
+      .select("first_name, last_name, organization_entity, primary_industry, city")
+      .eq("user_id", user.id)
+      .eq("status", "published")
+      .order("updated_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (investor) {
+      investorName = [investor.first_name, investor.last_name].filter(Boolean).join(" ") || undefined;
+      investorOrganization = investor.organization_entity || undefined;
+      investorIndustry = investor.primary_industry || undefined;
+      investorLocation = investor.city || undefined;
+    }
+  }
 
   // Fetch listing by id
   const { data: listing } = await supabase
@@ -211,18 +238,22 @@ export default async function ListingPage({
                 </div>
               ))}
 
-              {/* Contact CTA:
-                 - For now, link to mailto if you want direct email.
-                 - Or point to an internal route (messages/new) with listing id. */}
-              {listing.contact_email ? (
-                <a href={`mailto:${listing.contact_email}?subject=Inquiry about ${encodeURIComponent(listing.title || "your listing")}`}>
-                  <Button className="w-full">Contact</Button>
-                </a>
-              ) : (
-                <Link href={`/messages/new?listingId=${listing.id}`}>
-                  <Button className="w-full">Contact</Button>
-                </Link>
-              )}
+              <Modal
+                trigger={
+                <Button className="w-full">Contact</Button>
+                }
+              >
+                <ContactBusiness 
+                  name={listing.title ? `${listing.title} Owner` : "Business Owner"}
+                  email={listing.contact_email || ""}
+                  businessName={listing.title || undefined}
+                  investorName={investorName}
+                  investorOrganization={investorOrganization}
+                  investorIndustry={investorIndustry}
+                  investorLocation={investorLocation}
+                />
+
+              </Modal>  
 
               {/* If you want owners to see an Edit link: */}
               {isOwner && (
