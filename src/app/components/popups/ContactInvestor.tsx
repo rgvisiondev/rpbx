@@ -1,6 +1,6 @@
-import ContactForm from "../ContactForm";
+import ContactFormInvestor from "../ContactFormInvestor";
 
-export default function ContactInvestor({ name, email }: { name?: string; email?: string }) {
+export default function ContactInvestor({ name, email, businessName, industry, location, businessDescription }: { name?: string; email?: string; businessName?: string; industry?: string; location?: string; businessDescription?: string }) {
     return (
         <div className="space-y-2">
 
@@ -13,7 +13,14 @@ export default function ContactInvestor({ name, email }: { name?: string; email?
             <p><b>Investor Email:</b> {email}</p>
 
 
-            <ContactForm to={email} subject="You Have a New Business Inquiry" />
+            <ContactFormInvestor 
+                investorEmail={email || ''} 
+                investorName={name}
+                businessName={businessName}
+                industry={industry}
+                location={location}
+                businessDescription={businessDescription}
+            />
         </div>
     );
 }

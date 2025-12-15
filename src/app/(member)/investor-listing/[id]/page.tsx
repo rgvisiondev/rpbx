@@ -50,6 +50,33 @@ export default async function InvestorPage(
   const { id } = await params;
   const supabase = await createClientRSC();
 
+  // Fetch the current logged-in user
+  const { data: { user } } = await supabase.auth.getUser();
+
+  // Fetch business owner information if logged in
+  let businessName: string | undefined;
+  let industry: string | undefined;
+  let location: string | undefined;
+  let businessDescription: string | undefined;
+
+  if (user) {
+    const { data: listing } = await supabase
+      .from("business_listings")
+      .select("title, industry, city, county, description")
+      .eq("owner_id", user.id)
+      .eq("is_active", true)
+      .order("updated_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (listing) {
+      businessName = listing.title || undefined;
+      industry = listing.industry || undefined;
+      location = [listing.city, listing.county].filter(Boolean).join(", ") || undefined;
+      businessDescription = listing.description || undefined;
+    }
+  }
+
   // Fetch the investor (note: includes user_id now)
   const { data: inv, error } = await supabase
     .from("investor_profiles")
@@ -150,7 +177,14 @@ export default async function InvestorPage(
                 <Button className="w-full mt-5">Contact</Button>
                 }
               >
-                <ContactInvestor name={fullName} email={email} />
+                <ContactInvestor 
+                  name={fullName} 
+                  email={email}
+                  businessName={businessName}
+                  industry={industry}
+                  location={location}
+                  businessDescription={businessDescription}
+                />
 
               </Modal>   
 

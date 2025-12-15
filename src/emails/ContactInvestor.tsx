@@ -62,7 +62,7 @@ export default function ContactInvestor({
 
               {(businessName || industry || location || businessDescription) && (
                 <>
-                  <Text className="mt-[8px] text-[14px] font-medium text-gray-900">
+                  <Text className="mt-[8px] text-[18px] font-medium text-gray-900">
                     Business Details
                   </Text>
                   <Text className="-mt-3 mb-[12px] text-[14px] leading-[22px] text-gray-700">
@@ -94,7 +94,7 @@ export default function ContactInvestor({
                 </>
               )}
 
-              <Text className="mt-[8px] text-[14px] font-medium text-gray-900">
+              <Text className="mt-[8px] text-[18px] font-medium text-gray-900">
                 Contact Information
               </Text>
               <Text className="-mt-3 mb-[12px] text-[14px] leading-[22px] text-gray-700">
