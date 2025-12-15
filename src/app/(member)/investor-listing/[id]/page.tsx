@@ -5,7 +5,8 @@ import Image from "next/image";
 import type { Metadata } from "next";
 import { createClientRSC } from "@/../utils/supabase/server";
 import { notFound } from "next/navigation";
-import Link from "next/link";
+import Modal from "@/app/components/Modal";
+import ContactInvestor from "@/app/components/popups/ContactInvestor";
 
 function formatRangeLabel(v?: string | null) {
   if (!v) return "—";
@@ -144,9 +145,15 @@ export default async function InvestorPage(
 
               <p className="font-semibold text-white">Email</p>
               <p className="text-white">{email}</p>
-              <Link href={`mailto:${email}`}>
+              <Modal
+                trigger={
                 <Button className="w-full mt-5">Contact</Button>
-              </Link>
+                }
+              >
+                <ContactInvestor name={fullName} email={email} />
+
+              </Modal>   
+
             </div>
           </div>
 
