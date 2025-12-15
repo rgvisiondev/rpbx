@@ -9,7 +9,7 @@ import { createClientRSC } from "@/../utils/supabase/server";
 
 export const metadata: Metadata = {
   title: "Pricing | RioPlex Business Exchange",
-  description: "Affordable business broker services pricing. List your business for sale or find businesses to buy. Plans for small business brokers, sellers, and investors. Business valuation and CIM services available.",
+  description: "Affordable business marketplace pricing. List your business for sale or find businesses to buy. Plans for business owners, sellers, and investors. Business valuation and CIM services available. Business broker alternative.",
 };
 
 
@@ -31,9 +31,9 @@ export default async function PricingPage() {
           <NavGate />
         </div>
         <div className="mx-auto lg:max-w-[1140px] py-10 px-4 lg:px-0">
-          <h1 className="text-3xl font-semibold text-center">Choose Your Business Broker Plan</h1>
+          <h1 className="text-3xl font-semibold text-center">Choose Your Membership Plan</h1>
           <p className="mt-2 mb-8 text-sm text-neutral-500 text-center">
-            Affordable pricing for business owners ready to sell and investors looking to buy. Whether you need to list your business for sale, find small businesses for sale, or access business broker services, we have a plan for you. Toggle between monthly and yearly billing. Business Owner accounts get 30 days for free, regular charges apply afterward.
+            Affordable pricing for business owners ready to sell and investors looking to buy. Whether you need to list your business for sale, find small businesses for sale, or connect directly with investors, we have a plan for you. Toggle between monthly and yearly billing. Business Owner accounts get 30 days for free, regular charges apply afterward.
           </p>
 
           {/* Pass whether the user is logged in so the table can choose flow */}

@@ -5,7 +5,8 @@ import Image from "next/image";
 import type { Metadata } from "next";
 import { createClientRSC } from "@/../utils/supabase/server";
 import { notFound } from "next/navigation";
-import Link from "next/link";
+import Modal from "@/app/components/Modal";
+import ContactInvestor from "@/app/components/popups/ContactInvestor";
 
 function formatRangeLabel(v?: string | null) {
   if (!v) return "—";
@@ -48,6 +49,33 @@ export default async function InvestorPage(
 ) {
   const { id } = await params;
   const supabase = await createClientRSC();
+
+  // Fetch the current logged-in user
+  const { data: { user } } = await supabase.auth.getUser();
+
+  // Fetch business owner information if logged in
+  let businessName: string | undefined;
+  let industry: string | undefined;
+  let location: string | undefined;
+  let businessDescription: string | undefined;
+
+  if (user) {
+    const { data: listing } = await supabase
+      .from("business_listings")
+      .select("title, industry, city, county, description")
+      .eq("owner_id", user.id)
+      .eq("is_active", true)
+      .order("updated_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (listing) {
+      businessName = listing.title || undefined;
+      industry = listing.industry || undefined;
+      location = [listing.city, listing.county].filter(Boolean).join(", ") || undefined;
+      businessDescription = listing.description || undefined;
+    }
+  }
 
   // Fetch the investor (note: includes user_id now)
   const { data: inv, error } = await supabase
@@ -144,9 +172,22 @@ export default async function InvestorPage(
 
               <p className="font-semibold text-white">Email</p>
               <p className="text-white">{email}</p>
-              <Link href={`mailto:${email}`}>
+              <Modal
+                trigger={
                 <Button className="w-full mt-5">Contact</Button>
-              </Link>
+                }
+              >
+                <ContactInvestor 
+                  name={fullName} 
+                  email={email}
+                  businessName={businessName}
+                  industry={industry}
+                  location={location}
+                  businessDescription={businessDescription}
+                />
+
+              </Modal>   
+
             </div>
           </div>
 

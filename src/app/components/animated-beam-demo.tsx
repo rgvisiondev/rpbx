@@ -107,7 +107,7 @@ const Icons = {
   rpbx: () => (
     <Image
       src="/images/logos/svg/Rio-Plex-Logo-Icon-Mint.svg"
-      alt="RPBX Business Broker Platform connecting buyers and sellers"
+      alt="RPBX Business Marketplace connecting buyers and sellers"
       width={100}
       height={100}
       className="w-25 h-25 object-contain"
