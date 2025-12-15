@@ -43,7 +43,7 @@ export function TurnstileWidget({ onVerify, action }: TurnstileWidgetProps){
         };
 
         const existingScript = document.querySelector<HTMLScriptElement>(
-            `script[src="https://challenges.cloudflar.com/turnstile/v0/api.js"]`
+            `script[src="https://challenges.cloudflare.com/turnstile/v0/api.js"]`
         );
 
         const renderWidget = () => {
