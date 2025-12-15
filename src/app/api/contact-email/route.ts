@@ -2,7 +2,7 @@ import { Resend } from "resend";
 import { verifyTurnstileToken } from "@/lib/verifyTurnstile";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
-const from = process.env.EMAIL_FROM ?? "RioPlex <info@rioplexbizx.com>";
+const from = process.env.EMAIL_FROM ?? "RioPlex <notifications@rioplexbizx.com>";
 
 export async function POST(req: Request) {
   try {

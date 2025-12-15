@@ -1,7 +1,6 @@
 import ContactFormBusiness from "../ContactFormBusiness";
 
 export default function ContactBusiness({ 
-    name, 
     email, 
     businessName, 
     investorName,
@@ -20,7 +19,7 @@ export default function ContactBusiness({
     return (
         <div className="space-y-2">
 
-            <h2>Contact {name}</h2><br />
+            <h2>Contact Now</h2><br />
             <h4>Connect Directly With This Business</h4>
             <p>Share your investment interests, outline your value as a partner, and start a conversation about potential collaboration.
             <br /><br />
