@@ -1,7 +1,6 @@
 import ContactFormBusiness from "../ContactFormBusiness";
 
 export default function ContactBusiness({ 
-    name, 
     email, 
     businessName, 
     investorName,
