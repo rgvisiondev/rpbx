@@ -34,9 +34,34 @@ export function DescriptionAiAssist({ address, business_name, onGenerated }: Des
 
   const blocked = retryAt !== null && secondsLeft > 0;
 
-  async function handleGenerateDescription() {
+  function normalizeUrl(input: string){
+
+    const u = input.trim();
+    if (!u) return "";
+    if (/^https?:\/\//i.test(u)) return u;
+    return `https://${u}`;
+
+  }
+
+  function formatUrl(){
+    const formatted = normalizeUrl(url);
+
+    if (!formatted){
+      setError("Please enter a website URL");
+      return;
+    }
+
+    if (formatted !== url) setUrl(formatted);
+
+    handleGenerateDescription(formatted)
+  }
+
+  async function handleGenerateDescription(urlOverride?: string) {
     try {
-      if (!url) {
+
+      const finalUrl = (urlOverride ?? url).trim();
+      
+      if (!finalUrl) {
         setError('Please enter a website URL.');
         return;
       }
@@ -48,7 +73,7 @@ export function DescriptionAiAssist({ address, business_name, onGenerated }: Des
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          url,
+          url: finalUrl,
           address: address ?? '',
           business_name: business_name ?? '',
         }),
@@ -163,7 +188,7 @@ export function DescriptionAiAssist({ address, business_name, onGenerated }: Des
               type="button"
               disabled={loading || blocked}
               className="shrink-0 rounded-md bg-[#9ed3c3] px-4 py-2 text-sm font-medium text-white hover:bg-[#7fb8a9] disabled:opacity-60"
-              onClick={handleGenerateDescription}
+              onClick={formatUrl}
             >
               {loading
                 ? 'Generating...'
