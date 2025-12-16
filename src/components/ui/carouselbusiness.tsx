@@ -5,8 +5,20 @@ import { Pagination, Autoplay } from "swiper/modules";
 import "swiper/css";
 import "swiper/css/pagination";
 
-export default function CarouselBusiness() {
-  const slides = [{ link: "step1-RPBX", num: 1 }, { link: "step2-business", num: 2 }, { link: "step3-business", num: 3 }];
+type Slide = {
+  link: string,
+  num: number,
+}
+
+type CarouselBusinessProps = {
+  variant?: "default" | "landing";
+}
+
+export default function CarouselBusiness({variant = "default"}: CarouselBusinessProps) {
+  const slides: Slide[] = [{ link: "step1-RPBX", num: 1 }, { link: "step2-business", num: 2 }, { link: "step3-business", num: 3 }];
+  const landingSlides: Slide[] = [{ link: "step1-business-landing", num: 1}, { link: "step2-business", num: 2 }, { link: "step3-business-landing", num: 3}];
+
+  const activeSlides = variant === "landing" ? landingSlides : slides;
 
   return (
     <Swiper
@@ -18,13 +30,13 @@ export default function CarouselBusiness() {
       loop={false}
       className="w-full min-h-[400px]"
     >
-      {slides.map((slide, i) => (
+      {activeSlides.map((slide, i) => (
         <SwiperSlide key={i}>
           <div
             style={{
               backgroundImage: `url(/images/about-sliders/${slide.link}.png)`,
             }}
-            className="bg-cover bg-center rounded-lg h-full flex justify-end items-end p-3"
+            className="bg-cover bg-center rounded-lg min-h-[400px] flex justify-end items-end p-3"
           >
             <div className="flex items-center justify-center w-12 h-12 bg-[#61BD9C] rounded-full">
               <h4 className="text-white">{slide.num}</h4>
