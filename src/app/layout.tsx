@@ -3,7 +3,7 @@ import { Poppins, Saira_Condensed } from "next/font/google";
 import Footer from "./components/Footer";
 import CookieConsentWrapper from "@/components/cookieconsent";
 import Script from "next/script";
-import { Analytics } from "@vercel/analytics/next"
+import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 
 const sairaCondensed = Saira_Condensed({
@@ -19,9 +19,12 @@ const poppins = Poppins({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://rioplexbizx.com"),
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_SITE_URL || "https://rioplexbizx.com"
+  ),
   title: "RioPlex Business Exchange",
-  description: "Premier business marketplace connecting business owners directly with investors. Business broker alternative - sell your business, search businesses for sale near you. Serving Texas including Houston, Austin. Expert business valuations and CIM services.",
+  description:
+    "Premier business marketplace connecting business owners directly with investors. Business broker alternative - sell your business, search businesses for sale near you. Serving Texas including Houston, Austin. Expert business valuations and CIM services.",
   keywords: [
     "business broker business",
     "confidential information memorandum",
@@ -123,7 +126,7 @@ export const metadata: Metadata = {
     "business seller financing",
     "cim business meaning",
     "commercial business brokers",
-    "company broker"
+    "company broker",
   ],
   icons: {
     icon: "/favicon.png",
@@ -152,35 +155,28 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        {/* Existing GA4 script */}
+        {/* Load gtag.js ONCE (use GA4 ID here) */}
         <Script
           async
           src={`https://www.googletagmanager.com/gtag/js?id=${process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID}`}
           strategy="afterInteractive"
         />
 
-        {/* Google Ads additional tag */}
-        <Script
-          async
-          src="https://www.googletagmanager.com/gtag/js?id=AW-17790035839"
-          strategy="afterInteractive"
-        />
-
-        <Script id="ga-init" strategy="afterInteractive">
+        {/* Initialize + configure GA4 + Google Ads */}
+        <Script id="gtag-init" strategy="afterInteractive">
           {`
-            window.dataLayer = window.dataLayer || [];
-            function gtag(){dataLayer.push(arguments);}
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
 
-            gtag('js', new Date());
+      // GA4
+      gtag('config', '${process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID}', {
+        page_path: window.location.pathname,
+      });
 
-            // Existing GA4 config
-            gtag('config', '${process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID}', {
-              page_path: window.location.pathname,
-            });
-
-            // Additional Google Ads tag
-            gtag('config', 'AW-17790035839');
-          `}
+      // Google Ads
+      gtag('config', 'AW-17790035839');
+    `}
         </Script>
       </head>
       <body

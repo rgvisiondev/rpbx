@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import Stripe from "stripe";
 import { createClientRSC } from "@/../utils/supabase/server";
 import EmailVerifiedCTA from "@/components/EmailVerifiedCTA";
-import Script from "next/script";
+import { AdsSubscribeConversion } from "@/components/analytics/AdsSubscribeConversion";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
@@ -28,23 +28,35 @@ function asRole(v?: string | null): Exclude<Role, null> | null {
   return v === "investor" || v === "business" || v === "admin" ? v : null;
 }
 
-async function getIntendedRole(sessionId?: string): Promise<Role> {
-  if (!sessionId) return null;
+async function getCheckoutContext(sessionId?: string): Promise<{
+  intendedRole: Role;
+  isVerified: boolean;
+}> {
+  if (!sessionId) return { intendedRole: null, isVerified: false };
 
   const session = await stripe.checkout.sessions.retrieve(sessionId, {
-    expand: ["subscription.items.data.price"],
+    expand: ["subscription"],
   });
 
+  // For subscriptions, a strong check is that subscription exists.
+  // (You can tighten further by checking subscription.status === "active" / "trialing".)
+  const hasSubscription =
+    typeof session.subscription === "object" && session.subscription !== null;
+
   const subscription =
-    typeof session.subscription === "object" && session.subscription !== null
-      ? (session.subscription as Stripe.Subscription)
-      : null;
+    hasSubscription ? (session.subscription as Stripe.Subscription) : null;
 
   const intendedFromSub = asRole(subscription?.metadata?.intended_user_type);
   const intendedFromSession = asRole(session.metadata?.intended_user_type);
 
-  return intendedFromSub ?? intendedFromSession ?? null;
+  const intendedRole = intendedFromSub ?? intendedFromSession ?? null;
+
+  // "Verified" = session completed + subscription exists
+  const isVerified = session.status === "complete" && hasSubscription;
+
+  return { intendedRole, isVerified };
 }
+
 
 export default async function Welcome({
   searchParams,
@@ -59,7 +71,7 @@ export default async function Welcome({
   const sp = await searchParams;
   const session_id = Array.isArray(sp.session_id) ? sp.session_id[0] : sp.session_id;
 
-  const intendedRole = await getIntendedRole(session_id);
+  const {intendedRole, isVerified } = await getCheckoutContext(session_id);
   const intendedNext = nextPathForRole(intendedRole, session_id);
 
   if (user) {
@@ -102,15 +114,9 @@ export default async function Welcome({
         <a href="tel:9563225942">956-322-5942</a> or{" "}
         <a href="mailto:info@rioplexbizx.com">info@rioplexbizx.com</a>.
       </div>
-      <Script id="gads-conversion" strategy="afterInteractive">
-        {`
-          gtag('event', 'conversion', {
-            'send_to': 'AW-17790035839/DGPOCPLrsc4bEP_O-aJC',
-            'value': 1.0,
-            'currency': 'USD'
-          });
-        `}
-      </Script>
+      {isVerified && session_id ? (
+        <AdsSubscribeConversion sessionId={session_id} />
+      ) : null}
     </div>
   );
 }
