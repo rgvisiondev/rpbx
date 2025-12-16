@@ -207,9 +207,9 @@ export default async function Activate() {
               </div>
             </div>
 
-            <div className="flex flex-col items-center text-center w-full lg:w-[560px]">
+            <div className="flex flex-col items-center text-center w-full lg:w-1/2">
               {/* Frosted/glass frame just around the slider */}
-              <div className="relative w-full rounded-3xl border border-white/10 bg-black/40 backdrop-blur-sm p-4 lg:p-6 shadow-2xl">
+              <div className="relative w-full rounded-3xl border border-white/10 bg-black/40 backdrop-blur-sm p-4 lg:p-5 shadow-2xl">
                 {/* subtle glow ring */}
                 <div className="pointer-events-none absolute -inset-1 rounded-3xl bg-[#60BC9B]/20 blur opacity-40" />
                 <div className="relative rounded-2xl overflow-hidden">
