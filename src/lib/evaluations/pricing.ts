@@ -11,7 +11,11 @@ type SubRowLite = {
   product_metadata: Database["public"]["Tables"]["subscriptions"]["Row"]["product_metadata"];
 };
 
-const isActive = (s: SubRowLite) => s.status === "active";
+const isEligible = (s: SubRowLite) => 
+  s.status !== "canceled" &&
+  s.status !== "incomplete" &&
+  s.status !== "incomplete_expired" &&
+  s.status !== "unpaid";
 
 // ---- helpers to safely read from JSON-like metadata (no `any`) ----
 function isPlainObject(v: unknown): v is Record<string, unknown> {
@@ -65,7 +69,7 @@ export async function pickEvaluationPriceId(supabase: SB, userId: string): Promi
 
   const eligibleSub = subs.find(
     //removed istrialing as currently all biz legacy members are trialing, should have access to discounted valuation.
-    (s) => isActive(s) && isBusinessPlatformByPriceMeta(s)
+    (s) => isEligible(s) && isBusinessPlatformByPriceMeta(s)
   );
 
   if (eligibleSub) {

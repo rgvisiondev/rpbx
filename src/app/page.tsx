@@ -188,10 +188,8 @@ export default async function Home() {
           </div>
         </div>
       </div>
-
       {/* Div 5: Newsletter */}
-      <NewsletterSignup />
-
+        <NewsletterSignup />
     </div>
   );
 }

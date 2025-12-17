@@ -4,6 +4,7 @@ import { TurnstileWidget } from "@/app/components/TurnstileWidget";
 
 export default function NewsletterSignup() {
   const [email, setEmail] = useState("");
+  const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
@@ -14,6 +15,10 @@ export default function NewsletterSignup() {
     setErrorMsg(null);
     if (!email){
       setErrorMsg("Please fill out all fields");
+      return;
+    }
+    if (!name){
+      setErrorMsg("Please enter your name");
       return;
     }
 
@@ -31,13 +36,14 @@ export default function NewsletterSignup() {
         "Content-Type": "application/json",
         "Accept": "application/json",
       },
-      body: JSON.stringify({ email, groups, turnstileToken }),
+      body: JSON.stringify({ name, email, groups, turnstileToken }),
     });
 
     setLoading(false);
 
     if (res.ok) {
       setSuccess(true);
+      setName("");
       setEmail("");
       setTurnstileToken(null);
     } else {
@@ -57,8 +63,20 @@ export default function NewsletterSignup() {
         </p>
 
         <form onSubmit={handleSubmit} className="w-full">
+          <input 
+            type="text"
+            name="name"
+            autoComplete="name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Name"
+            className="mt-5 w-full px-6 py-2 rounded-full font-medium bg-[#EDE2E2]"
+            required
+          />
           <input
             type="email"
+            name="email"
+            autoComplete="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="Email"
@@ -91,6 +109,6 @@ export default function NewsletterSignup() {
           By submitting this form, you agree to receive marketing emails from info@rioplexbizx.com. You can unsubscribe at any time. Emails are serviced by MailerLite. 
         </p>
       </div>
-    </div>
+      </div>
   );
 }
