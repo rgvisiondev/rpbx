@@ -44,7 +44,7 @@ export default function Legal() {
         Interested in learning how legal representation can strengthen your business? Fill out the form below, and your inquiry will go directly to Juan Garcia at the Villeda Law Group.
       </p><br />
 
-      <ContactForm to="avilleda@mybusinesslawyer.com" subject="RPBX Contact Form Submission - Legal Inquiry" />
+      <ContactForm to="jgarcia@mybusinesslawyer.com" name="Juan Garcia" subject="RPBX Contact Form Submission - Legal Inquiry" />
     </div>
   );
 }
