@@ -36,7 +36,7 @@ const experts = [
     name: "Juan A. Garcia",
     title: "Juan A. Garcia brings over 20 years of experience advising institutional clients on complex mergers and acquisitions, private equity, and strategic corporate transactions. With a background that includes roles at Skadden, Arps and Citigroup, as well as financial executive and external counsel positions, he combines top-tier legal training with practical financial expertise. His work spans corporate structuring, investment management, and asset protection strategies for high-net-worth individuals and investment firms. Juan’s leadership and longstanding commitment to community service make him a trusted resource for RPBX members navigating sophisticated business and financial decisions.",
     img: "/images/experts/juan-garcia.png",
-    email: "avilleda@mybusinesslawyer.com",
+    email: "jgarcia@mybusinesslawyer.com",
   },
   {
     index: 4,

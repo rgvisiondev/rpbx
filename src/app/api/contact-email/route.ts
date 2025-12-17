@@ -1,5 +1,7 @@
 import { Resend } from "resend";
 import { verifyTurnstileToken } from "@/lib/verifyTurnstile";
+import ContactAdvisor from "@/emails/ContactAdvisor";
+import { render } from "@react-email/components";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 const from = process.env.EMAIL_FROM ?? "RioPlex <notifications@rioplexbizx.com>";
@@ -7,9 +9,9 @@ const from = process.env.EMAIL_FROM ?? "RioPlex <notifications@rioplexbizx.com>"
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { to, subject, html, turnstileToken } = body;
+    const { to, subject, advisorName, contactEmail, contactPhone, message, turnstileToken } = body;
 
-    if (!to || !subject || !html || !turnstileToken) {
+    if (!to || !subject || !contactEmail || !message || !turnstileToken) {
       return new Response(JSON.stringify({ error: "Missing fields" }), {
         status: 400,
         headers: { "Content-Type": "application/json" },
@@ -24,11 +26,21 @@ export async function POST(req: Request) {
       );
     }
 
+    // Render the email template
+    const emailHtml = await render(
+      ContactAdvisor({
+        advisorName,
+        contactEmail,
+        contactPhone,
+        message,
+      })
+    );
+
     await resend.emails.send({
       from,
       to,
       subject,
-      html,
+      html: emailHtml,
     });
 
     return new Response(JSON.stringify({ ok: true }), {
