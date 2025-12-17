@@ -12,7 +12,6 @@ type SubRowLite = {
 };
 
 const isActive = (s: SubRowLite) => s.status === "active";
-const isTrial  = (s: SubRowLite) => s.status === "trialing";
 
 // ---- helpers to safely read from JSON-like metadata (no `any`) ----
 function isPlainObject(v: unknown): v is Record<string, unknown> {
@@ -65,7 +64,8 @@ export async function pickEvaluationPriceId(supabase: SB, userId: string): Promi
   if (!subs || subs.length === 0) return PUBLIC;
 
   const eligibleSub = subs.find(
-    (s) => isActive(s) && !isTrial(s) && isBusinessPlatformByPriceMeta(s)
+    //removed istrialing as currently all biz legacy members are trialing, should have access to discounted valuation.
+    (s) => isActive(s) && isBusinessPlatformByPriceMeta(s)
   );
 
   if (eligibleSub) {

@@ -1,4 +1,5 @@
 "use client";
+import { TurnstileWidget } from "@/app/components/TurnstileWidget";
 import * as React from "react";
 import { Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
@@ -6,11 +7,28 @@ import Link from "next/link";
 export function ActivateForm() {
     const lookup = process.env.NEXT_PUBLIC_STRIPE_LOOKUP_BUSINESS_LEGACY ?? "business_monthly";
     const [showPw, setShowPw] = React.useState(false);
+    const [turnstileToken, setTurnstileToken] = React.useState<string | null>(null);
+    const [errorMsg, setErrorMsg] = React.useState<string | null>(null);
+
+    const formRef = React.useRef<HTMLFormElement | null>(null);
+
+    const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+        if (!turnstileToken){
+            e.preventDefault();
+            setErrorMsg("Verification failed. Please refresh and try again.");
+            return;
+        }
+
+        setErrorMsg(null);
+        e.preventDefault();
+        formRef.current?.submit();
+    }
 
     return (
-        <form method="post" action="/api/subscribe" className="space-y-4">
+        <form ref={formRef} method="post" action="/api/subscribe" className="space-y-4" onSubmit={handleSubmit}>
             <input name="lookup" type="hidden" value={lookup} />
             <input name="trial_days" type="hidden" value="30" />
+            <input type="hidden" name="turnstile_token" value={turnstileToken ?? ""} />
 
             <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -49,6 +67,16 @@ export function ActivateForm() {
                     )}
                 </button>
             </div>
+            <TurnstileWidget 
+                action="signup"
+                onVerify={(token) => setTurnstileToken(token)}
+            />
+
+            {errorMsg && (
+                <p className="text-sm text-red-600" aria-live="polite">
+                {errorMsg}
+                </p>
+            )}
 
             <button type="submit" className="w-full bg-[#60BC9B] hover:bg-[#4da685] text-white font-bold py-4 rounded-full text-lg shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-center gap-2 group mt-6 cursor-pointer">
                 Claim 30 Days Free
