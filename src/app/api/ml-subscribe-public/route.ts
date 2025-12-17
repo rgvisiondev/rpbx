@@ -3,11 +3,13 @@ import { verifyTurnstileToken } from "@/lib/verifyTurnstile";
 
 export async function POST(request: Request) {
   try {
-    const { email, groups, turnstileToken } = await request.json();
+    const { name, email, groups, turnstileToken } = await request.json();
     const apiKey = process.env.NEWSLETTER_NON_MEMBERS_API_KEY;
 
 
-
+    if (!name) {
+      return NextResponse.json({ error: "Missing name"}, { status: 400 });
+    }
     if (!email) {
       return NextResponse.json({ error: "Missing email" }, { status: 400 });
     }
@@ -36,6 +38,7 @@ export async function POST(request: Request) {
         Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
+        name,
         email,
         groups: groupArray,
       }),
