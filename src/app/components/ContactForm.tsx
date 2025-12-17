@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { TurnstileWidget } from './TurnstileWidget';
 
-export default function ContactForm({ to, subject }: { to?: string, subject?: string }) {
+export default function ContactForm({ to, name, subject }: { to?: string, name?: string, subject?: string }) {
   const [email, setEmail] = useState('');
   const [message, setMessage] = useState('');
   const [phone, setPhone] = useState('');
@@ -28,13 +28,16 @@ export default function ContactForm({ to, subject }: { to?: string, subject?: st
     setStatus("sending");
 
     try {
-      const res = await fetch('/api/send-email', {
+      const res = await fetch('/api/contact-email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           to: to ?? 'notifications@rioplexbizx.com',
           subject: subject ?? 'New Contact Message',
-          html: `<p><b>Email:</b> ${email}</p><p><b>Phone:</b> ${phone}</p><p>${message}</p>`,
+          advisorName: name ?? 'Advisor',
+          contactEmail: email,
+          contactPhone: phone,
+          message,
           turnstileToken,
         }),
       });
