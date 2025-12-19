@@ -51,7 +51,7 @@ export default function CardCarousel() {
       {/* Modal with swipe, navigation, and pagination */}
       {modalIndex !== null && (
         <div
-          className="fixed inset-0 bg-black/70 flex items-center justify-center z-50"
+          className="fixed inset-0 bg-black/70 flex items-center justify-center z-[999999]"
           onClick={() => setModalIndex(null)}
         >
           <div
