@@ -7,6 +7,9 @@ import { createClientRSC } from "@/../utils/supabase/server";
 import { notFound } from "next/navigation";
 import Modal from "@/app/components/Modal";
 import ContactInvestor from "@/app/components/popups/ContactInvestor";
+import { BadgeCheckIcon } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+
 
 function formatRangeLabel(v?: string | null) {
   if (!v) return "—";
@@ -100,6 +103,7 @@ export default async function InvestorPage(
       bio,
       contact_email,
       industry_experience,
+      is_accredited_investor,
       updated_at
     `)
     .eq("id", id)
@@ -193,7 +197,28 @@ export default async function InvestorPage(
 
           <div className="w-full lg:w-2/3 gap-5 flex flex-col">
             <div className="w-full bg-white rounded-lg shadow-lg overflow-hidden border p-6 lg:p-8">
-              <h1 className="pb-2">{fullName}</h1>
+              <div className="flex flex-row gap-5">
+                <div className="flex">
+                  <h1 className="pb-2">{fullName}</h1>
+                </div>
+                <div className="flex">
+                  {inv.is_accredited_investor && (
+                    <div className="flex">
+                      <Tooltip>
+                        <TooltipTrigger>
+                          <div className="min-w-[130px] bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-black px-3 py-1 gap-3 flex rounded-full items-center justify-center ">
+                            <BadgeCheckIcon size={20} strokeWidth={2.5} className="text-white" />
+                            <p className="text-white">Accredited</p>
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          {`Accredited Investor`}
+                        </TooltipContent>
+                      </Tooltip>
+                    </div>
+                  )}
+                </div>
+              </div>
               <p>
                 {[
                   primary !== "—" ? primary : null,

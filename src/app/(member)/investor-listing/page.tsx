@@ -9,6 +9,9 @@ import { redirect } from "next/navigation";
 import SearchBar from "./components/SearchBar";
 import FiltersBar from "./components/FiltersBar";
 import type { Database } from "@/types/database.types";
+import { BadgeCheckIcon } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+
 
 export const metadata: Metadata = {
   title: "Investor Listings | RioPlex Business Exchange",
@@ -36,6 +39,7 @@ type InvestorCard = Pick<
   | "full_name_lc"
   | "org_name_lc"
   | "updated_at"
+  | "is_accredited_investor"
 >;
 
 
@@ -62,6 +66,12 @@ export default async function Investors({ searchParams }: PageProps) {
   const industry = params.industry ?? "";
   const ebitda = params.ebitda ?? "";
   const cash = params.cash ?? "";
+  const accreditedParam = params.accredited;
+
+  const accredited =
+    accreditedParam === "true" ? true : 
+    accreditedParam === "false" ? false :
+    null;
 
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login?next=/investor-listing");
@@ -104,13 +114,20 @@ export default async function Investors({ searchParams }: PageProps) {
       avatar_path,
       full_name_lc,
       org_name_lc,
-      updated_at
+      updated_at,
+      is_accredited_investor
     `)
     .eq("status", "published");
 
   if (industry) dataQ = dataQ.eq("primary_industry", industry);
   if (ebitda) dataQ = dataQ.eq("target_ebitda", ebitda);
   if (cash) dataQ = dataQ.eq("target_cash_flow", cash);
+  if (accredited) dataQ = dataQ.eq("is_accredited_investor", accredited);
+
+  if (accredited !== null){
+    countQ = countQ.eq("is_accredited_investor", accredited);
+    dataQ = dataQ.eq("is_accredited_investor", accredited);
+  }
 
   if (q) {
     const needle = `%${q.toLowerCase().replace(/[%_]/g, (m) => `\\${m}`)}%`;
@@ -176,9 +193,27 @@ export default async function Investors({ searchParams }: PageProps) {
                     unoptimized
                   />
                   <div className="bg-white p-5 rounded-b-lg shadow-lg border-x-2 border-b-2">
-                    <h4 className="large">
-                      {r.first_name} {r.last_name}
-                    </h4>
+                    <div className="flex flex-row justify-between">
+                    <div className="flex">
+                      <h4 className="large">
+                        {r.first_name} {r.last_name} 
+                      </h4>
+                      </div>
+                      <div className="flex">
+                      {r.is_accredited_investor && (
+                        <Tooltip>
+                          <TooltipTrigger>
+                            <div className="bg-[#9ed3c3] hover:bg-[#7fb8a9] text-black p-[3px] flex rounded-full items-center justify-center min-w-[25px] min-h-[25px]">
+                              <BadgeCheckIcon size={20} strokeWidth={2.5} className="text-white"/>
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            {`Accredited Investor`}
+                          </TooltipContent>
+                        </Tooltip>
+                      )}
+                      </div>
+                    </div>
                     <p className="text-sm text-gray-600">
                       {r.organization_entity ?? "—"}
                     </p>
