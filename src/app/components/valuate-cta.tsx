@@ -1,3 +1,4 @@
+import Link from "next/link";
 import EvaluationCheckoutButton from "./EvaluationCheckoutButton";
 
 export default function ValuateCta() {
@@ -42,11 +43,11 @@ return (
                             <p className="text-[10px] text-white uppercase">Valuations</p>
                         </div>
                     </div>
-                    <a href="/subscribe/business_monthly?trial=30">
+                    <Link href="/subscribe/business_monthly?trial=30">
                     <button className="w-full py-4 bg-[#60BC9B] hover:bg-[#4da685] text-slate-900 text-white font-bold rounded-2xl hover:cursor-pointer transition ">
                         Start 30-Day Free Trial
                     </button>
-                    </a>
+                    </Link>
                 </div>
 
                 <div className="p-5 bg-white/5 border border-white/5 rounded-3xl hover:bg-white/10 transition group text-center lg:text-left">
