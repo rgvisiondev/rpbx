@@ -8,6 +8,7 @@ import VideoSection from "../components/VideoSection";
 import type { Metadata } from "next";
 import BusinessSlider from "@/components/sliders/businessslider";
 import CarouselBusiness from "@/components/ui/carouselbusiness";
+import ValuateCta from "../components/valuate-cta";
 
 export const metadata: Metadata = {
   title: "About Business Accounts | RioPlex Business Exchange",
@@ -122,9 +123,15 @@ export default async function Business() {
           <div className="flex-1 flex justify-center md:justify-start">
             <div className="flex flex-col items-center text-center w-full md:max-w-[560px] px-4 pb-8 md:pb-0 overflow-hidden">
               <CardCarousel />
+              <p className="small text-grey text-center pt-2">Swipe left to explore</p>
             </div>
           </div>
         </div>
+        
+          <div className="max-w-[1140px] mx-auto flex flex-row items-center">
+              <ValuateCta />
+          </div>
+
 
       </div>
 

@@ -6,12 +6,14 @@ import { createClientRSC } from "@/../utils/supabase/server";
 import { redirect } from "next/navigation";
 
 import { ActivateForm } from "./activateform";
+import ValuateCta from "../components/valuate-cta";
 // Icons
 import { BadgeCheck } from "lucide-react";
 import { Network } from "lucide-react";
 import { Map } from "lucide-react";
 import { Goal } from "lucide-react";
 import CarouselBusiness from "@/components/ui/carouselbusiness";
+import CardCarousel from "../components/Card-carousel";
 
 export const metadata: Metadata = {
   title: "Start 30 Days Free | RioPlex Business Exchange",
@@ -157,94 +159,108 @@ export default async function Activate() {
 
       {/* Value Proposition */}
       <section className="pb-20 bg-[url('/images/backgrounds/white-bg.png')] bg-repeat bg-top">
+
         {/* Div 2: How It Works (MATCHES Business page layout exactly) */}
-        <div className="bg-[url('/images/backgrounds/white-bg.png')] bg-cover bg-center flex justify-center py-10">
-          <div className="flex flex-col lg:flex-row gap-y-4 lg:gap-y-0 lg:gap-x-10 w-full lg:max-w-[1140px] px-4 lg:px-2">
-            <div className="flex-1 flex flex-col">
-              <h2 className="text-black">How It Works</h2>
+        <div>
+          <div className="flex justify-center py-10">
+            <div className="flex flex-col lg:flex-row gap-y-4 lg:gap-y-0 lg:gap-x-10 w-full lg:max-w-[1140px] px-4 lg:px-2">
+              <div className="flex-1 flex flex-col">
+                <h2 className="text-black">How It Works</h2>
 
-              <div className="flex flex-col gap-6 mt-10">
-                <div className="flex flex-row transition-transform duration-300 lg:hover:translate-x-2">
-                  <div className="flex items-center justify-center min-w-12 max-h-12 bg-[#61BD9C] rounded-full mr-4">
-                    <h4 className="text-white">1</h4>
+                <div className="flex flex-col gap-6 mt-5">
+                  <div className="flex flex-row transition-transform duration-300 lg:hover:translate-x-2">
+                    <div className="flex items-center justify-center min-w-12 max-h-12 bg-[#61BD9C] rounded-full mr-4">
+                      <h4 className="text-white">1</h4>
+                    </div>
+                    <div className="flex flex-col">
+                      <h4 className="text-black">Create Your Account</h4>
+                      <p className="text-black pt-2">
+                        Sign up to activate your 30-day free trial and get instant
+                        access to the RPBX platform.
+                      </p>
+                    </div>
                   </div>
-                  <div className="flex flex-col">
-                    <h4 className="text-black">Create Your Account</h4>
-                    <p className="text-black pt-2">
-                      Sign up to activate your 30-day free trial and get instant
-                      access to the RPBX platform.
-                    </p>
+
+                  <div className="flex flex-row transition-transform duration-300 lg:hover:translate-x-2">
+                    <div className="flex items-center justify-center min-w-12 max-h-12 bg-[#61BD9C] rounded-full mr-4">
+                      <h4 className="text-white">2</h4>
+                    </div>
+                    <div className="flex flex-col">
+                      <h4 className="text-black">Create Your Listing</h4>
+                      <p className="text-black pt-2">
+                        Add your business details with our easy-to-use listing
+                        builder and start connecting with investors.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-row transition-transform duration-300 lg:hover:translate-x-2">
+                    <div className="flex items-center justify-center min-w-12 max-h-12 bg-[#61BD9C] rounded-full mr-4">
+                      <h4 className="text-white">3</h4>
+                    </div>
+                    <div className="flex flex-col">
+                      <h4 className="text-black">
+                        Review Your Interested Buyers
+                      </h4>
+                      <p className="text-black pt-2">
+                        Receive inquiries from investors and reach out to
+                        opportunities that align with your goals.
+                      </p>
+                    </div>
                   </div>
                 </div>
+              </div>
 
-                <div className="flex flex-row transition-transform duration-300 lg:hover:translate-x-2">
-                  <div className="flex items-center justify-center min-w-12 max-h-12 bg-[#61BD9C] rounded-full mr-4">
-                    <h4 className="text-white">2</h4>
-                  </div>
-                  <div className="flex flex-col">
-                    <h4 className="text-black">Create Your Listing</h4>
-                    <p className="text-black pt-2">
-                      Add your business details with our easy-to-use listing
-                      builder and start connecting with investors.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex flex-row transition-transform duration-300 lg:hover:translate-x-2">
-                  <div className="flex items-center justify-center min-w-12 max-h-12 bg-[#61BD9C] rounded-full mr-4">
-                    <h4 className="text-white">3</h4>
-                  </div>
-                  <div className="flex flex-col">
-                    <h4 className="text-black">
-                      Review Your Interested Buyers
-                    </h4>
-                    <p className="text-black pt-2">
-                      Receive inquiries from investors and reach out to
-                      opportunities that align with your goals.
-                    </p>
+              <div className="flex flex-col items-center text-center w-full lg:w-1/2">
+                {/* Frosted/glass frame just around the slider */}
+                <div className="relative w-full rounded-3xl border border-white/10 bg-black/40 backdrop-blur-sm p-4 lg:p-5 shadow-2xl">
+                  {/* subtle glow ring */}
+                  <div className="pointer-events-none absolute -inset-1 rounded-3xl bg-[#60BC9B]/20 blur opacity-40" />
+                  <div className="relative rounded-2xl overflow-hidden">
+                    <CarouselBusiness variant="landing" />
                   </div>
                 </div>
               </div>
             </div>
+          </div>
 
-            <div className="flex flex-col items-center text-center w-full lg:w-1/2">
-              {/* Frosted/glass frame just around the slider */}
-              <div className="relative w-full rounded-3xl border border-white/10 bg-black/40 backdrop-blur-sm p-4 lg:p-5 shadow-2xl">
-                {/* subtle glow ring */}
-                <div className="pointer-events-none absolute -inset-1 rounded-3xl bg-[#60BC9B]/20 blur opacity-40" />
-                <div className="relative rounded-2xl overflow-hidden">
-                  <CarouselBusiness variant="landing" />
-                </div>
-              </div>
+          <div className="max-w-[1140px] mx-auto flex flex-col md:flex-row items-center">
+            <div className="w-full md:w-2/3">
+              <ValuateCta />
+            </div>
+            <div className="w-full md:w-1/3">
+              <CardCarousel />
+              <p className="small text-grey text-center pt-2">Swipe left to explore</p>
             </div>
           </div>
-        </div>
-        <div className="max-w-[1140px] container mx-auto px-6 mg mt-10">
-          <div className="text-center mb-16 mx-auto">
-            <h2 className="text-3xl font-bold text-slate-900 mb-4 mt-2 lg:mt-0">
-              Your Gateway To Local Investors
-            </h2>
-            <p className="text-slate-600">
-              RPBX gives your business direct access, local credibility, and
-              targeted exposure to investors who are ready to engage.
-            </p>
-          </div>
 
-          <div className="grid md:grid-cols-3 gap-10">
-            {points.map((point, index) => (
-              <div
-                key={index}
-                className="bg-slate-50 p-8 rounded-2xl text-center shadow-lg border-2 border-grey-500 transition-transform duration-300 hover:-translate-y-1 hover:shadow-xl"
-              >
-                <div className="w-14 h-14 bg-[#60BC9B]/20 rounded-xl shadow-sm flex items-center justify-center text-white text-2xl mb-6 mx-auto ">
-                  {point.icon}
+          <div className="flex-col mx-auto w-full lg:max-w-[1140px] px-4 lg:px-2">
+            <div className="text-center mb-16 mx-auto mt-10">
+              <h2 className="text-3xl font-bold text-slate-900 mb-4 mt-2 lg:mt-0">
+                Your Gateway To Local Investors
+              </h2>
+              <p className="text-slate-600">
+                RPBX gives your business direct access, local credibility, and
+                targeted exposure to investors who are ready to engage.
+              </p>
+            </div>
+
+            <div className="grid md:grid-cols-3 gap-10 -mt-10">
+              {points.map((point, index) => (
+                <div
+                  key={index}
+                  className="bg-slate-50 p-8 rounded-2xl text-center shadow-lg border-2 border-grey-500 transition-transform duration-300 hover:-translate-y-1 hover:shadow-xl"
+                >
+                  <div className="w-14 h-14 bg-[#60BC9B]/20 rounded-xl shadow-sm flex items-center justify-center text-white text-2xl mb-6 mx-auto ">
+                    {point.icon}
+                  </div>
+                  <h4 className="large mb-3">{point.title}</h4>
+                  <p className="text-slate-500 leading-relaxed">
+                    {point.description}
+                  </p>
                 </div>
-                <h4 className="large mb-3">{point.title}</h4>
-                <p className="text-slate-500 leading-relaxed">
-                  {point.description}
-                </p>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         </div>
       </section>
