@@ -14,11 +14,13 @@ import Eval from "./components/popups/Eval";
 import Legal from "./components/popups/Legal";
 import Cpa from "./components/popups/Cpa";
 
+export const dynamic = "force-dynamic";
+
 export default async function Home() {
   const supabase = await createClientRSC();
 
   // Use getSession instead of getUser for better performance
-  const { data: { session }, error } = await supabase.auth.getSession();
+  const { data: { user }, error } = await supabase.auth.getUser();
 
   // Only log non-authentication errors
   if (error && error.message !== 'Auth session missing!' && error.status !== 400) {
@@ -26,7 +28,7 @@ export default async function Home() {
   }
 
   // Redirect if user is authenticated
-  if (session?.user) {
+  if (user) {
     return redirect("/dashboard");
   }
 
