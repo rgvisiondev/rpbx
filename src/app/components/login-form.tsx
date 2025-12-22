@@ -10,21 +10,34 @@ import { Eye, EyeOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
-  Card, CardContent, CardDescription, CardHeader, CardTitle,
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { signInWithGoogle } from "@/lib/google-signin";
 
+// ✅ Turnstile (execute-on-submit)
+import { TurnstileWidget, type TurnstileHandle } from "@/app/components/TurnstileWidget";
+
 export interface LoginFormProps extends React.HTMLAttributes<HTMLDivElement> {
   next?: string;
-  initialError?: string; // optional if you pass ?error=... from URL
+  initialError?: string;
 }
 
-export function LoginForm({ className, next = "", initialError, ...props }: LoginFormProps) {
+export function LoginForm({
+  className,
+  next = "",
+  initialError,
+  ...props
+}: LoginFormProps) {
   const router = useRouter();
 
   const [loading, setLoading] = React.useState(false);
+  const [verifying, setVerifying] = React.useState(false);
   const [showPw, setShowPw] = React.useState(false);
   const [errorMsg, setErrorMsg] = React.useState<string | null>(initialError ?? null);
   const [infoMsg, setInfoMsg] = React.useState<string | null>(null);
@@ -34,6 +47,14 @@ export function LoginForm({ className, next = "", initialError, ...props }: Logi
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   );
+
+  // Turnstile refs + guards
+  const turnstileRef = React.useRef<TurnstileHandle>(null);
+  const submitLockRef = React.useRef(false);
+  const lastTokenRef = React.useRef<string | null>(null);
+
+  // We keep the form values around so the Turnstile callback can submit the login
+  const pendingCredsRef = React.useRef<{ email: string; password: string } | null>(null);
 
   React.useEffect(() => {
     if (initialError) setErrorMsg(initialError);
@@ -54,19 +75,18 @@ export function LoginForm({ className, next = "", initialError, ...props }: Logi
     return "Something went wrong. Please try again.";
   }
 
-  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
+  async function signInWithCreds(email: string, password: string) {
     setLoading(true);
     setNeedsConfirm(false);
-    setErrorMsg(null);
-    setInfoMsg(null);
-
-    const fd = new FormData(e.currentTarget);
-    const email = String(fd.get("email") || "").trim();
-    const password = String(fd.get("password") || "");
 
     const { error } = await supabase.auth.signInWithPassword({ email, password });
+
     setLoading(false);
+    submitLockRef.current = false;
+    setVerifying(false);
+
+    // Reset Turnstile so a future login attempt gets a fresh token
+    turnstileRef.current?.reset();
 
     if (error) {
       setErrorMsg(mapSupabaseError(error.message || "Login failed"));
@@ -75,6 +95,61 @@ export function LoginForm({ className, next = "", initialError, ...props }: Logi
 
     router.replace(next || "/dashboard");
     router.refresh();
+  }
+
+  async function submitWithToken(token: string) {
+    // Prevent duplicate submits (callback can fire more than once)
+    if (submitLockRef.current) return;
+    if (lastTokenRef.current === token) return;
+
+    submitLockRef.current = true;
+    lastTokenRef.current = token;
+
+    const pending = pendingCredsRef.current;
+    if (!pending?.email || !pending?.password) {
+      // Nothing to submit; unlock + show error
+      submitLockRef.current = false;
+      setVerifying(false);
+      setErrorMsg("Verification failed. Please try again.");
+      turnstileRef.current?.reset();
+      return;
+    }
+
+    // NOTE: Supabase signInWithPassword does not accept Turnstile directly.
+    // If you want Turnstile-enforced login, you must validate token in your own API
+    // and then complete auth via your own flow.
+    // This implementation at least prevents repeated widget loops and lets you gate UX.
+    await signInWithCreds(pending.email, pending.password);
+  }
+
+  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+
+    // Avoid double-submit / rapid taps
+    if (loading || verifying || submitLockRef.current) return;
+
+    setNeedsConfirm(false);
+    setErrorMsg(null);
+    setInfoMsg(null);
+
+    const fd = new FormData(e.currentTarget);
+    const email = String(fd.get("email") || "").trim();
+    const password = String(fd.get("password") || "");
+
+    pendingCredsRef.current = { email, password };
+
+    // New click => allow a new token
+    lastTokenRef.current = null;
+
+    setVerifying(true);
+
+    // Trigger Turnstile; token arrives via onVerify -> submitWithToken
+    await turnstileRef.current?.execute();
+
+    // If script isn't ready, execute() will call onError; we unset verifying there.
+    setTimeout(() => {
+      if (!submitLockRef.current) setVerifying(false);
+    }, 0);
   }
 
   async function resendVerification() {
@@ -98,6 +173,8 @@ export function LoginForm({ className, next = "", initialError, ...props }: Logi
     }
   }
 
+  const disableAll = loading || verifying;
+
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
       <Card>
@@ -113,8 +190,8 @@ export function LoginForm({ className, next = "", initialError, ...props }: Logi
                 type="button"
                 variant="outline"
                 className="w-full"
-                onClick={() => signInWithGoogle('/dashboard')}
-                disabled={loading}
+                onClick={() => signInWithGoogle("/dashboard")}
+                disabled={disableAll}
               >
                 Login with Google
               </Button>
@@ -140,7 +217,7 @@ export function LoginForm({ className, next = "", initialError, ...props }: Logi
                   autoComplete="email"
                   placeholder="you@example.com"
                   required
-                  disabled={loading}
+                  disabled={disableAll}
                   onChange={() => {
                     if (errorMsg) setErrorMsg(null);
                     if (infoMsg) setInfoMsg(null);
@@ -160,7 +237,6 @@ export function LoginForm({ className, next = "", initialError, ...props }: Logi
                   </Link>
                 </div>
 
-                {/* Password input with eye/eye-off toggle inside the field */}
                 <div className="relative">
                   <Input
                     id="password"
@@ -168,7 +244,7 @@ export function LoginForm({ className, next = "", initialError, ...props }: Logi
                     type={showPw ? "text" : "password"}
                     autoComplete="current-password"
                     required
-                    disabled={loading}
+                    disabled={disableAll}
                     onChange={() => {
                       if (errorMsg) setErrorMsg(null);
                       if (infoMsg) setInfoMsg(null);
@@ -180,7 +256,7 @@ export function LoginForm({ className, next = "", initialError, ...props }: Logi
                     aria-label={showPw ? "Hide password" : "Show password"}
                     onClick={() => setShowPw((s) => !s)}
                     className="absolute inset-y-0 right-2 flex items-center"
-                    disabled={loading}
+                    disabled={disableAll}
                   >
                     {showPw ? (
                       <EyeOff className="h-5 w-5 text-neutral-400 hover:text-neutral-600" />
@@ -191,9 +267,27 @@ export function LoginForm({ className, next = "", initialError, ...props }: Logi
                 </div>
               </div>
 
+              {/* Turnstile widget (invisible, execute-on-submit) */}
+              <TurnstileWidget
+                ref={turnstileRef}
+                action="login"
+                onVerify={(token) => submitWithToken(token)}
+                onError={() => {
+                  // Allow retries
+                  submitLockRef.current = false;
+                  setVerifying(false);
+                  pendingCredsRef.current = null;
+
+                  setErrorMsg("Verification failed. Please try again.");
+                  turnstileRef.current?.reset();
+                }}
+              />
+
               {(errorMsg || infoMsg) && (
                 <p
-                  className={`bg-red-100 small p-2 rounded-lg ${errorMsg ? "text-red-600" : "text-green-600"}`}
+                  className={`bg-red-100 small p-2 rounded-lg ${
+                    errorMsg ? "text-red-600" : "text-green-600"
+                  }`}
                   role="alert"
                   aria-live="polite"
                 >
@@ -209,15 +303,15 @@ export function LoginForm({ className, next = "", initialError, ...props }: Logi
                     variant="link"
                     className="p-0 text-xs text-red-700 underline underline-offset-4 cursor-pointer"
                     onClick={resendVerification}
-                    disabled={loading}
+                    disabled={disableAll}
                   >
                     Resend verification
                   </Button>
                 </div>
               )}
 
-              <Button type="submit" className="w-full" disabled={loading} aria-busy={loading}>
-                {loading ? "Logging in..." : "Log in"}
+              <Button type="submit" className="w-full" disabled={disableAll} aria-busy={disableAll}>
+                {loading ? "Logging in..." : verifying ? "Verifying..." : "Log in"}
               </Button>
             </form>
 
