@@ -131,8 +131,8 @@ export default async function InvestorPage(
     Array.isArray(inv.additional_industries) && inv.additional_industries.length
       ? inv.additional_industries.join(", ")
       : (typeof inv.additional_industries === "string" && inv.additional_industries.length
-          ? inv.additional_industries
-          : "—");
+        ? inv.additional_industries
+        : "—");
   const ownership =
     inv.ownership_min != null && inv.ownership_max != null
       ? `${inv.ownership_min}% - ${inv.ownership_max}%`
@@ -155,7 +155,7 @@ export default async function InvestorPage(
 
         {/* Content Wrapper */}
         <div className="w-full lg:max-w-[1140px] mx-auto py-10 px-5 lg:px-2 flex flex-col md:flex-row gap-5">
-          
+
           {/* LEFT COLUMN - Sticky Logic Applied Here */}
           <div className="w-full lg:w-1/3 md:sticky md:top-30 md:h-fit">
             <div className="flex flex-col bg-gray-200 rounded-t-lg overflow-hidden">
@@ -178,11 +178,11 @@ export default async function InvestorPage(
               <p className="text-white">{email}</p>
               <Modal
                 trigger={
-                <Button className="w-full mt-5">Contact</Button>
+                  <Button className="w-full mt-5">Contact</Button>
                 }
               >
-                <ContactInvestor 
-                  name={fullName} 
+                <ContactInvestor
+                  name={fullName}
                   email={email}
                   businessName={businessName}
                   industry={industry}
@@ -190,20 +190,28 @@ export default async function InvestorPage(
                   businessDescription={businessDescription}
                 />
 
-              </Modal>   
+              </Modal>
 
             </div>
           </div>
 
           <div className="w-full lg:w-2/3 gap-5 flex flex-col">
             <div className="w-full bg-white rounded-lg shadow-lg overflow-hidden border p-6 lg:p-8">
-              <div className="flex flex-row gap-5">
-                <div className="flex">
+              <div className="flex flex-col lg:flex-row gap-5">
+                <div className="flex flex-col">
                   <h1 className="pb-2">{fullName}</h1>
+                  <p>
+                    {[
+                      primary !== "—" ? primary : null,
+                      exp ? exp : null,
+                    ]
+                      .filter(Boolean)
+                      .join(" | ") || "—"}
+                  </p>
                 </div>
                 <div className="flex">
                   {inv.is_accredited_investor && (
-                    <div className="flex">
+                    <div className="flex mb-0 lg:mb-8">
                       <Tooltip>
                         <TooltipTrigger>
                           <div className="min-w-[130px] bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-black px-3 py-1 gap-3 flex rounded-full items-center justify-center ">
@@ -219,31 +227,28 @@ export default async function InvestorPage(
                   )}
                 </div>
               </div>
-              <p>
-                {[
-                  primary !== "—" ? primary : null,
-                  exp ? exp : null,
-                ]
-                  .filter(Boolean)
-                  .join(" | ") || "—"}
-              </p>
+
               <div className="border-t-1 border-gray-400 my-5"></div>
               <p>
-                <b>About Me: </b>
                 {about}
               </p>
             </div>
             <div className="w-full bg-white rounded-lg shadow-lg overflow-hidden border p-6 lg:p-8">
-              <h2 className="pb-2">Capital Criteria</h2>
-              <p><b>City:</b> {city}</p>
-              <p><b>Investment Interest:</b> {primary}</p>
-              <p><b>Additional Investment Interests:</b> {additional}</p>
-              <p><b>% Of Ownership Looking For:</b> {ownership}</p>
-              <p><b>Years of Experience:</b> {industry_experience}</p>
-              <div className="border-t-1 border-gray-400 my-5"></div>
-              <p><b>Company EBITDA Looking For:</b> {ebitda}</p>
-              <p><b>Business Cash Flow:</b> {cash}</p>
-              <p><b>Annual Net Worth:</b> {net_worth}</p>
+              <h2 className="pb-4">Capital Criteria</h2>
+              <h4 className="large">Investor Overview</h4>
+              <p>City: {city}</p>
+              <p>Years of Experience: {industry_experience} years</p>
+              <br />
+              <h4 className="large">Investment Focus</h4>
+              <p>Investment Interest: {primary}</p>
+              <p>Additional Investment Interests: {additional}</p>
+              <p>% Of Ownership Looking For: {ownership}</p>
+              <br />
+              <h4 className="large">Financial Criteria</h4>
+              <p>Company EBITDA Looking For: {ebitda}</p>
+              <p>Business Cash Flow: {cash}</p>
+              <p>Annual Net Worth: {net_worth}</p>
+
             </div>
           </div>
         </div>
