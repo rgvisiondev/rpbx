@@ -4,7 +4,7 @@
 import { useState } from "react";
 import Button from "./Button";
 
-export default function EvaluationCheckoutButton({ color }: { color?: "white" | "green" }) {
+export default function EvaluationCheckoutButton({ color, variant }: { color?: "white" | "green"; variant?: "text" }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -39,6 +39,23 @@ export default function EvaluationCheckoutButton({ color }: { color?: "white" | 
       setLoading(false);
     }
   };
+
+  if (variant === "text") {
+    return (
+      <>
+        {error && (
+          <p className="text-red-500 mb-2 text-sm">{error}</p>
+        )}
+        <button 
+          onClick={handleCheckout}
+          disabled={loading}
+          className="text-sm font-bold text-white underline underline-offset-8 hover:text-[#60BC9B] transition mt-4 lg:mt-0 hover:cursor-pointer disabled:opacity-50"
+        >
+          {loading ? "Redirecting..." : "Buy now without membership →"}
+        </button>
+      </>
+    );
+  }
 
   return (
     <>
