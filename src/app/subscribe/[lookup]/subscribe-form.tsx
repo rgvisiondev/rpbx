@@ -4,39 +4,88 @@
 import * as React from "react";
 import { Eye, EyeOff } from "lucide-react";
 import Button from "../../components/Button";
-import { TurnstileWidget } from "@/app/components/TurnstileWidget";
-import { useState, useRef } from "react";
+import { TurnstileWidget, type TurnstileHandle } from "@/app/components/TurnstileWidget";
 
-export function SubscribeForm({ lookup, trialDays = 0 }: { lookup: string; trialDays?: number; }) {
+export function SubscribeForm({
+  lookup,
+  trialDays = 0,
+}: {
+  lookup: string;
+  trialDays?: number;
+}) {
   const [showPw, setShowPw] = React.useState(false);
-  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const formRef = useRef<HTMLFormElement | null>(null);
+  const [turnstileToken, setTurnstileToken] = React.useState<string | null>(null);
+  const [errorMsg, setErrorMsg] = React.useState<string | null>(null);
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    if (!turnstileToken){
-      e.preventDefault();
-      setErrorMsg("Verification failed. Please refresh and try again");
-      return;
+  const formRef = React.useRef<HTMLFormElement | null>(null);
+  const turnstileRef = React.useRef<TurnstileHandle>(null);
+
+  // Guards to prevent callback loops / duplicate submits
+  const submitLockRef = React.useRef(false);
+  const lastTokenRef = React.useRef<string | null>(null);
+
+  // If you want extra UX: disable the button while verifying/submitting
+  const [verifying, setVerifying] = React.useState(false);
+
+  const submitWithToken = (token: string) => {
+    // Prevent duplicate submits (callback can fire more than once)
+    if (submitLockRef.current) return;
+    if (lastTokenRef.current === token) return;
+
+    submitLockRef.current = true;
+    lastTokenRef.current = token;
+
+    // Put token into hidden input (server reads turnstile_token)
+    setTurnstileToken(token);
+
+    // Submit the native form exactly once
+    // (use requestSubmit when available to respect form validation)
+    if (formRef.current) {
+      if (typeof formRef.current.requestSubmit === "function") {
+        formRef.current.requestSubmit();
+      } else {
+        formRef.current.submit();
+      }
     }
+  };
 
-    setErrorMsg(null);
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    formRef.current?.submit();
-  }
+    setErrorMsg(null);
+
+    // Prevent double-clicks / rapid submits
+    if (submitLockRef.current || verifying) return;
+
+    // New click => allow a new token
+    lastTokenRef.current = null;
+
+    setVerifying(true);
+
+    // Trigger Turnstile; token arrives via onVerify -> submitWithToken
+    await turnstileRef.current?.execute();
+
+    // If script isn't ready, execute() calls onError; we unset verifying there.
+    // If it succeeds, the form will submit and navigate away.
+    // If it fails silently, we can safely re-enable after a short tick.
+    // (keeps UX responsive without reintroducing loops)
+    setTimeout(() => {
+      // Only unlock if we didn't already submit (lock remains true after submitWithToken)
+      if (!submitLockRef.current) setVerifying(false);
+    }, 0);
+  };
 
   return (
-    <form  ref={formRef} method="post" action="/api/subscribe" onSubmit={handleSubmit} className="mt-6 space-y-3">
+    <form
+      ref={formRef}
+      method="post"
+      action="/api/subscribe"
+      onSubmit={handleSubmit}
+      className="mt-6 space-y-3"
+    >
       <input name="lookup" type="hidden" value={lookup} />
-      {trialDays > 0 && (
-        <input name="trial_days" type="hidden" value={trialDays} />
-      )}
+      {trialDays > 0 && <input name="trial_days" type="hidden" value={trialDays} />}
 
-      <input 
-        type="hidden"
-        name="turnstile_token"
-        value={turnstileToken ?? ""}
-      />
+      <input type="hidden" name="turnstile_token" value={turnstileToken ?? ""} />
 
       <label className="block">
         <span>First name</span>
@@ -101,10 +150,21 @@ export function SubscribeForm({ lookup, trialDays = 0 }: { lookup: string; trial
         </div>
       </label>
 
-      <TurnstileWidget 
+      <TurnstileWidget
+        ref={turnstileRef}
         action="signup"
-        onVerify={(token) => {
-          setTurnstileToken(token);
+        onVerify={(token) => submitWithToken(token)}
+        onError={() => {
+          // Release locks so user can retry
+          submitLockRef.current = false;
+          setVerifying(false);
+
+          // Clear any stale token
+          setTurnstileToken(null);
+
+          setErrorMsg("Verification failed. Please try again.");
+          // Optional: make sure widget is fresh for the next click
+          turnstileRef.current?.reset();
         }}
       />
 
@@ -114,7 +174,9 @@ export function SubscribeForm({ lookup, trialDays = 0 }: { lookup: string; trial
         </p>
       )}
 
-      <Button className="w-full">Continue to secure checkout</Button>
+      <Button className="w-full" disabled={verifying}>
+        {verifying ? "Verifying..." : "Continue to secure checkout"}
+      </Button>
     </form>
   );
 }

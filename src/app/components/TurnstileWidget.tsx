@@ -1,6 +1,7 @@
+// app/components/TurnstileWidget.tsx
 "use client";
 
-import { useEffect, useRef } from "react";
+import React, { forwardRef, useEffect, useImperativeHandle, useRef } from "react";
 
 type TurnstileTheme = "light" | "dark" | "auto";
 type TurnstileSize = "normal" | "compact" | "invisible";
@@ -11,18 +12,15 @@ type TurnstileRenderOptions = {
   action?: string;
   theme?: TurnstileTheme;
   size?: TurnstileSize;
-  // Optional extras Turnstile supports (safe to keep typed + optional)
-  appearance?: "always" | "execute" | "interaction-only";
-  language?: string;
-  retry?: "auto" | "never";
-  "retry-interval"?: number;
-  "refresh-expired"?: "auto" | "manual" | "never";
+  execution?: "render" | "execute";
+  "error-callback"?: () => void;
+  "expired-callback"?: () => void;
 };
 
 declare global {
   interface Window {
     turnstile?: {
-      render: (container: HTMLElement, options: TurnstileRenderOptions) => string; // returns widgetId
+      render: (container: HTMLElement, options: TurnstileRenderOptions) => string;
       reset: (widgetId?: string) => void;
       remove: (widgetId: string) => void;
       execute?: (widgetId: string) => void;
@@ -30,67 +28,117 @@ declare global {
   }
 }
 
-type Props = {
-  onVerify: (token: string) => void;
-  action?: string;
+export type TurnstileHandle = {
+  execute: () => Promise<void>;
+  reset: () => void;
 };
 
-export function TurnstileWidget({ onVerify, action }: Props) {
-  const containerRef = useRef<HTMLDivElement | null>(null);
-  const widgetIdRef = useRef<string | null>(null);
-  const scriptLoadedRef = useRef(false);
+type Props = {
+  action?: string;
+  onVerify: (token: string) => void;
+  onError?: () => void;
+  theme?: TurnstileTheme;
+};
 
-  useEffect(() => {
-    const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
-    if (!siteKey) {
-      console.warn("NEXT_PUBLIC_TURNSTILE_SITE_KEY is not set");
-      return;
-    }
+export const TurnstileWidget = forwardRef<TurnstileHandle, Props>(
+  ({ action = "form_submit", onVerify, onError, theme = "auto" }, ref) => {
+    const containerRef = useRef<HTMLDivElement | null>(null);
+    const widgetIdRef = useRef<string | null>(null);
+    const hasExecutedRef = useRef(false);
 
-    const renderOnce = () => {
-      const container = containerRef.current;
-      const ts = window.turnstile;
-      if (!container || !ts) return;
-      if (widgetIdRef.current) return; // prevents double render
+    // Keep latest callbacks without re-rendering the widget
+    const onVerifyRef = useRef(onVerify);
+    const onErrorRef = useRef(onError);
+    
+    useEffect(() => {
+      onVerifyRef.current = onVerify;
+      onErrorRef.current = onError;
+    }, [onVerify, onError]);
 
-      widgetIdRef.current = ts.render(container, {
-        sitekey: siteKey,
-        callback: (token) => onVerify(token),
-        action: action ?? "form_submit",
-        theme: "auto",
-        size: "invisible",
-      });
-    };
+    useEffect(() => {
+      const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
+      if (!siteKey) {
+        console.warn("NEXT_PUBLIC_TURNSTILE_SITE_KEY is not set");
+        return;
+      }
 
-    const existing = document.querySelector<HTMLScriptElement>(
-      'script[src="https://challenges.cloudflare.com/turnstile/v0/api.js"]'
-    );
+      let cancelled = false;
 
-    if (!existing) {
-      const s = document.createElement("script");
-      s.src = "https://challenges.cloudflare.com/turnstile/v0/api.js";
-      s.async = true;
-      s.defer = true;
-      s.onload = () => {
-        scriptLoadedRef.current = true;
-        renderOnce();
+      const render = () => {
+        if (cancelled) return;
+        if (!containerRef.current) return;
+        if (!window.turnstile) return;
+        if (widgetIdRef.current) return;
+
+        // CRITICAL FIX: Use execution: "execute" mode
+        // This prevents auto-execution on render
+        widgetIdRef.current = window.turnstile.render(containerRef.current, {
+          sitekey: siteKey,
+          action,
+          theme,
+          size: "normal",
+          execution: "execute", // KEY CHANGE: Manual execution mode
+          callback: (token) => {
+            // Only call onVerify if this was triggered by explicit execute()
+            if (hasExecutedRef.current) {
+              onVerifyRef.current(token);
+              hasExecutedRef.current = false;
+            }
+          },
+          "error-callback": () => {
+            onErrorRef.current?.();
+            hasExecutedRef.current = false;
+            if (widgetIdRef.current) window.turnstile?.reset(widgetIdRef.current);
+          },
+          "expired-callback": () => {
+            hasExecutedRef.current = false;
+            if (widgetIdRef.current) window.turnstile?.reset(widgetIdRef.current);
+          },
+        });
       };
-      document.head.appendChild(s);
-    } else {
-      if (window.turnstile) renderOnce();
-      else if (!scriptLoadedRef.current) {
-        existing.addEventListener("load", renderOnce, { once: true });
-      }
-    }
 
-    return () => {
-      const id = widgetIdRef.current;
-      if (id && window.turnstile?.remove) {
-        window.turnstile.remove(id);
-      }
-      widgetIdRef.current = null;
-    };
-  }, [onVerify, action]);
+      // Wait for Turnstile script (loaded globally in layout)
+      const iv = window.setInterval(() => {
+        if (window.turnstile) {
+          window.clearInterval(iv);
+          render();
+        }
+      }, 50);
 
-  return <div ref={containerRef} />;
-}
+      return () => {
+        cancelled = true;
+        window.clearInterval(iv);
+        if (widgetIdRef.current && window.turnstile?.remove) {
+          window.turnstile.remove(widgetIdRef.current);
+        }
+        widgetIdRef.current = null;
+        hasExecutedRef.current = false;
+      };
+    }, [action, theme]);
+
+    useImperativeHandle(ref, () => ({
+      execute: async () => {
+        const id = widgetIdRef.current;
+        if (!id || !window.turnstile?.execute) {
+          // Script not ready yet
+          onErrorRef.current?.();
+          return;
+        }
+        
+        // Mark that we're executing so callback knows to fire
+        hasExecutedRef.current = true;
+        window.turnstile.execute(id);
+      },
+      reset: () => {
+        const id = widgetIdRef.current;
+        hasExecutedRef.current = false;
+        if (id && window.turnstile?.reset) window.turnstile.reset(id);
+      },
+    }));
+
+    // This div must exist for explicit render
+    return <div ref={containerRef} />;
+  }
+);
+
+TurnstileWidget.displayName = "TurnstileWidget";

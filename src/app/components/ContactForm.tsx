@@ -1,36 +1,46 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { TurnstileWidget } from './TurnstileWidget';
+import { TurnstileWidget, type TurnstileHandle } from './TurnstileWidget';
 
-export default function ContactForm({ to, name, subject }: { to?: string, name?: string, subject?: string }) {
+export default function ContactForm({
+  to,
+  name,
+  subject,
+}: {
+  to?: string;
+  name?: string;
+  subject?: string;
+}) {
   const [email, setEmail] = useState('');
   const [message, setMessage] = useState('');
   const [phone, setPhone] = useState('');
   const [status, setStatus] = useState<'idle' | 'sending' | 'success' | 'error'>('idle');
-  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  // Turnstile: execute-on-submit (no token stored long-term)
+  const turnstileRef = useRef<TurnstileHandle>(null);
+
+  // Guards to prevent callback loops / duplicate submits
+  const submitLockRef = useRef(false);
+  const lastTokenRef = useRef<string | null>(null);
+
+  async function submitWithToken(token: string) {
+    // Prevent duplicate submits (callback can fire more than once)
+    if (submitLockRef.current) return;
+    if (lastTokenRef.current === token) return;
+
+    submitLockRef.current = true;
+    lastTokenRef.current = token;
+
+    setStatus('sending');
     setErrorMsg(null);
-
-    if (!email || !message){
-      setErrorMsg("Please fill out all fields");
-      return;
-    }
-
-    if (!turnstileToken){
-      setErrorMsg("Verification failed. Please refresh and try again.");
-      return;
-    }
-    setStatus("sending");
 
     try {
       const res = await fetch('/api/contact-email', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
         body: JSON.stringify({
           to: to ?? 'notifications@rioplexbizx.com',
           subject: subject ?? 'New Contact Message',
@@ -38,7 +48,7 @@ export default function ContactForm({ to, name, subject }: { to?: string, name?:
           contactEmail: email,
           contactPhone: phone,
           message,
-          turnstileToken,
+          turnstileToken: token,
         }),
       });
 
@@ -47,17 +57,41 @@ export default function ContactForm({ to, name, subject }: { to?: string, name?:
         setEmail('');
         setPhone('');
         setMessage('');
-        setTurnstileToken(null);
       } else {
         const data = await res.json().catch(() => null);
-        setErrorMsg(data?.error ?? "Failed to send email. Please try again.");
+        setErrorMsg(data?.error ?? 'Failed to send email. Please try again.');
         setStatus('error');
       }
     } catch (err) {
       console.error(err);
-      setErrorMsg("Failed to send email. Please try again.");
+      setErrorMsg('Failed to send email. Please try again.');
       setStatus('error');
+    } finally {
+      // Release lock AFTER request finishes
+      submitLockRef.current = false;
+
+      // Reset so user can submit again later (tokens are single-use)
+      turnstileRef.current?.reset();
     }
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setErrorMsg(null);
+
+    // Prevent double-clicks / rapid submits
+    if (submitLockRef.current || status === 'sending') return;
+
+    if (!email || !message || !phone) {
+      setErrorMsg('Please fill out all fields');
+      return;
+    }
+
+    // New click => allow a new token
+    lastTokenRef.current = null;
+
+    // Trigger Turnstile; token arrives via onVerify -> submitWithToken
+    await turnstileRef.current?.execute();
   }
 
   // Automatically hide notification after a few seconds
@@ -79,8 +113,9 @@ export default function ContactForm({ to, name, subject }: { to?: string, name?:
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -50 }}
             transition={{ duration: 0.3 }}
-            className={`fixed top-5 left-1/2 transform -translate-x-1/2 px-5 py-3 rounded-xl shadow-lg text-white font-medium z-50 ${status === 'success' ? 'bg-green-600' : 'bg-red-600'
-              }`}
+            className={`fixed top-5 left-1/2 transform -translate-x-1/2 px-5 py-3 rounded-xl shadow-lg text-white font-medium z-50 ${
+              status === 'success' ? 'bg-green-600' : 'bg-red-600'
+            }`}
           >
             {status === 'success'
               ? 'Email sent successfully!'
@@ -91,7 +126,6 @@ export default function ContactForm({ to, name, subject }: { to?: string, name?:
 
       {/* === Contact Form === */}
       <div className="w-full mb-10">
-
         <form onSubmit={handleSubmit} className="flex flex-col gap-3">
           <input
             type="email"
@@ -122,23 +156,28 @@ export default function ContactForm({ to, name, subject }: { to?: string, name?:
           <button
             type="submit"
             disabled={status === 'sending'}
-            className={`rounded-full p-2 text-white transition ${status === 'sending'
+            className={`rounded-full p-2 text-white transition ${
+              status === 'sending'
                 ? 'bg-gray-400 cursor-not-allowed'
                 : 'bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] hover:border-[var(--color-primary-hover)]'
-              }`}
+            }`}
           >
             {status === 'sending' ? 'Sending...' : 'Send Message'}
           </button>
-          <TurnstileWidget 
+
+          <TurnstileWidget
+            ref={turnstileRef}
             action="advisor_contact"
-            onVerify={(token) => {
-              setTurnstileToken(token);
+            onVerify={(token) => submitWithToken(token)}
+            onError={() => {
+              // Don't unlock here; lock is released in finally.
+              setErrorMsg('Verification failed. Please try again.');
+              setStatus('idle');
             }}
           />
         </form>
-        {errorMsg && status === 'idle' && (
-          <p className='mt-2 text-xs text-red-600'>{errorMsg}</p>
-        )}
+
+        {errorMsg && status === 'idle' && <p className="mt-2 text-xs text-red-600">{errorMsg}</p>}
       </div>
     </>
   );

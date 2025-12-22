@@ -4,6 +4,7 @@ import Footer from "./components/Footer";
 import CookieConsentWrapper from "@/components/cookieconsent";
 import Script from "next/script";
 import { Analytics } from "@vercel/analytics/next";
+import TurnstileScript from "./TurnstileScript";
 import "./globals.css";
 
 const sairaCondensed = Saira_Condensed({
@@ -182,6 +183,7 @@ export default function RootLayout({
       <body
         className={`${poppins.variable} ${sairaCondensed.variable} antialiased`}
       >
+        <TurnstileScript />
         {children}
         <Analytics />
         <Footer />
