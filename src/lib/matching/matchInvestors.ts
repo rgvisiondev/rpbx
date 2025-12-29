@@ -4,7 +4,7 @@ import type { Database } from "@/types/database.types";
 
 type Listing = Database["public"]["Tables"]["business_listings"]["Row"];
 type InvestorRow = Database["public"]["Tables"]["investor_profiles"]["Row"];
-type ProfileRow  = Database["public"]["Tables"]["profiles"]["Row"];
+type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"];
 
 // Only the columns we SELECT from investor_profiles (plus user_id & avatar_path for UI)
 type InvestorPreview = Pick<
@@ -29,47 +29,45 @@ export type ScoredInvestor = InvestorPreview & {
   } | null;
 };
 
-function strIncludes(a?: string | null, b?: string | null) {
-  if (!a || !b) return false;
+function industryMatch(
+  listingIndustry?: string | null,
+  inv?: InvestorPreview | null
+): boolean {
+  if (!listingIndustry || !inv) return false;
+  const li = listingIndustry.toLowerCase();
+
+  if (inv.primary_industry?.toLowerCase() === li) return true;
+
   return (
-    a.toLowerCase().includes(b.toLowerCase()) ||
-    b.toLowerCase().includes(a.toLowerCase())
+    inv.additional_industries?.some((i) => (i || "").toLowerCase() === li) ??
+    false
   );
 }
 
-function industryMatch(listingIndustry: string, inv: InvestorPreview): boolean {
-  if (!listingIndustry) return false;
-  const li = listingIndustry.toLowerCase();
-  if (inv.primary_industry && inv.primary_industry.toLowerCase() === li) return true;
-  if (inv.additional_industries?.length) {
-    return inv.additional_industries.some((i) => i?.toLowerCase() === li);
-  }
-  return false;
+// bucket keys should be matched by equality
+function bucketMatch(listingKey?: string | null, investorKey?: string | null) {
+  if (!listingKey || !investorKey) return false;
+  return listingKey === investorKey;
 }
 
-function rangeLikeMatch(listingRange?: string | null, investorTarget?: string | null): boolean {
-  if (!listingRange || !investorTarget) return false;
-  return strIncludes(listingRange, investorTarget);
-}
-
-function calculateMatchScore(inv: InvestorPreview, listings: Listing[]): number {
+function calculateMatchScore(
+  inv: InvestorPreview,
+  listings: Listing[]
+): number {
   let score = 0;
 
   // +5 industry overlap (any listing)
-  const hasIndustryHit = listings.some((l) => industryMatch(l.industry, inv));
-  if (hasIndustryHit) score += 5;
+  if (listings.some((l) => industryMatch(l.industry, inv))) score += 5;
 
-  // +3 EBITDA “overlap”
-  const hasEbitdaHit = listings.some((l) =>
-    rangeLikeMatch(l.ebitda_range, inv.target_ebitda)
-  );
-  if (hasEbitdaHit) score += 3;
+  // +3 EBITDA bucket match (any listing)
+  if (listings.some((l) => bucketMatch(l.ebitda_range, inv.target_ebitda)))
+    score += 3;
 
-  // +2 Cash-flow proxy vs annual_revenue_range
-  const hasCashflowHit = listings.some((l) =>
-    rangeLikeMatch(l.annual_revenue_range, inv.target_cash_flow)
-  );
-  if (hasCashflowHit) score += 2;
+  // +2 Cash flow bucket match (any listing)
+  if (
+    listings.some((l) => bucketMatch(l.cash_flow_range, inv.target_cash_flow))
+  )
+    score += 2;
 
   return score;
 }
@@ -77,27 +75,33 @@ function calculateMatchScore(inv: InvestorPreview, listings: Listing[]): number 
 /** Batch-enrich investors with names from profiles in one query */
 async function attachNames(
   supabase: SupabaseClient<Database>,
-  investors: (InvestorPreview & { _source: "matched" | "newest"; score?: number })[]
+  investors: (InvestorPreview & {
+    _source: "matched" | "newest";
+    score?: number;
+  })[]
 ): Promise<ScoredInvestor[]> {
-  const userIds = Array.from(new Set(investors.map((i) => i.user_id).filter(Boolean)));
+  const userIds = Array.from(
+    new Set(investors.map((i) => i.user_id).filter(Boolean))
+  );
+
   if (userIds.length === 0) {
-    // nothing to enrich
     return investors.map((inv) => ({ ...inv, profiles: null }));
   }
 
   const { data: profs, error: profErr } = await supabase
-    .from("profiles")
+    .from("public_profiles")
     .select("id, first_name, last_name")
     .in("id", userIds);
 
   if (profErr) {
-    // If enrichment fails, just return without names rather than throwing
     console.error("attachNames: profiles fetch failed:", profErr.message);
     return investors.map((inv) => ({ ...inv, profiles: null }));
   }
 
   const byId = new Map<string, Pick<ProfileRow, "first_name" | "last_name">>();
+
   (profs ?? []).forEach((p) => {
+    if (!p?.id) return; // <- guard null/undefined
     byId.set(p.id, { first_name: p.first_name, last_name: p.last_name });
   });
 
@@ -111,12 +115,15 @@ export async function matchInvestorsToListings(
   supabase: SupabaseClient<Database>,
   listings: Listing[]
 ): Promise<ScoredInvestor[]> {
+  // If no active listings, don't try to "match" — just show newest investors.
+  const hasListings = Array.isArray(listings) && listings.length > 0;
+
   // 1) Pull PUBLISHED investors (only columns we need)
   const { data: investorsRaw, error } = await supabase
     .from("investor_profiles")
-    .select<
+    .select(
       "id, user_id, created_at, primary_industry, additional_industries, target_ebitda, target_cash_flow, status, avatar_path"
-    >()
+    )
     .eq("status", "published");
 
   if (error) throw error;
@@ -126,7 +133,7 @@ export async function matchInvestorsToListings(
   // 2) Score per investor
   const scored = investors.map((inv) => ({
     ...inv,
-    score: calculateMatchScore(inv, listings),
+    score: hasListings ? calculateMatchScore(inv, listings) : 0,
     _source: "matched" as const,
   }));
 
@@ -139,22 +146,15 @@ export async function matchInvestorsToListings(
     return attachNames(supabase, top);
   }
 
-  // 3) Fallback: newest 4 published investors (no score filtering)
-  const { data: newestRaw, error: newestErr } = await supabase
-    .from("investor_profiles")
-    .select<
-      "id, user_id, created_at, primary_industry, additional_industries, target_ebitda, target_cash_flow, status, avatar_path"
-    >()
-    .eq("status", "published")
-    .order("created_at", { ascending: false })
-    .limit(4);
-
-  if (newestErr) throw newestErr;
-
-  const newest = ((newestRaw ?? []) as InvestorPreview[]).map((inv) => ({
-    ...inv,
-    _source: "newest" as const,
-  }));
+  // 3) Fallback: newest 4 published investors
+  const newest = [...investors]
+    .sort(
+      (a, b) =>
+        new Date(b.created_at ?? 0).getTime() -
+        new Date(a.created_at ?? 0).getTime()
+    )
+    .slice(0, 4)
+    .map((inv) => ({ ...inv, _source: "newest" as const }));
 
   return attachNames(supabase, newest);
 }

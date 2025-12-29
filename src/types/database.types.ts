@@ -18,9 +18,9 @@ export type Database = {
         Row: {
           address: string | null
           annual_revenue_range: string | null
-          book_value_range: string | null
           can_provide_financials: boolean | null
           can_provide_tax_returns: boolean | null
+          cash_flow_range: string | null
           city: string | null
           contact_email: string | null
           country_code: string | null
@@ -54,9 +54,9 @@ export type Database = {
         Insert: {
           address?: string | null
           annual_revenue_range?: string | null
-          book_value_range?: string | null
           can_provide_financials?: boolean | null
           can_provide_tax_returns?: boolean | null
+          cash_flow_range?: string | null
           city?: string | null
           contact_email?: string | null
           country_code?: string | null
@@ -90,9 +90,9 @@ export type Database = {
         Update: {
           address?: string | null
           annual_revenue_range?: string | null
-          book_value_range?: string | null
           can_provide_financials?: boolean | null
           can_provide_tax_returns?: boolean | null
+          cash_flow_range?: string | null
           city?: string | null
           contact_email?: string | null
           country_code?: string | null
@@ -610,6 +610,24 @@ export type Database = {
       }
     }
     Views: {
+      public_profiles: {
+        Row: {
+          first_name: string | null
+          id: string | null
+          last_name: string | null
+        }
+        Insert: {
+          first_name?: string | null
+          id?: string | null
+          last_name?: string | null
+        }
+        Update: {
+          first_name?: string | null
+          id?: string | null
+          last_name?: string | null
+        }
+        Relationships: []
+      }
       v_business_listings_with_promo: {
         Row: {
           annual_revenue_range: string | null

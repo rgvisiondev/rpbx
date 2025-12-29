@@ -5,6 +5,7 @@ import OwnershipRange from "./OwnershipRange";
 import Button from "../../../components/Button";
 import { Progress } from "@/components/ui/progress"
 import { INDUSTRY_SLUGS } from "@/lib/industryImages";
+import { EBITDA_BUCKETS, CASH_FLOW_BUCKETS } from "@/lib/ranges";
 
 
 export default async function Preferences() {
@@ -229,13 +230,10 @@ export default async function Preferences() {
               defaultValue={draft?.target_ebitda ?? ""}
               className="mt-1 w-full border rounded px-3 py-2 hover:cursor-pointer"
             >
-              <option value="">No preference</option>
-              <option value="<250k">Under $250k</option>
-              <option value="250k-500k">$250k – $500k</option>
-              <option value="500k-1M">$500k – $1M</option>
-              <option value="1M-2M">$1M – $2M</option>
-              <option value="2M-5M">$2M – $5M</option>
-              <option value=">5M">Over $5M</option>
+              <option value="">-</option>
+              {EBITDA_BUCKETS.map((b) => (
+                <option key={b.key} value={b.key}>{b.label}</option>
+              ))}
             </select>
           </label>
 
@@ -247,12 +245,10 @@ export default async function Preferences() {
               defaultValue={draft?.target_cash_flow ?? ""}
               className="mt-1 w-full border rounded px-3 py-2 hover:cursor-pointer"
             >
-              <option value="">No preference</option>
-              <option value="<50k">Under $50k</option>
-              <option value="50k-100k">$50k – $100k</option>
-              <option value="100k-250k">$100k – $250k</option>
-              <option value="250k-500k">$250k – $500k</option>
-              <option value=">500k">Over $500k</option>
+              <option value="">-</option>
+              {CASH_FLOW_BUCKETS.map((c) => (
+                <option key={c.key} value={c.key}>{c.label}</option>
+              ))}
             </select>
           </label>
 

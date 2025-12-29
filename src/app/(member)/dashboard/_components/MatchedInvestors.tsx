@@ -11,6 +11,7 @@ type InvestorMatch = {
   avatar_path?: string | null;   // e.g. "9580fa12-.../avatar.jpeg"
   first_name?: string | null;
   last_name?: string | null;
+  score?: number;
 };
 
 type WithSigned = InvestorMatch & { avatar_url: string | null };
@@ -70,7 +71,6 @@ export default async function MatchedInvestors({ matches }: { matches: InvestorM
             <div className="bg-white p-5 rounded-b-lg shadow-lg border-x-2 border-b-2 border-grey-200">
               <h4 className="font-semibold">{name}</h4>
               <p className="italic">{m.primary_industry ?? "—"}</p>
-              {m._source === "matched"}
               <Link href={`/investor-listing/${m.id}`}>
                 <Button className="mt-4 w-full">View Profile</Button>
               </Link>

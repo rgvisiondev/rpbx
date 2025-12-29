@@ -8,8 +8,9 @@ import { useState } from 'react';
 import { INDUSTRY_SLUGS } from '@/lib/industryImages';
 import IndustryImagePicker from '@/app/onboarding/components/IndustryImagePicker';
 import AddressAutocomplete from '@/app/onboarding/components/AddressAutocomplete';
-
 import { DescriptionAiAssist } from '@/app/onboarding/components/DescriptionAIAssist';
+
+import { CASH_FLOW_BUCKETS, EBITDA_BUCKETS } from '@/lib/ranges';
 
 import {
   Tooltip,
@@ -31,7 +32,7 @@ type EditListing = {
 
   ownership_percentage: number | null;
   annual_revenue_range: string | null;
-  book_value_range: string | null;
+  cash_flow_range: string | null; // ✅ replaced book_value_range
   ebitda_range: string | null;
   years_in_business: string | null;
   employee_count_range: string | null;
@@ -118,6 +119,7 @@ export default function EditListingFormClient({
               className="mt-1 w-full border rounded px-3 py-2"
             />
           </label>
+
           <label className="flex items-center gap-2 pt-4">
             <input
               type="checkbox"
@@ -166,21 +168,18 @@ export default function EditListingFormClient({
             </select>
           </label>
 
+          {/* ✅ Replaced Book Value with Cash Flow */}
           <label className="block pt-4">
-            <span>Book value</span>
+            <span>Cash flow (SDE)</span>
             <select
-              name="book_value_range"
-              defaultValue={listing?.book_value_range ?? ''}
+              name="cash_flow_range"
+              defaultValue={listing.cash_flow_range ?? ''}
               className="mt-1 w-full border rounded px-3 py-2 hover:cursor-pointer"
             >
               <option value="">—</option>
-              <option value="0_50k">0–50K</option>
-              <option value="50k_150k">50K–150K</option>
-              <option value="150k_350k">150K–350K</option>
-              <option value="350k_750k">350K–750K</option>
-              <option value="750k_1_5m">750K–1.5M</option>
-              <option value="1_5m_5m">1.5M–5M</option>
-              <option value="5m_plus">5M+</option>
+              {CASH_FLOW_BUCKETS.map((b) => (
+                <option key={b.key} value={b.key}>{b.label}</option>
+              ))}
             </select>
           </label>
 
@@ -201,11 +200,9 @@ export default function EditListingFormClient({
               className="mt-1 w-full border rounded px-3 py-2 hover:cursor-pointer"
             >
               <option value="">—</option>
-              <option value="lt_50k">Under 50K</option>
-              <option value="50k_150k">50K–150K</option>
-              <option value="150k_500k">150K–500K</option>
-              <option value="500k_1m">500K–1M</option>
-              <option value="gt_1m">1M+</option>
+              {EBITDA_BUCKETS.map((b) => (
+                <option key={b.key} value={b.key}>{b.label}</option>
+              ))}
             </select>
           </label>
 

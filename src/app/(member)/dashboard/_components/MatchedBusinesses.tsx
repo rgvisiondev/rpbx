@@ -51,12 +51,9 @@ export default function MatchedBusinesses({
               sizes="(min-width: 1024px) 25vw, (min-width: 768px) 33vw, 100vw"
             />
             <div className="bg-white p-5 rounded-b-lg shadow-lg border-x-2 border-b-2 border-gray-200">
-              <h4 className="font-semibold line-clamp-2">
-                {l.title ?? "Untitled Listing"}
-              </h4>
 
-              <p className="italic text-sm text-neutral-700">
-                {l.industry ?? "—"}
+              <p className="font-semibold">
+                {l.industry ?? "—"} Business
               </p>
 
               {location && (
