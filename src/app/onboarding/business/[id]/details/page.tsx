@@ -2,6 +2,8 @@
 import { createClientRSC } from '@/../utils/supabase/server';
 import { redirect } from 'next/navigation';
 import DetailsFormClient from './BusinessDetailsForm';
+import { ANNUAL_REVENUE_KEYS, CASH_FLOW_BUCKET_KEYS, EBITDA_BUCKET_KEYS, YEARS_IN_BUSINESS_KEYS, EMPLOYEE_COUNT_KEYS, isAllowedKey } from '@/lib/ranges';
+
 
 export default async function DetailsStep({
   params,
@@ -29,7 +31,7 @@ export default async function DetailsStep({
       title,
       ownership_percentage,
       annual_revenue_range,
-      book_value_range,
+      cash_flow_range,
       ebitda_range,
       years_in_business,
       employee_count_range,
@@ -81,28 +83,21 @@ export default async function DetailsStep({
         : null;
 
     const annual = String(formData.get('annual_revenue_range') ?? '');
-    const book = String(formData.get('book_value_range') ?? '');
-    const ebitda = String(formData.get('ebitda_range') ?? '');
+    const cash = formData.get('cash_flow_range');
+    const ebitda = formData.get('ebitda_range');
     const years = String(formData.get('years_in_business') ?? '');
     const empCount = String(formData.get('employee_count_range') ?? '');
     const description =
       (String(formData.get('description') ?? '').trim()) || null;
 
-    const ALLOWED = {
-      annual: new Set(['0_50k', '50k_100k', '100k_250k', '250k_1m', '1m_plus']),
-      book: new Set(['25k_150k', '150k_750k', '750k_3m', '3m_7m']),
-      ebitda: new Set(['lt_50k', '50k_150k', '150k_500k', '500k_1m', 'gt_1m']),
-      years: new Set(['lt_1', '1_3', '3_5', '5_10', 'gt_10']),
-      emp: new Set(['1_4', '5_10', '11_25', '26_50', '51_100', 'gt_100']),
-    };
 
     const payload = {
       ownership_percentage,
-      annual_revenue_range: ALLOWED.annual.has(annual) ? annual : null,
-      book_value_range: ALLOWED.book.has(book) ? book : null,
-      ebitda_range: ALLOWED.ebitda.has(ebitda) ? ebitda : null,
-      years_in_business: ALLOWED.years.has(years) ? years : null,
-      employee_count_range: ALLOWED.emp.has(empCount) ? empCount : null,
+      annual_revenue_range: isAllowedKey(ANNUAL_REVENUE_KEYS, annual) ? annual : null,
+      cash_flow_range: isAllowedKey(CASH_FLOW_BUCKET_KEYS, cash) ? cash : null,
+      ebitda_range: isAllowedKey(EBITDA_BUCKET_KEYS,  ebitda) ? ebitda : null,
+      years_in_business: isAllowedKey(YEARS_IN_BUSINESS_KEYS, years) ? years : null,
+      employee_count_range: isAllowedKey(EMPLOYEE_COUNT_KEYS, empCount) ? empCount : null,
       description,
       status: 'draft' as const,
       owner_id: user.id,

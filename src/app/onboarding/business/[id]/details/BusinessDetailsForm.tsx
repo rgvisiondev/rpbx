@@ -12,13 +12,14 @@ import {
   TooltipContent,
   TooltipTrigger
 } from "@/components/ui/tooltip";
+import { ANNUAL_REVENUE_BUCKETS, CASH_FLOW_BUCKETS, EBITDA_BUCKETS, YEARS_IN_BUSINESS_BUCKETS, EMPLOYEE_COUNT_BUCKETS } from '@/lib/ranges';
 
 type BusinessDraft = {
   id: string;
   title: string | null;
   ownership_percentage: number | null;
   annual_revenue_range: string | null;
-  book_value_range: string | null;
+  cash_flow_range: string | null;
   ebitda_range: string | null;
   years_in_business: string | null;
   employee_count_range: string | null;
@@ -82,30 +83,23 @@ export default function DetailsFormClient({ listingId, draft, save }: DetailsFor
               className="mt-1 w-full border rounded px-3 py-2 hover:cursor-pointer"
             >
               <option value="">—</option>
-              <option value="0_50k">0–50K</option>
-              <option value="50k_100k">50K–100K</option>
-              <option value="100k_250k">100K–250K</option>
-              <option value="250k_1m">250K–1M</option>
-              <option value="1m_plus">1M+</option>
+              {ANNUAL_REVENUE_BUCKETS.map((a) => (
+                <option key={a.key} value={a.key}>{a.label}</option>
+              ))}
             </select>
           </label>
 
           <label className="block pt-4">
             <span>Book value</span>
             <select
-              name="book_value_range"
-              defaultValue={draft?.book_value_range ?? ''}
+              name="cash_flow_range"
+              defaultValue={draft?.cash_flow_range ?? ''}
               className="mt-1 w-full border rounded px-3 py-2 hover:cursor-pointer"
             >
               <option value="">—</option>
-
-              <option value="0_50k">0–50K</option>
-              <option value="50k_150k">50K–150K</option>
-              <option value="150k_350k">150K–350K</option>
-              <option value="350k_750k">350K–750K</option>
-              <option value="750k_1_5m">750K–1.5M</option>
-              <option value="1_5m_5m">1.5M–5M</option>
-              <option value="5m_plus">5M+</option>
+              {CASH_FLOW_BUCKETS.map((c) => (
+                <option key={c.key} value={c.key}>{c.label}</option>
+              ))}
             </select>
           </label>
 
@@ -126,11 +120,9 @@ export default function DetailsFormClient({ listingId, draft, save }: DetailsFor
               className="mt-1 w-full border rounded px-3 py-2 hover:cursor-pointer"
             >
               <option value="">—</option>
-              <option value="lt_50k">Under 50K</option>
-              <option value="50k_150k">50K–150K</option>
-              <option value="150k_500k">150K–500K</option>
-              <option value="500k_1m">500K–1M</option>
-              <option value="gt_1m">1M+</option>
+              {EBITDA_BUCKETS.map((e) => (
+                <option key={e.key} value={e.key}>{e.label}</option>
+              ))}
             </select>
           </label>
 
@@ -142,11 +134,9 @@ export default function DetailsFormClient({ listingId, draft, save }: DetailsFor
               className="mt-1 w-full border rounded px-3 py-2 hover:cursor-pointer"
             >
               <option value="">—</option>
-              <option value="lt_1">Less than 1</option>
-              <option value="1_3">1–3</option>
-              <option value="3_5">3–5</option>
-              <option value="5_10">5–10</option>
-              <option value="gt_10">10+</option>
+              {YEARS_IN_BUSINESS_BUCKETS.map((y) => (
+                <option key={y.key} value={y.key}>{y.label}</option>
+              ))}
             </select>
           </label>
 
@@ -158,12 +148,9 @@ export default function DetailsFormClient({ listingId, draft, save }: DetailsFor
               className="mt-1 w-full border rounded px-3 py-2 hover:cursor-pointer"
             >
               <option value="">—</option>
-              <option value="1_4">1–4</option>
-              <option value="5_10">5–10</option>
-              <option value="11_25">11–25</option>
-              <option value="26_50">26–50</option>
-              <option value="51_100">51–100</option>
-              <option value="gt_100">100+</option>
+              {EMPLOYEE_COUNT_BUCKETS.map((em) => (
+                <option key={em.key} value={em.key}>{em.label}</option>
+              ))}
             </select>
           </label>
 

@@ -23,9 +23,9 @@ export type InvestorMatch = {
 
 export type BusinessDashboardData = {
   kind: "business";
-  matches: InvestorMatch[];   // what <MatchedInvestors> expects
-  activities: Activity[];     // what <RecentActivityList> expects
-  events: EventItem[];        // what <UpcomingEventsList> expects
+  matches: InvestorMatch[]; // what <MatchedInvestors> expects
+  activities: Activity[]; // what <RecentActivityList> expects
+  events: EventItem[]; // what <UpcomingEventsList> expects
 };
 
 export async function getBusinessDashboardData(
@@ -35,8 +35,9 @@ export async function getBusinessDashboardData(
   const { data: listingsRaw, error: listingsErr } = await supabase
     .from("business_listings")
     .select(
-      "id, owner_id, title, industry, ebitda_range, annual_revenue_range, created_at, status, is_active"
+      "id, owner_id, title, industry, ebitda_range, cash_flow_range, annual_revenue_range, created_at, status, is_active"
     )
+
     .eq("owner_id", userId)
     .eq("is_active", true)
     .order("created_at", { ascending: false })
@@ -46,11 +47,22 @@ export async function getBusinessDashboardData(
 
   const listings = (listingsRaw ?? []) as Listing[];
 
-  const [matches, activities, events] = await Promise.all([
+  // lib/dashboard/getBusinessDashboardData.ts
+  const [rawMatches, activities, events] = await Promise.all([
     matchInvestorsToListings(supabase, listings),
     getRecentActivity(supabase, userId, listings),
     getUpcomingEvents(),
   ]);
+
+  const matches = rawMatches.map((m) => ({
+    id: m.id,
+    primary_industry: m.primary_industry,
+    _source: m._source,
+    avatar_path: m.avatar_path,
+    score: m.score,
+    first_name: m.profiles?.first_name ?? null,
+    last_name: m.profiles?.last_name ?? null,
+  }));
 
   return { kind: "business" as const, matches, activities, events };
 }

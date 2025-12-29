@@ -1,99 +1,112 @@
 // app/(member)/dashboard/profile/edit/page.tsx
-import { createClientRSC } from '@/../utils/supabase/server'
-import { redirect } from 'next/navigation'
-import Link from 'next/link'
-import Button from '@/app/components/Button'
-import { Progress } from '@/components/ui/progress'
-import { INDUSTRY_SLUGS } from '@/lib/industryImages'
-import OwnershipRange from '@/app/onboarding/investor/preferences/OwnershipRange'
+import { createClientRSC } from "@/../utils/supabase/server";
+import { redirect } from "next/navigation";
+import Link from "next/link";
+import Button from "@/app/components/Button";
+import { Progress } from "@/components/ui/progress";
+import { INDUSTRY_SLUGS } from "@/lib/industryImages";
+import OwnershipRange from "@/app/onboarding/investor/preferences/OwnershipRange";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
-} from "@/components/ui/tooltip"
-import { Database } from '@/types/database.types'
+} from "@/components/ui/tooltip";
+import { Database } from "@/types/database.types";
+import { EBITDA_BUCKETS } from "@/lib/ranges";
 
-const INDUSTRIES = Object.keys(INDUSTRY_SLUGS)
+const INDUSTRIES = Object.keys(INDUSTRY_SLUGS);
 
 type InvestorProfileRow =
   Database["public"]["Tables"]["investor_profiles"]["Update"];
 
-
 export default async function EditInvestorProfilePage() {
-  const supabase = await createClientRSC()
-  const { data: { user } } = await supabase.auth.getUser()
+  const supabase = await createClientRSC();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect('/login?next=/dashboard/profile/edit')
+    redirect("/login?next=/dashboard/profile/edit");
   }
 
   const { data: profile } = await supabase
-    .from('investor_profiles')
-    .select(`
+    .from("investor_profiles")
+    .select(
+      `
       user_id, first_name, last_name, city, organization_entity, bio,
       ownership_min, ownership_max, primary_industry, additional_industries,
       target_ebitda, target_cash_flow,
       willing_to_sign_nda, is_accredited_investor,
       avatar_path, status
-    `)
-    .eq('user_id', user.id)
-    .maybeSingle()
+    `
+    )
+    .eq("user_id", user.id)
+    .maybeSingle();
 
   if (!profile) {
-    redirect('/onboarding/investor')
+    redirect("/onboarding/investor");
   }
 
-  let avatarUrl: string | null = null
+  let avatarUrl: string | null = null;
   if (profile.avatar_path) {
     const { data } = await supabase.storage
-      .from('investors')
-      .createSignedUrl(profile.avatar_path, 60 * 60)
-    avatarUrl = data?.signedUrl ?? null
+      .from("investors")
+      .createSignedUrl(profile.avatar_path, 60 * 60);
+    avatarUrl = data?.signedUrl ?? null;
   }
 
   async function updateInvestorProfile(formData: FormData) {
-    'use server'
-    const { createClientRSC } = await import('@/../utils/supabase/server')
-    const sb = await createClientRSC()
-    const { data: { user } } = await sb.auth.getUser()
+    "use server";
+    const { createClientRSC } = await import("@/../utils/supabase/server");
+    const sb = await createClientRSC();
+    const {
+      data: { user },
+    } = await sb.auth.getUser();
 
     if (!user) {
-      redirect('/login?next=/dashboard/profile/edit')
+      redirect("/login?next=/dashboard/profile/edit");
     }
 
-    const first_name = (formData.get('first_name') ?? '').toString().trim() || null
-    const last_name = (formData.get('last_name') ?? '').toString().trim() || null
-    const city = (formData.get('city') ?? '').toString().trim() || null
-    const organization_entity = (formData.get('organization_entity') ?? '').toString().trim() || null
-    const bio = (formData.get('bio') ?? '').toString().trim() || null
+    const first_name =
+      (formData.get("first_name") ?? "").toString().trim() || null;
+    const last_name =
+      (formData.get("last_name") ?? "").toString().trim() || null;
+    const city = (formData.get("city") ?? "").toString().trim() || null;
+    const organization_entity =
+      (formData.get("organization_entity") ?? "").toString().trim() || null;
+    const bio = (formData.get("bio") ?? "").toString().trim() || null;
 
     // Ownership range (keep simple; OwnershipRange already enforces 0–100)
-    const ownership_min_raw = formData.get('ownership_min')
-    const ownership_max_raw = formData.get('ownership_max')
+    const ownership_min_raw = formData.get("ownership_min");
+    const ownership_max_raw = formData.get("ownership_max");
 
     const ownership_min =
-      ownership_min_raw !== null && ownership_min_raw.toString().trim() !== ''
+      ownership_min_raw !== null && ownership_min_raw.toString().trim() !== ""
         ? Number(ownership_min_raw)
-        : null
+        : null;
 
     const ownership_max =
-      ownership_max_raw !== null && ownership_max_raw.toString().trim() !== ''
+      ownership_max_raw !== null && ownership_max_raw.toString().trim() !== ""
         ? Number(ownership_max_raw)
-        : null
+        : null;
 
-    const primary_industry = (formData.get('primary_industry') ?? '').toString().trim() || null
+    const primary_industry =
+      (formData.get("primary_industry") ?? "").toString().trim() || null;
 
     // Works with checkbox group (same name="additional_industries")
     const additional_industries = formData
-      .getAll('additional_industries')
+      .getAll("additional_industries")
       .map((v) => v.toString().trim())
-      .filter(Boolean)
+      .filter(Boolean);
 
-    const target_ebitda = (formData.get('target_ebitda') ?? '').toString().trim() || null
-    const target_cash_flow = (formData.get('target_cash_flow') ?? '').toString().trim() || null
+    const target_ebitda =
+      (formData.get("target_ebitda") ?? "").toString().trim() || null;
+    const target_cash_flow =
+      (formData.get("target_cash_flow") ?? "").toString().trim() || null;
 
-    const willing_to_sign_nda = formData.get('willing_to_sign_nda') === 'on'
-    const is_accredited_investor = formData.get('is_accredited_investor') === 'on'
+    const willing_to_sign_nda = formData.get("willing_to_sign_nda") === "on";
+    const is_accredited_investor =
+      formData.get("is_accredited_investor") === "on";
 
     const payload: InvestorProfileRow = {
       first_name,
@@ -104,55 +117,57 @@ export default async function EditInvestorProfilePage() {
       ownership_min,
       ownership_max,
       primary_industry,
-      additional_industries: additional_industries.length ? additional_industries : null,
+      additional_industries: additional_industries.length
+        ? additional_industries
+        : null,
       target_ebitda,
       target_cash_flow,
       willing_to_sign_nda,
       is_accredited_investor,
-    }
+    };
 
     const { error: updErr } = await sb
-      .from('investor_profiles')
+      .from("investor_profiles")
       .update(payload)
-      .eq('user_id', user.id)
-      .single()
+      .eq("user_id", user.id)
+      .single();
 
     if (updErr) {
-      console.error('Investor profile update failed:', updErr)
-      redirect('/dashboard?msg=investor_update_failed')
+      console.error("Investor profile update failed:", updErr);
+      redirect("/dashboard?msg=investor_update_failed");
     }
 
-    const file = formData.get('avatar') as File | null
+    const file = formData.get("avatar") as File | null;
     if (file && file.size > 0) {
-      const ext = (file.name.split('.').pop() || 'jpg').toLowerCase()
-      const key = `${user.id}/avatar.${ext}`
+      const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
+      const key = `${user.id}/avatar.${ext}`;
 
       const { error: uploadErr } = await sb.storage
-        .from('investors')
+        .from("investors")
         .upload(key, file, {
           upsert: true,
-          contentType: file.type || 'image/jpeg',
-          cacheControl: '3600',
-        })
+          contentType: file.type || "image/jpeg",
+          cacheControl: "3600",
+        });
 
       if (uploadErr) {
-        console.error('Investor avatar upload failed:', uploadErr)
-        redirect('/dashboard?msg=investor_avatar_failed')
+        console.error("Investor avatar upload failed:", uploadErr);
+        redirect("/dashboard?msg=investor_avatar_failed");
       }
 
       const { error: avatarUpdErr } = await sb
-        .from('investor_profiles')
+        .from("investor_profiles")
         .update({ avatar_path: key })
-        .eq('user_id', user.id)
-        .single()
+        .eq("user_id", user.id)
+        .single();
 
       if (avatarUpdErr) {
-        console.error('avatar_path update failed:', avatarUpdErr)
-        redirect('/dashboard?msg=investor_avatar_path_failed')
+        console.error("avatar_path update failed:", avatarUpdErr);
+        redirect("/dashboard?msg=investor_avatar_path_failed");
       }
     }
 
-    redirect('/dashboard?msg=investor_profile_updated')
+    redirect("/dashboard?msg=investor_profile_updated");
   }
 
   return (
@@ -212,7 +227,7 @@ export default async function EditInvestorProfilePage() {
               <span>First name</span>
               <input
                 name="first_name"
-                defaultValue={profile.first_name ?? ''}
+                defaultValue={profile.first_name ?? ""}
                 required
                 className="mt-1 w-full border rounded px-3 py-2"
               />
@@ -221,7 +236,7 @@ export default async function EditInvestorProfilePage() {
               <span>Last name</span>
               <input
                 name="last_name"
-                defaultValue={profile.last_name ?? ''}
+                defaultValue={profile.last_name ?? ""}
                 required
                 className="mt-1 w-full border rounded px-3 py-2"
               />
@@ -232,7 +247,7 @@ export default async function EditInvestorProfilePage() {
             <span>City / Region</span>
             <input
               name="city"
-              defaultValue={profile.city ?? ''}
+              defaultValue={profile.city ?? ""}
               required
               className="mt-1 w-full border rounded px-3 py-2"
               placeholder="McAllen, TX"
@@ -243,7 +258,7 @@ export default async function EditInvestorProfilePage() {
             <span>Organization / Entity (optional)</span>
             <input
               name="organization_entity"
-              defaultValue={profile.organization_entity ?? ''}
+              defaultValue={profile.organization_entity ?? ""}
               className="mt-1 w-full border rounded px-3 py-2"
               placeholder="Garza Family Investments LLC"
             />
@@ -267,7 +282,7 @@ export default async function EditInvestorProfilePage() {
             <span>Primary industry focus</span>
             <select
               name="primary_industry"
-              defaultValue={profile.primary_industry ?? ''}
+              defaultValue={profile.primary_industry ?? ""}
               required
               className="mt-1 w-full border rounded px-3 py-2 hover:cursor-pointer"
             >
@@ -288,7 +303,7 @@ export default async function EditInvestorProfilePage() {
               {INDUSTRIES.map((opt) => {
                 const checked =
                   Array.isArray(profile.additional_industries) &&
-                  profile.additional_industries.includes(opt)
+                  profile.additional_industries.includes(opt);
 
                 return (
                   <label
@@ -304,7 +319,7 @@ export default async function EditInvestorProfilePage() {
                     />
                     <span>{opt}</span>
                   </label>
-                )
+                );
               })}
             </div>
 
@@ -316,19 +331,18 @@ export default async function EditInvestorProfilePage() {
           {/* Targets */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
             <label className="block">
-              <span>EBITDA target (optional)</span>
+              <span>Company EBITDA target</span>
               <select
-                name="target_ebitda"
-                defaultValue={profile.target_ebitda ?? ''}
+                name="ebitda_bucket"
+                defaultValue={profile?.target_ebitda ?? ""}
                 className="mt-1 w-full border rounded px-3 py-2 hover:cursor-pointer"
               >
-                <option value="">No preference</option>
-                <option value="<250k">Under $250k</option>
-                <option value="250k-500k">$250k – $500k</option>
-                <option value="500k-1M">$500k – $1M</option>
-                <option value="1M-2M">$1M – $2M</option>
-                <option value="2M-5M">$2M – $5M</option>
-                <option value=">5M">Over $5M</option>
+                <option value="">-</option>
+                {EBITDA_BUCKETS.map((b) => (
+                  <option key={b.key} value={b.key}>
+                    {b.label}
+                  </option>
+                ))}
               </select>
             </label>
 
@@ -336,7 +350,7 @@ export default async function EditInvestorProfilePage() {
               <span>Cash flow (SDE) target (optional)</span>
               <select
                 name="target_cash_flow"
-                defaultValue={profile.target_cash_flow ?? ''}
+                defaultValue={profile.target_cash_flow ?? ""}
                 className="mt-1 w-full border rounded px-3 py-2 hover:cursor-pointer"
               >
                 <option value="">No preference</option>
@@ -376,16 +390,19 @@ export default async function EditInvestorProfilePage() {
                 Investor description <TooltipTrigger> ⓘ</TooltipTrigger>
               </span>
               <TooltipContent>
-                Describe your investment background, what types of businesses you&apos;re drawn to,
-                and how you typically support owners beyond capital.<br />
-                Highlight your experience, preferred deal structures, and what makes you a strong
-                long-term partner. Avoid listing confidential details or personal identifiers.
+                Describe your investment background, what types of businesses
+                you&apos;re drawn to, and how you typically support owners
+                beyond capital.
+                <br />
+                Highlight your experience, preferred deal structures, and what
+                makes you a strong long-term partner. Avoid listing confidential
+                details or personal identifiers.
               </TooltipContent>
             </Tooltip>
             <textarea
               name="bio"
               rows={5}
-              defaultValue={profile.bio ?? ''}
+              defaultValue={profile.bio ?? ""}
               className="mt-1 w-full border rounded px-3 py-2"
               placeholder={`Experienced small business investor focused on stable, cash-flowing companies in South Texas. I typically look for owner-operated businesses with strong local reputations and room for operational improvements.
 
@@ -399,5 +416,5 @@ Beyond capital, I support owners with strategic planning, financial discipline, 
         </form>
       </div>
     </div>
-  )
+  );
 }
