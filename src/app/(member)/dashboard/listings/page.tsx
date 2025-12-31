@@ -9,6 +9,7 @@ import { getListingBadges } from "@/lib/listings/badges";
 import { imageUrl } from "@/lib/industryImages";
 import NavGate from "@/app/components/NavGate";
 import { headers } from "next/headers";
+import { getStripe } from "@/lib/stripe";
 
 const PRICE_LISTING_MONTHLY = process.env.NEXT_PUBLIC_STRIPE_PRICE_BUSINESS_MONTHLY!;
 const PRICE_LISTING_YEARLY = process.env.NEXT_PUBLIC_STRIPE_PRICE_BUSINESS_YEARLY!;
@@ -133,7 +134,7 @@ async function startBoost(listingId: string) {
   const { ensureCustomer } = await import("@/lib/ensure-customer");
   const customerId = await ensureCustomer(user);
 
-  const { stripe } = await import("@/lib/stripe");
+  const stripe = getStripe();
 
   // (Optional) ensure the price is recurring
   const price = await stripe.prices.retrieve(promoPriceId);

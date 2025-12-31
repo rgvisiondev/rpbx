@@ -2,7 +2,7 @@
 export const runtime = "nodejs";
 
 import { NextResponse } from "next/server";
-import { stripe } from "@/lib/stripe";
+import { getStripe } from "@/lib/stripe";
 import { ensureCustomer } from "@/lib/ensure-customer";
 
 const ORIGIN = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
@@ -19,6 +19,7 @@ const ORIGIN = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
  */
 export async function POST(req: Request) {
   try {
+    const stripe = getStripe();
     const { createClientRSC } = await import("@/../utils/supabase/server");
     const supabase = await createClientRSC();
 

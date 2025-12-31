@@ -1,12 +1,13 @@
 // app/api/billing/portal/route.ts
 export const runtime = "nodejs";
 
-import { stripe } from "@/lib/stripe";
+import { getStripe } from "@/lib/stripe";
 import { ensureCustomer } from "@/lib/ensure-customer";
 import { createClientRSC } from "@/../utils/supabase/server";
 
 export async function POST(req: Request) {
   try {
+    const stripe = getStripe();
     const supabase = await createClientRSC();
     const {
       data: { user },

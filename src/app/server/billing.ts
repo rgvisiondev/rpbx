@@ -1,7 +1,7 @@
 // app/server/billing.ts
 "use server";
 
-import { stripe } from "@/lib/stripe";
+import { getStripe } from "@/lib/stripe";
 import { ensureCustomer } from "@/lib/ensure-customer";
 
 function pickPortalConfig() {
@@ -16,6 +16,7 @@ export async function openBillingPortal(returnTo: string) {
   // Reuse your RSC helper to get the logged-in user on the server
   const { createClientRSC } = await import("@/../utils/supabase/server");
   const supabase = await createClientRSC();
+  const stripe = getStripe();
 
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("Not signed in");

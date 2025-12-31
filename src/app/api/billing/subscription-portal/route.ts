@@ -3,7 +3,7 @@ export const runtime = "nodejs";
 
 import { NextRequest, NextResponse } from "next/server";
 import { createClientRSC } from "@/../utils/supabase/server";
-import { stripe } from "@/lib/stripe";
+import { getStripe } from "@/lib/stripe";
 import { ensureCustomer } from "@/lib/ensure-customer";
 
 const ORIGIN =
@@ -61,6 +61,7 @@ export async function POST(req: NextRequest) {
       };
 
   try {
+    const stripe = getStripe();
     const session = await stripe.billingPortal.sessions.create({
       customer: customerId,
       return_url: `${ORIGIN}/dashboard/billing`,

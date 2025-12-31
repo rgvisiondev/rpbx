@@ -2,7 +2,7 @@
 export const runtime = 'nodejs' // keep Node runtime for Stripe SDK
 
 import Stripe from 'stripe'
-import { stripe } from '@/lib/stripe'
+import { getStripe } from '@/lib/stripe'
 import { createClientRSC } from '@/../utils/supabase/server'
 import { ensureCustomer } from '@/lib/ensure-customer' // make sure the path matches your file
 import { verifyTurnstileToken } from '@/lib/verifyTurnstile'
@@ -23,6 +23,7 @@ export async function POST(req: Request) {
   const origin = req.headers.get('origin') ?? process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
 
   try {
+    const stripe = getStripe();
     const form = await req.formData()
     const lookup = String(form.get('lookup') ?? '')
     const priceIdFromForm = String(form.get('priceId') ?? '') // optional fallback

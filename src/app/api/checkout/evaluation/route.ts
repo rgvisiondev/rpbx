@@ -1,7 +1,7 @@
 // app/api/checkout/evaluation/route.ts
 export const runtime = "nodejs";
 
-import { stripe } from "@/lib/stripe";
+import { getStripe } from "@/lib/stripe";
 import { ensureCustomer } from "@/lib/ensure-customer";
 import { pickEvaluationPriceId } from "@/lib/evaluations/pricing";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -18,6 +18,7 @@ type EvalRequestBody = { listingId?: string };
 
 export async function POST(req: Request) {
   try {
+    const stripe = getStripe();
     const { createClientRSC } = await import("@/../utils/supabase/server");
     // Give supabase its concrete type
     const supabase = (await createClientRSC()) as SupabaseClient<Database>;
