@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClientRSC } from "@/../utils/supabase/server";
 import { getStripe } from "@/lib/stripe";
 import { ensureCustomer } from "@/lib/ensure-customer";
+import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
 const ORIGIN =
   process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
@@ -21,7 +22,9 @@ export async function POST(req: NextRequest) {
       { status: 400 }
     );
   }
-  
+
+  const admin = getSupabaseAdmin();
+
   const stripe = getStripe();
   const supabase = await createClientRSC();
   const {
@@ -48,7 +51,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const customerId = await ensureCustomer(stripe, supabase, user);
+  const customerId = await ensureCustomer(stripe, admin, user);
 
   const flowData =
     action === "cancel"
