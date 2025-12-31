@@ -22,7 +22,7 @@ export async function openBillingPortal(returnTo: string) {
   if (!user) throw new Error("Not signed in");
 
   // Ensure one Stripe customer per user
-  const customerId = await ensureCustomer(user);
+  const customerId = await ensureCustomer(stripe, supabase, user);
 
   const configuration = pickPortalConfig();
   const session = await stripe.billingPortal.sessions.create({

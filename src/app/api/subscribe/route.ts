@@ -116,7 +116,7 @@ export async function POST(req: Request) {
     const intendedUserType = deriveUserTypeFromPrice(price)
 
     // 3) Ensure Stripe Customer mapped to this user
-    const customerId = await ensureCustomer({ id: userId, email: signUpRes.user?.email ?? email })
+    const customerId = await ensureCustomer(stripe, supabase, { id: userId, email: signUpRes.user?.email ?? email })
 
     // 4) Create Checkout Session (subscription) with helpful metadata
     const session = await stripe.checkout.sessions.create({

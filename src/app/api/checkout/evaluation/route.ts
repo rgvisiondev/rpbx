@@ -61,7 +61,7 @@ export async function POST(req: Request) {
     const priceId = await pickEvaluationPriceId(supabase, user.id);
 
     // Ensure Stripe customer
-    const customerId = await ensureCustomer(user);
+    const customerId = await ensureCustomer(stripe, supabase, user);
 
     const origin =
       req.headers.get("origin") ??

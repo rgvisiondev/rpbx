@@ -103,6 +103,7 @@ async function startBoost(listingId: string) {
   "use server";
 
   const { createClientRSC } = await import("@/../utils/supabase/server");
+  const stripe = getStripe();
   const supabase = await createClientRSC();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login?next=/dashboard/listings");
@@ -132,9 +133,7 @@ async function startBoost(listingId: string) {
   if (!promoPriceId) redirect("/dashboard/listings?err=missing_price");
 
   const { ensureCustomer } = await import("@/lib/ensure-customer");
-  const customerId = await ensureCustomer(user);
-
-  const stripe = getStripe();
+  const customerId = await ensureCustomer(stripe, supabase, user);
 
   // (Optional) ensure the price is recurring
   const price = await stripe.prices.retrieve(promoPriceId);

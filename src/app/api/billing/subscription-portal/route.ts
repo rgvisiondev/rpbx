@@ -21,7 +21,8 @@ export async function POST(req: NextRequest) {
       { status: 400 }
     );
   }
-
+  
+  const stripe = getStripe();
   const supabase = await createClientRSC();
   const {
     data: { user },
@@ -47,7 +48,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const customerId = await ensureCustomer(user);
+  const customerId = await ensureCustomer(stripe, supabase, user);
 
   const flowData =
     action === "cancel"
@@ -61,7 +62,6 @@ export async function POST(req: NextRequest) {
       };
 
   try {
-    const stripe = getStripe();
     const session = await stripe.billingPortal.sessions.create({
       customer: customerId,
       return_url: `${ORIGIN}/dashboard/billing`,

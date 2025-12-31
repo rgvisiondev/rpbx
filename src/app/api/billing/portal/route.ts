@@ -22,7 +22,7 @@ export async function POST(req: Request) {
       "http://localhost:3000";
 
     // Reuse/ensure Stripe Customer for this user
-    const customerId = await ensureCustomer(user);
+    const customerId = await ensureCustomer(stripe, supabase, user);
 
     const session = await stripe.billingPortal.sessions.create({
       customer: customerId,

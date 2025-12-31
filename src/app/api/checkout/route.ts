@@ -135,7 +135,7 @@ export async function POST(req: Request) {
     const pricePurpose = String(fetchedPrice.metadata?.purpose || "").toLowerCase(); // 'listing_promo' | 'listing_plan' | ''
 
     // Ensure Stripe customer once (used for all branches)
-    const customerId = await ensureCustomer(user);
+    const customerId = await ensureCustomer(stripe, supabase, user);
 
     // -------------------------
     // SPECIAL CASE: listing_plan
