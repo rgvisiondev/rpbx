@@ -1,23 +1,13 @@
-import { Resend } from "resend";
 import { verifyTurnstileToken } from "@/lib/verifyTurnstile";
 import ContactBusiness from "@/emails/ContactBusiness";
 import { render } from "@react-email/components";
-
-function getResend() {
-  const key = process.env.RESEND_API_KEY;
-  const from = process.env.EMAIL_FROM ?? "RioPlex <notifications@rioplexbizx.com>";
-  if (!key) throw Error("RESEND_API_KEY missing");
-
-  return {
-    resend: new Resend(key),
-    from,
-  };
-}
+import { getResendClient, getEmailFrom } from "@/lib/resend";
 
 export async function POST(req: Request) {
 
   try {
-    const { resend, from } = getResend();
+    const resend = getResendClient();
+    const from = getEmailFrom();
 
     const body = await req.json();
     const {
