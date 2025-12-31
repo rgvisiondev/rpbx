@@ -1,9 +1,12 @@
-//import { NextResponse } from "next/server";
 import OpenAI from "openai";
 import * as cheerio from 'cheerio';
 import type { CheerioAPI } from 'cheerio';
 
-const client = new OpenAI();
+function getOpenAI() {
+    const apiKey = process.env.OPENAI_API_KEY;
+    if (!apiKey) throw new Error("OPENAI_API_KEY missing");
+    return new OpenAI({ apiKey });
+}
 
 function textCleanup($page: CheerioAPI){
 
@@ -48,6 +51,8 @@ function collectHrefs($: CheerioAPI){
 
 
 export async function getBusinessDescriptionFromSite(url: string, address: string, business_name: string): Promise<string>{
+
+    const client = getOpenAI();
     
     const text: string[] = []
     
