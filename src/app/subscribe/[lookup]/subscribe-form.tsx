@@ -16,6 +16,7 @@ export function SubscribeForm({
   const [showPw, setShowPw] = React.useState(false);
   const [turnstileToken, setTurnstileToken] = React.useState<string | null>(null);
   const [errorMsg, setErrorMsg] = React.useState<string | null>(null);
+  const [verifying, setVerifying] = React.useState(false);
 
   const formRef = React.useRef<HTMLFormElement | null>(null);
   const turnstileRef = React.useRef<TurnstileHandle>(null);
@@ -24,10 +25,27 @@ export function SubscribeForm({
   const submitLockRef = React.useRef(false);
   const lastTokenRef = React.useRef<string | null>(null);
 
-  // If you want extra UX: disable the button while verifying/submitting
-  const [verifying, setVerifying] = React.useState(false);
+  // Check for error in URL on mount
+  React.useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const error = params.get('error');
+    
+    if (error) {
+      const errorMessages: Record<string, string> = {
+        username_taken: 'This username is already taken. Please choose a different one.',
+        account_exists: 'An account with this email already exists. Please sign in instead.',
+        verification_failed: 'Verification failed. Please try again.',
+        rate_limit: 'Too many attempts. Please wait a moment and try again.',
+        missing_fields: 'Please fill out all required fields.',
+        invalid_plan: 'Invalid subscription plan selected.',
+        unknown: 'An error occurred. Please try again.',
+      };
+      
+      setErrorMsg(errorMessages[error] || errorMessages.unknown);
+    }
+  }, []);
 
-  const submitWithToken = (token: string) => {
+  const submitWithToken = React.useCallback((token: string) => {
     // Prevent duplicate submits (callback can fire more than once)
     if (submitLockRef.current) return;
     if (lastTokenRef.current === token) return;
@@ -37,20 +55,20 @@ export function SubscribeForm({
 
     // Put token into hidden input (server reads turnstile_token)
     setTurnstileToken(token);
+    setVerifying(false);
 
-    // Submit the native form exactly once
-    // (use requestSubmit when available to respect form validation)
-    if (formRef.current) {
-      if (typeof formRef.current.requestSubmit === "function") {
-        formRef.current.requestSubmit();
-      } else {
+    // Wait for React to update the DOM with the token value, then submit
+    setTimeout(() => {
+      if (formRef.current) {
+        // Use native submit() to bypass the onSubmit handler
         formRef.current.submit();
       }
-    }
-  };
+    }, 100);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    
     setErrorMsg(null);
 
     // Prevent double-clicks / rapid submits
@@ -58,20 +76,18 @@ export function SubscribeForm({
 
     // New click => allow a new token
     lastTokenRef.current = null;
-
+    submitLockRef.current = false;
     setVerifying(true);
 
     // Trigger Turnstile; token arrives via onVerify -> submitWithToken
-    await turnstileRef.current?.execute();
-
-    // If script isn't ready, execute() calls onError; we unset verifying there.
-    // If it succeeds, the form will submit and navigate away.
-    // If it fails silently, we can safely re-enable after a short tick.
-    // (keeps UX responsive without reintroducing loops)
-    setTimeout(() => {
-      // Only unlock if we didn't already submit (lock remains true after submitWithToken)
-      if (!submitLockRef.current) setVerifying(false);
-    }, 0);
+    try {
+      await turnstileRef.current?.execute();
+    } catch (err) {
+      setVerifying(false);
+      submitLockRef.current = false;
+      setErrorMsg('Verification failed. Please try again.');
+      console.log(err);
+    }
   };
 
   return (
@@ -153,7 +169,9 @@ export function SubscribeForm({
       <TurnstileWidget
         ref={turnstileRef}
         action="signup"
-        onVerify={(token) => submitWithToken(token)}
+        onVerify={(token) => {
+          submitWithToken(token);
+        }}
         onError={() => {
           // Release locks so user can retry
           submitLockRef.current = false;
@@ -163,7 +181,7 @@ export function SubscribeForm({
           setTurnstileToken(null);
 
           setErrorMsg("Verification failed. Please try again.");
-          // Optional: make sure widget is fresh for the next click
+          // Reset widget for next attempt
           turnstileRef.current?.reset();
         }}
       />
