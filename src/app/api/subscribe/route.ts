@@ -1,10 +1,10 @@
 // app/api/subscribe/route.ts
-export const runtime = 'nodejs' // keep Node runtime for Stripe SDK
+export const runtime = 'nodejs'
 
 import Stripe from 'stripe'
 import { stripe } from '@/lib/stripe'
 import { createClientRSC } from '@/../utils/supabase/server'
-import { ensureCustomer } from '@/lib/ensure-customer' // make sure the path matches your file
+import { ensureCustomer } from '@/lib/ensure-customer'
 import { verifyTurnstileToken } from '@/lib/verifyTurnstile'
 
 function deriveUserTypeFromPrice(price: Stripe.Price): 'investor' | 'business' | 'member' {
@@ -15,17 +15,19 @@ function deriveUserTypeFromPrice(price: Stripe.Price): 'investor' | 'business' |
   if (lk.startsWith('investor_')) return 'investor'
   if (lk.startsWith('business_')) return 'business'
 
-  // default role before webhook adjusts (matches your DB default)
   return 'member'
 }
 
 export async function POST(req: Request) {
   const origin = req.headers.get('origin') ?? process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
+  
+  // Declare lookup at top level so catch block can access it
+  let lookup = ''
 
   try {
     const form = await req.formData()
-    const lookup = String(form.get('lookup') ?? '')
-    const priceIdFromForm = String(form.get('priceId') ?? '') // optional fallback
+    lookup = String(form.get('lookup') ?? '')
+    const priceIdFromForm = String(form.get('priceId') ?? '')
     const firstName = String(form.get('first_name') ?? '')
     const lastName = String(form.get('last_name') ?? '')
     const username = String(form.get('username') ?? '')
@@ -42,6 +44,7 @@ export async function POST(req: Request) {
     if ((!lookup && !priceIdFromForm) || !email || !password) {
       return Response.redirect(`${origin}/subscribe/${lookup}?error=missing_fields`, 303)
     }
+    
     if (!turnstileToken || typeof turnstileToken !== "string"){
       return Response.redirect(
         `${origin}/subscribe/${lookup}?error=verification_failed`,
@@ -57,19 +60,26 @@ export async function POST(req: Request) {
       );
     }
 
-    // 1) Create Supabase user (session may be null if email confirmations are ON)
+    // 1) Create Supabase user
     const supabase = await createClientRSC()
     const { data: signUpRes, error: signUpErr } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        data: { first_name: firstName, last_name: lastName, username }, // stored in user_metadata
-        emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/verified`,
+        data: { first_name: firstName, last_name: lastName, username },
+        emailRedirectTo: `${origin}/verified`,
       },
     })
 
     if (signUpErr) {
       console.error('Sign up error:', signUpErr)
+
+      // Check for username already taken (unique constraint violation)
+      if (String(signUpErr.message).toLowerCase().includes('unique') ||
+        String(signUpErr.message).toLowerCase().includes('username') ||
+        String(signUpErr.message).toLowerCase().includes('duplicate')) {
+        return Response.redirect(`${origin}/subscribe/${lookup}?error=username_taken`, 303)
+      }
 
       // Check for "user already exists" error
       if (String(signUpErr.message).toLowerCase().includes('already registered') ||
@@ -83,7 +93,6 @@ export async function POST(req: Request) {
         return Response.redirect(`${origin}/subscribe/${lookup}?error=rate_limit`, 303)
       }
 
-      // Generic error - redirect back with unknown error
       return Response.redirect(`${origin}/subscribe/${lookup}?error=unknown`, 303)
     }
 
@@ -92,7 +101,7 @@ export async function POST(req: Request) {
       return Response.redirect(`${origin}/subscribe/${lookup}?error=unknown`, 303)
     }
 
-    // 2) Resolve the Price (by lookup preferred; priceId fallback)
+    // 2) Resolve the Price
     let price: Stripe.Price | null = null
     if (lookup) {
       const { data } = await stripe.prices.list({
@@ -111,25 +120,24 @@ export async function POST(req: Request) {
       return Response.redirect(`${origin}/subscribe/${lookup}?error=invalid_plan`, 303)
     }
 
-    // Derive user_type that the webhook will ultimately enforce
     const intendedUserType = deriveUserTypeFromPrice(price)
 
-    // 3) Ensure Stripe Customer mapped to this user
+    // 3) Ensure Stripe Customer
     const customerId = await ensureCustomer({ id: userId, email: signUpRes.user?.email ?? email })
 
-    // 4) Create Checkout Session (subscription) with helpful metadata
+    // 4) Create Checkout Session
     const session = await stripe.checkout.sessions.create({
       mode: 'subscription',
       customer: customerId,
       line_items: [{ price: price.id, quantity: 1 }],
-      client_reference_id: userId, // convenient for reconciling
+      client_reference_id: userId,
       subscription_data: {
         trial_period_days: trialDays > 0 ? trialDays : undefined,
         metadata: {
-          supabase_user_id: userId,                 // webhook uses this
-          plan_lookup: lookup || '',                // optional for logging
-          price_id: price.id,                       // explicit
-          user_type_intended: intendedUserType,     // webhook can read this or compute from Price again
+          supabase_user_id: userId,
+          plan_lookup: lookup || '',
+          price_id: price.id,
+          user_type_intended: intendedUserType,
         },
       },
       success_url: `${origin}/welcome?session_id={CHECKOUT_SESSION_ID}`,
@@ -138,17 +146,11 @@ export async function POST(req: Request) {
     })
 
     return Response.redirect(session.url!, 303)
+    
   } catch (e) {
     console.error('Subscribe flow error:', e)
-
-    // Get lookup from form if available for redirect
-    let lookup = ''
-    try {
-      const form = await req.formData()
-      lookup = String(form.get('lookup') ?? '')
-    } catch { }
-
-    // Redirect back to subscribe page with error instead of showing black screen
+    
+    // lookup is available from outer scope
     return Response.redirect(`${origin}/subscribe/${lookup || 'business_monthly'}?error=unknown`, 303)
   }
 }
