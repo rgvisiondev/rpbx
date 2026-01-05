@@ -6,63 +6,83 @@ import Link from "next/link";
 import { TurnstileWidget, type TurnstileHandle } from "@/app/components/TurnstileWidget";
 
 export function ActivateForm() {
-  const lookup =
-    process.env.NEXT_PUBLIC_STRIPE_LOOKUP_BUSINESS_LEGACY ?? "business_monthly";
-
+  const lookup = process.env.NEXT_PUBLIC_STRIPE_LOOKUP_BUSINESS_LEGACY ?? "business_monthly";
+  
   const [showPw, setShowPw] = React.useState(false);
   const [turnstileToken, setTurnstileToken] = React.useState<string | null>(null);
   const [errorMsg, setErrorMsg] = React.useState<string | null>(null);
-
+  const [verifying, setVerifying] = React.useState(false);
+  
   const formRef = React.useRef<HTMLFormElement | null>(null);
   const turnstileRef = React.useRef<TurnstileHandle>(null);
-
+  
   // Guards to prevent callback loops / duplicate submits
   const submitLockRef = React.useRef(false);
   const lastTokenRef = React.useRef<string | null>(null);
 
-  // Optional UX: show "Verifying..." while executing Turnstile
-  const [verifying, setVerifying] = React.useState(false);
+  // Check for error in URL on mount
+  React.useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const error = params.get('error');
+    
+    if (error) {
+      const errorMessages: Record<string, string> = {
+        username_taken: 'This username is already taken. Please choose a different one.',
+        account_exists: 'An account with this email already exists. Please sign in instead.',
+        verification_failed: 'Verification failed. Please try again.',
+        rate_limit: 'Too many attempts. Please wait a moment and try again.',
+        missing_fields: 'Please fill out all required fields.',
+        invalid_plan: 'Invalid subscription plan selected.',
+        unknown: 'An error occurred. Please try again.',
+      };
+      
+      setErrorMsg(errorMessages[error] || errorMessages.unknown);
+    }
+  }, []);
 
-  const submitWithToken = (token: string) => {
-    // Prevent duplicate submits (callback can fire more than once)
+  const submitWithToken = React.useCallback((token: string) => {
+    // Prevent duplicate submits
     if (submitLockRef.current) return;
     if (lastTokenRef.current === token) return;
-
+    
     submitLockRef.current = true;
     lastTokenRef.current = token;
-
-    // Put token into hidden input (server reads turnstile_token)
+    
+    // Set token in state
     setTurnstileToken(token);
-
-    // Submit native form once (requestSubmit respects validation)
-    if (formRef.current) {
-      if (typeof formRef.current.requestSubmit === "function") {
-        formRef.current.requestSubmit();
-      } else {
+    setVerifying(false);
+    
+    // Wait for React to update the DOM with the token value, then submit
+    setTimeout(() => {
+      if (formRef.current) {
+        // Use native submit() to bypass the onSubmit handler
         formRef.current.submit();
       }
-    }
-  };
+    }, 100);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    
     setErrorMsg(null);
-
+    
     // Prevent double-clicks / rapid submits
     if (submitLockRef.current || verifying) return;
-
+    
     // New click => allow a new token
     lastTokenRef.current = null;
-
+    submitLockRef.current = false;
     setVerifying(true);
-
+    
     // Trigger Turnstile; token arrives via onVerify -> submitWithToken
-    await turnstileRef.current?.execute();
-
-    // If script isn't ready, execute() will call onError (below) which clears verifying.
-    setTimeout(() => {
-      if (!submitLockRef.current) setVerifying(false);
-    }, 0);
+    try {
+      await turnstileRef.current?.execute();
+    } catch (err) {
+      setVerifying(false);
+      submitLockRef.current = false;
+      setErrorMsg('Verification failed. Please try again.');
+      console.log(err);
+    }
   };
 
   return (
@@ -94,7 +114,6 @@ export function ActivateForm() {
             required
           />
         </div>
-
         <div>
           <label
             htmlFor="last_name"
@@ -154,7 +173,6 @@ export function ActivateForm() {
         >
           Password
         </label>
-
         <input
           type={showPw ? "text" : "password"}
           id="password"
@@ -163,7 +181,6 @@ export function ActivateForm() {
           className="w-full px-4 py-3 rounded-lg bg-gray-50 border border-gray-200 focus:border-[#60BC9B] focus:ring-2 focus:ring-[#60BC9B]/20 outline-none transition-all font-medium text-slate-900 pr-12"
           required
         />
-
         <button
           type="button"
           aria-label={showPw ? "Hide password" : "Show password"}
@@ -181,15 +198,13 @@ export function ActivateForm() {
       <TurnstileWidget
         ref={turnstileRef}
         action="signup"
-        onVerify={(token) => submitWithToken(token)}
+        onVerify={(token) => {
+          submitWithToken(token);
+        }}
         onError={() => {
-          // Allow retries
           submitLockRef.current = false;
           setVerifying(false);
-
-          // Clear any stale token
           setTurnstileToken(null);
-
           setErrorMsg("Verification failed. Please try again.");
           turnstileRef.current?.reset();
         }}
