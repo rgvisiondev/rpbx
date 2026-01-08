@@ -1,6 +1,6 @@
 // src/app/subscribe/[lookup]/page.tsx
 import { notFound } from "next/navigation";
-import { getStripe } from "@/lib/stripe";
+import { stripe } from "@/lib/stripe";
 import Stripe from "stripe";
 import Link from "next/link";
 import { SubscribeForm } from "./subscribe-form";
@@ -45,7 +45,6 @@ export default async function SubscribePage({
   params: Promise<{ lookup: string }>;
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const stripe = getStripe();
   const { lookup } = await params;
   const q = await searchParams;
   const rawErr = readParam(q, "error");

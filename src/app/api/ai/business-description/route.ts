@@ -4,27 +4,20 @@ import { Redis } from "@upstash/redis";
 import { Ratelimit } from "@upstash/ratelimit";
 import { createClientWritable } from '@/../utils/supabase/server';
 
-export const runtime = "nodejs"
-export const dynamic = "force-dynamic"
+const redis = Redis.fromEnv();
 
-function getRateLimiter() {
-  const redis = Redis.fromEnv();
-
-  return new Ratelimit({
+const ratelimit = new Ratelimit({
   redis: redis,
   limiter: Ratelimit.slidingWindow(3, "5 m"),
   analytics: true,
   prefix: "@upstash/ratelimit",
 });
 
-}
-
 
 export async function POST(req: Request) {
   try {
 
     const supabase = await createClientWritable();
-    const ratelimit = getRateLimiter();
 
     const {
       data: { user },

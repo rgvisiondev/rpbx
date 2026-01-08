@@ -1,17 +1,12 @@
 // app/api/billing/portal/route.ts
 export const runtime = "nodejs";
-export const dynamic = "force-dynamic"
 
-import { getStripe } from "@/lib/stripe";
+import { stripe } from "@/lib/stripe";
 import { ensureCustomer } from "@/lib/ensure-customer";
 import { createClientRSC } from "@/../utils/supabase/server";
-import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
 export async function POST(req: Request) {
   try {
-    const stripe = getStripe();
-    const admin = getSupabaseAdmin();
-
     const supabase = await createClientRSC();
     const {
       data: { user },
@@ -26,7 +21,7 @@ export async function POST(req: Request) {
       "http://localhost:3000";
 
     // Reuse/ensure Stripe Customer for this user
-    const customerId = await ensureCustomer(stripe, admin, user);
+    const customerId = await ensureCustomer(user);
 
     const session = await stripe.billingPortal.sessions.create({
       customer: customerId,
