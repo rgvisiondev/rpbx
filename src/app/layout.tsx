@@ -6,7 +6,6 @@ import Script from "next/script";
 import { Analytics } from "@vercel/analytics/next";
 import TurnstileScript from "./TurnstileScript";
 import "./globals.css";
-
 const GTM_ID = "GTM-PG77BVJ4";
 
 const sairaCondensed = Saira_Condensed({
