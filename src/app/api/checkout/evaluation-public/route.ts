@@ -1,12 +1,11 @@
 // app/api/checkout/evaluation-public/route.ts
 export const runtime = "nodejs";
 
-import { getStripe } from "@/lib/stripe";
+import { stripe } from "@/lib/stripe";
 import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
   try {
-    const stripe = getStripe();
     const origin =
       req.headers.get("origin") ??
       process.env.NEXT_PUBLIC_SITE_URL ??

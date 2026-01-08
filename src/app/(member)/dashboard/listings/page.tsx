@@ -9,8 +9,6 @@ import { getListingBadges } from "@/lib/listings/badges";
 import { imageUrl } from "@/lib/industryImages";
 import NavGate from "@/app/components/NavGate";
 import { headers } from "next/headers";
-import { getStripe } from "@/lib/stripe";
-import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
 const PRICE_LISTING_MONTHLY = process.env.NEXT_PUBLIC_STRIPE_PRICE_BUSINESS_MONTHLY!;
 const PRICE_LISTING_YEARLY = process.env.NEXT_PUBLIC_STRIPE_PRICE_BUSINESS_YEARLY!;
@@ -104,8 +102,6 @@ async function startBoost(listingId: string) {
   "use server";
 
   const { createClientRSC } = await import("@/../utils/supabase/server");
-  const stripe = getStripe();
-  const admin = getSupabaseAdmin();
   const supabase = await createClientRSC();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login?next=/dashboard/listings");
@@ -135,7 +131,9 @@ async function startBoost(listingId: string) {
   if (!promoPriceId) redirect("/dashboard/listings?err=missing_price");
 
   const { ensureCustomer } = await import("@/lib/ensure-customer");
-  const customerId = await ensureCustomer(stripe, admin, user);
+  const customerId = await ensureCustomer(user);
+
+  const { stripe } = await import("@/lib/stripe");
 
   // (Optional) ensure the price is recurring
   const price = await stripe.prices.retrieve(promoPriceId);

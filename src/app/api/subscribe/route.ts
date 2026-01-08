@@ -2,11 +2,10 @@
 export const runtime = 'nodejs'
 
 import Stripe from 'stripe'
-import { getStripe } from '@/lib/stripe'
+import { stripe } from '@/lib/stripe'
 import { createClientRSC } from '@/../utils/supabase/server'
 import { ensureCustomer } from '@/lib/ensure-customer'
 import { verifyTurnstileToken } from '@/lib/verifyTurnstile'
-import { getSupabaseAdmin } from '@/lib/supabase-admin'
 
 function deriveUserTypeFromPrice(price: Stripe.Price): 'investor' | 'business' | 'member' {
   const fromMeta = (price.metadata?.user_type ?? '').toLowerCase()
@@ -26,8 +25,6 @@ export async function POST(req: Request) {
   let lookup = ''
 
   try {
-    const stripe = getStripe();
-    const admin = getSupabaseAdmin();
     const form = await req.formData()
     lookup = String(form.get('lookup') ?? '')
     const priceIdFromForm = String(form.get('priceId') ?? '')
@@ -125,8 +122,8 @@ export async function POST(req: Request) {
 
     const intendedUserType = deriveUserTypeFromPrice(price)
 
-    // 3) Ensure Stripe Customer mapped to this user
-    const customerId = await ensureCustomer(stripe, admin, { id: userId, email: signUpRes.user?.email ?? email })
+    // 3) Ensure Stripe Customer
+    const customerId = await ensureCustomer({ id: userId, email: signUpRes.user?.email ?? email })
 
     // 4) Create Checkout Session
     const session = await stripe.checkout.sessions.create({
