@@ -1,11 +1,12 @@
 // app/api/checkout/evaluation/route.ts
 export const runtime = "nodejs";
 
-import { stripe } from "@/lib/stripe";
+import { getStripe } from "@/lib/stripe";
 import { ensureCustomer } from "@/lib/ensure-customer";
 import { pickEvaluationPriceId } from "@/lib/evaluations/pricing";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/types/database.types";
+import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
 type ListingRow = {
   id: string;
@@ -18,6 +19,8 @@ type EvalRequestBody = { listingId?: string };
 
 export async function POST(req: Request) {
   try {
+    const stripe = getStripe();
+    const admin = getSupabaseAdmin();
     const { createClientRSC } = await import("@/../utils/supabase/server");
     // Give supabase its concrete type
     const supabase = (await createClientRSC()) as SupabaseClient<Database>;
@@ -60,7 +63,7 @@ export async function POST(req: Request) {
     const priceId = await pickEvaluationPriceId(supabase, user.id);
 
     // Ensure Stripe customer
-    const customerId = await ensureCustomer(user);
+    const customerId = await ensureCustomer(stripe, admin, user);
 
     const origin =
       req.headers.get("origin") ??

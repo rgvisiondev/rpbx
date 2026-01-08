@@ -1,5 +1,13 @@
 // lib/stripe.ts
 import Stripe from 'stripe'
 
-// Use your account's API version (or lock one explicitly)
-export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
+// Using Accounts API version
+export function getStripe(){
+
+    const stripe = process.env.STRIPE_SECRET_KEY;
+
+    if (!stripe) throw Error("STRIPE_SECRET_KEY missing");
+
+    return new Stripe(stripe);
+
+}

@@ -1,13 +1,14 @@
-import { Resend } from "resend";
 import { verifyTurnstileToken } from "@/lib/verifyTurnstile";
 import ContactBusiness from "@/emails/ContactBusiness";
 import { render } from "@react-email/components";
-
-const resend = new Resend(process.env.RESEND_API_KEY);
-const from = process.env.EMAIL_FROM ?? "RioPlex <notifications@rioplexbizx.com>";
+import { getResendClient, getEmailFrom } from "@/lib/resend";
 
 export async function POST(req: Request) {
+
   try {
+    const resend = getResendClient();
+    const from = getEmailFrom();
+
     const body = await req.json();
     const {
       businessEmail,
@@ -21,6 +22,7 @@ export async function POST(req: Request) {
       message,
       turnstileToken,
     } = body;
+
 
     // Validate required fields
     if (!businessEmail || !contactEmail || !message || !turnstileToken) {

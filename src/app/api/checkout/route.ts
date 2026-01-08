@@ -2,8 +2,9 @@
 export const runtime = "nodejs";
 
 import { NextResponse } from "next/server";
-import { stripe } from "@/lib/stripe";
+import { getStripe } from "@/lib/stripe";
 import { ensureCustomer } from "@/lib/ensure-customer";
+import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
 const ORIGIN = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
@@ -19,6 +20,8 @@ const ORIGIN = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
  */
 export async function POST(req: Request) {
   try {
+    const stripe = getStripe();
+    const admin = getSupabaseAdmin();
     const { createClientRSC } = await import("@/../utils/supabase/server");
     const supabase = await createClientRSC();
 
@@ -134,7 +137,7 @@ export async function POST(req: Request) {
     const pricePurpose = String(fetchedPrice.metadata?.purpose || "").toLowerCase(); // 'listing_promo' | 'listing_plan' | ''
 
     // Ensure Stripe customer once (used for all branches)
-    const customerId = await ensureCustomer(user);
+    const customerId = await ensureCustomer(stripe, admin, user);
 
     // -------------------------
     // SPECIAL CASE: listing_plan

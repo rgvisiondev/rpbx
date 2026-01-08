@@ -1,6 +1,6 @@
 // app/api/pricing/route.ts
 import { NextResponse } from "next/server";
-import { stripe } from "@/lib/stripe";
+import { getStripe } from "@/lib/stripe";
 import Stripe from "stripe";
 
 const LOOKUPS = (process.env.STRIPE_PUBLIC_LOOKUPS || "")
@@ -27,6 +27,7 @@ type Out = {
 
 export async function GET() {
   try {
+    const stripe = getStripe();
     const prices = await stripe.prices.list({
       active: true,
       limit: 100,

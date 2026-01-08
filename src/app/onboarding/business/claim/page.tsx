@@ -1,6 +1,8 @@
 // app/onboarding/business/claim/page.tsx
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 import { redirect } from "next/navigation";
-import { stripe } from "@/lib/stripe";
+import { getStripe } from "@/lib/stripe";
 import { createClientRSC } from "@/../utils/supabase/server";
 
 // Utility: small delay to let webhook (if any) write first
@@ -11,6 +13,7 @@ export default async function ClaimPage({
 }: {
   searchParams: Promise<{ session_id?: string }>;
 }) {
+  const stripe = getStripe();
   const sp = await searchParams;
   const sessionId = sp?.session_id;
   if (!sessionId) redirect("/dashboard/listings?err=no_session");
