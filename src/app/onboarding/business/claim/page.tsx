@@ -1,4 +1,6 @@
 // app/onboarding/business/claim/page.tsx
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 import { redirect } from "next/navigation";
 import { getStripe } from "@/lib/stripe";
 import { createClientRSC } from "@/../utils/supabase/server";

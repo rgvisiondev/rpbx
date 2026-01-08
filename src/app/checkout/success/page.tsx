@@ -5,8 +5,6 @@ import NavGate from "@/app/components/NavGate";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
-
 function getCustomerEmail(
   customer: string | Stripe.Customer | Stripe.DeletedCustomer | null
 ): string | null {
@@ -20,6 +18,8 @@ export default async function SuccessPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
+
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
   // ✅ match your original pattern: searchParams is a Promise
   const params = await searchParams;
 

@@ -10,59 +10,37 @@ import { Resend } from "resend";
 import ValuationEmail from "@/emails/ValuationEmail";
 import SubscriptionConfirmationEmail from "@/emails/SubscriptionConfirmationEmail";
 import BoostedListingEmail from "@/emails/BoostedListingEmail";
+import { getStripe } from "@/lib/stripe";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
-const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET!;
-const BIZ_EQUITY_URL = process.env.BIZEQUITY_URL!;
-const CALENDLY_VALUATION_URL = process.env.CALENDLY_VALUATION_URL!;
-const resend = new Resend(process.env.RESEND_API_KEY!);
-const baseUrl = process.env.NEXT_PUBLIC_BASE_URL!;
-
-
-const subscribeNewsletter = async (email: string, membership: BaseRole) => {
-  if (!email) return;
-  const groups = ["172616011480041008", "172615978122740973"]; // Default newsletter group
-
-  if (membership === "investor") {
-    groups.push("172616029418030559"); // Investor group
-  } else if (membership === "business") {
-    groups.push("172616046280181040"); // Business group
-  }
-
-  const res = await fetch(`${baseUrl}/api/ml-subscribe`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Accept": "application/json"
-    },
-    body: JSON.stringify({ email, groups }),
-  });
-
-
-  if (!res.ok) {
-    console.error("Newsletter subscribe failed", await res.text());
-  }
-};
-
-function isDeletedCustomer(
-  c: Stripe.Customer | Stripe.DeletedCustomer
-): c is Stripe.DeletedCustomer {
-  return (c as Stripe.DeletedCustomer).deleted === true;
+/**
+ * Env + client helpers (lazy: evaluated at request-time, not import-time)
+ */
+function requireEnv(name: string): string {
+  const v = process.env[name];
+  if (!v) throw new Error(`Missing required env var: ${name}`);
+  return v;
 }
 
+function getEndpointSecret(): string {
+  return requireEnv("STRIPE_WEBHOOK_SECRET");
+}
+
+function getResend(): Resend {
+  return new Resend(requireEnv("RESEND_API_KEY"));
+}
+
+function getBizEquityUrl(): string {
+  return requireEnv("BIZEQUITY_URL");
+}
+
+function getCalendlyValuationUrl(): string {
+  return requireEnv("CALENDLY_VALUATION_URL");
+}
 
 function getAdmin(): SupabaseClient<Database> {
-  console.log(
-    "Webhook Supabase URL:",
-    process.env.NEXT_PUBLIC_SUPABASE_URL
-  );
-  console.log(
-    "Webhook has service role key?",
-    !!process.env.SUPABASE_SERVICE_ROLE_KEY
-  );
   return createClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    requireEnv("NEXT_PUBLIC_SUPABASE_URL"),
+    requireEnv("SUPABASE_SERVICE_ROLE_KEY"),
     { auth: { persistSession: false } }
   );
 }
@@ -91,6 +69,41 @@ function resolveBaseRole(
   if (lk.startsWith("business_")) return "business";
   if (lk.startsWith("investor_")) return "investor";
   return null;
+}
+
+// Newsletter subscribe now uses request origin (no NEXT_PUBLIC_BASE_URL needed)
+const subscribeNewsletter = async (
+  origin: string,
+  email: string,
+  membership: BaseRole
+) => {
+  if (!email) return;
+  const groups = ["172616011480041008", "172615978122740973"]; // Default newsletter group
+
+  if (membership === "investor") {
+    groups.push("172616029418030559"); // Investor group
+  } else if (membership === "business") {
+    groups.push("172616046280181040"); // Business group
+  }
+
+  const res = await fetch(`${origin}/api/ml-subscribe`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+    },
+    body: JSON.stringify({ email, groups }),
+  });
+
+  if (!res.ok) {
+    console.error("Newsletter subscribe failed", await res.text());
+  }
+};
+
+function isDeletedCustomer(
+  c: Stripe.Customer | Stripe.DeletedCustomer
+): c is Stripe.DeletedCustomer {
+  return (c as Stripe.DeletedCustomer).deleted === true;
 }
 
 // Helper functions
@@ -127,6 +140,7 @@ function extractPeriodISO(
       };
     }
   }
+
   const subUnknown = sub as unknown;
   const s2 = getNumber(subUnknown, "current_period_start");
   const e2 = getNumber(subUnknown, "current_period_end");
@@ -136,6 +150,7 @@ function extractPeriodISO(
       endISO: toISO(e2) ?? new Date().toISOString(),
     };
   }
+
   const now = new Date().toISOString();
   return { startISO: now, endISO: now };
 }
@@ -170,6 +185,7 @@ function extractSubscriptionIdFromInvoice(inv: Stripe.Invoice): string | null {
 }
 
 async function upsertSubscription(
+  stripe: Stripe,
   admin: SupabaseClient<Database>,
   sub: Stripe.Subscription
 ) {
@@ -227,7 +243,7 @@ async function upsertSubscription(
     return;
   }
 
-  // 3) Make sure this user actually exists on our app side (mirrors auth.users)
+  // 3) Make sure this user exists on app side (mirrors auth.users)
   const { data: profileRow } = await admin
     .from("profiles")
     .select("id")
@@ -241,7 +257,7 @@ async function upsertSubscription(
       "sub",
       sub.id
     );
-    return; // <-- prevents FK error 23503
+    return; // prevents FK error 23503
   }
 
   // 4) Build row as before
@@ -303,7 +319,6 @@ async function upsertSubscription(
   }
 }
 
-
 // Type for listing_evaluations insert
 type ListingEvaluationInsert = {
   listing_id: string;
@@ -314,6 +329,12 @@ type ListingEvaluationInsert = {
 export async function POST(req: NextRequest) {
   const sig = req.headers.get("stripe-signature");
   if (!sig) return new Response("Missing signature", { status: 400 });
+
+  // Lazy: instantiate clients/env only at request-time
+  const stripe = getStripe();
+  const endpointSecret = getEndpointSecret();
+  const resend = getResend();
+  const origin = req.nextUrl.origin;
 
   let event: Stripe.Event;
   try {
@@ -333,7 +354,9 @@ export async function POST(req: NextRequest) {
     if (type === "checkout.session.completed") {
       const sess = event.data.object as Stripe.Checkout.Session;
 
-      const userId = (sess.metadata?.["supabase_user_id"] ?? null) as string | null;
+      const userId = (sess.metadata?.["supabase_user_id"] ?? null) as
+        | string
+        | null;
       const customerId =
         typeof sess.customer === "string"
           ? (sess.customer as string)
@@ -351,14 +374,19 @@ export async function POST(req: NextRequest) {
           typeof sess.subscription === "string"
             ? (sess.subscription as string)
             : (sess.subscription as Stripe.Subscription).id;
+
         const sub = await stripe.subscriptions.retrieve(subId, {
           expand: ["items.data.price.product", "customer"],
         });
-        await upsertSubscription(admin, sub);
+
+        await upsertSubscription(stripe, admin, sub);
 
         // Send subscription confirmation email for initial subscriptions
         try {
-          const uid = (sess.metadata?.["supabase_user_id"] ?? null) as string | null;
+          const uid = (sess.metadata?.["supabase_user_id"] ?? null) as
+            | string
+            | null;
+
           if (uid) {
             // Check if user already had other subscriptions (excluding this one)
             const { data: otherSubs } = await admin
@@ -395,8 +423,9 @@ export async function POST(req: NextRequest) {
               }
 
               if (toEmail) {
-                const dashboardUrl = `${process.env.NEXT_PUBLIC_BASE_URL}/dashboard`;
+                const dashboardUrl = `${origin}/dashboard`;
                 const idemKey = `sub-confirm:${sess.id}`;
+
                 await resend.emails.send(
                   {
                     from: "RioPlex <notifications@rioplexbizx.com>",
@@ -406,18 +435,20 @@ export async function POST(req: NextRequest) {
                   },
                   { idempotencyKey: idemKey }
                 );
-                // for new subscribers, also subscribe to newsletter
+
+                // For new subscribers, also subscribe to newsletter
                 const membership = resolveBaseRole(
                   sub.items?.data?.[0]?.price,
                   sub.metadata
-                ); 
-                
-                if (membership){
-                  await subscribeNewsletter(toEmail, membership);
-                }
+                );
 
+                if (membership) {
+                  await subscribeNewsletter(origin, toEmail, membership);
+                }
               } else {
-                console.warn("No email found for subscription confirmation; skipped email send.");
+                console.warn(
+                  "No email found for subscription confirmation; skipped email send."
+                );
               }
             }
           }
@@ -431,16 +462,20 @@ export async function POST(req: NextRequest) {
       const listingId = String(meta["listing_id"] ?? "");
 
       if (purpose === "listing_plan" && sess.subscription) {
-        const subId = typeof sess.subscription === "string"
-          ? sess.subscription
-          : (sess.subscription as Stripe.Subscription).id;
+        const subId =
+          typeof sess.subscription === "string"
+            ? sess.subscription
+            : (sess.subscription as Stripe.Subscription).id;
 
         // fetch sub with expand so we have everything we need
         const sub = await stripe.subscriptions.retrieve(subId, {
           expand: ["items.data.price.product", "customer"],
         });
 
-        const userId = (sess.metadata?.["supabase_user_id"] ?? null) as string | null;
+        const userId = (sess.metadata?.["supabase_user_id"] ?? null) as
+          | string
+          | null;
+
         if (!userId) {
           console.error("Missing supabase_user_id on listing_plan session");
           return new Response("ok", { status: 200 });
@@ -465,7 +500,10 @@ export async function POST(req: NextRequest) {
             .maybeSingle();
 
           if (draftErr || !newDraft?.id) {
-            console.error("Failed to create draft listing post-payment", draftErr);
+            console.error(
+              "Failed to create draft listing post-payment",
+              draftErr
+            );
             return new Response("ok", { status: 200 });
           }
 
@@ -480,9 +518,8 @@ export async function POST(req: NextRequest) {
         const refreshed = await stripe.subscriptions.retrieve(sub.id, {
           expand: ["items.data.price.product", "customer"],
         });
-        await upsertSubscription(admin, refreshed);
+        await upsertSubscription(stripe, admin, refreshed);
       }
-
 
       // Boosted Listing
       if (purpose === "listing_promo" && sess.subscription && listingId) {
@@ -490,6 +527,7 @@ export async function POST(req: NextRequest) {
           typeof sess.subscription === "string"
             ? (sess.subscription as string)
             : (sess.subscription as Stripe.Subscription).id;
+
         const sub = await stripe.subscriptions.retrieve(subId, {
           expand: ["items.data.price", "customer"],
         });
@@ -507,7 +545,9 @@ export async function POST(req: NextRequest) {
           },
           { onConflict: "stripe_subscription_id" }
         );
-        if (promoErr) console.error("listing_promotions upsert error:", promoErr);
+
+        if (promoErr)
+          console.error("listing_promotions upsert error:", promoErr);
 
         let toEmail: string | null =
           (sess.customer_details?.email as string | null) ||
@@ -535,7 +575,9 @@ export async function POST(req: NextRequest) {
             { idempotencyKey: idemKey }
           );
         } else {
-          console.warn("No email found for boosted listing purchase; skipped email send.");
+          console.warn(
+            "No email found for boosted listing purchase; skipped email send."
+          );
         }
       }
 
@@ -574,9 +616,10 @@ export async function POST(req: NextRequest) {
         }
 
         if (toEmail) {
-          const evaluationLink = BIZ_EQUITY_URL;
-          const calendlyLink = CALENDLY_VALUATION_URL;
+          const evaluationLink = getBizEquityUrl();
+          const calendlyLink = getCalendlyValuationUrl();
           const idemKey = `eval-email:${piId ?? sess.id}`;
+
           await resend.emails.send(
             {
               from: "RioPlex <notifications@rioplexbizx.com>",
@@ -584,7 +627,7 @@ export async function POST(req: NextRequest) {
               subject: "Your RPBX Valuation is ready to begin",
               react: ValuationEmail({
                 link: evaluationLink,
-                calendlyLink
+                calendlyLink,
               }),
             },
             { idempotencyKey: idemKey }
@@ -610,20 +653,21 @@ export async function POST(req: NextRequest) {
           return new Response("ok", { status: 200 });
         }
 
-        const evaluationLink = BIZ_EQUITY_URL;
-        const calendlyLink = CALENDLY_VALUATION_URL;
+        const evaluationLink = getBizEquityUrl();
+        const calendlyLink = getCalendlyValuationUrl();
 
         const idemKey = `public-eval-email:${piId ?? sess.id}`;
-        await resend.emails.send({
-          from: "RioPlex <notifications@rioplexbizx.com>",
-          to: toEmail,
-          subject: "Your RPBX Valuation is ready to begin",
-          react: ValuationEmail({
-            link: evaluationLink,
-            calendlyLink,
-          }),
-        },
-          { idempotencyKey: idemKey },
+        await resend.emails.send(
+          {
+            from: "RioPlex <notifications@rioplexbizx.com>",
+            to: toEmail,
+            subject: "Your RPBX Valuation is ready to begin",
+            react: ValuationEmail({
+              link: evaluationLink,
+              calendlyLink,
+            }),
+          },
+          { idempotencyKey: idemKey }
         );
 
         try {
@@ -635,7 +679,6 @@ export async function POST(req: NextRequest) {
         } catch (e) {
           console.error("Failed to insert public_valuation row", e);
         }
-
       }
 
       return new Response("ok", { status: 200 });
@@ -651,31 +694,31 @@ export async function POST(req: NextRequest) {
         expand: ["items.data.price.product", "customer"],
       });
 
-      await upsertSubscription(admin, sub);
+      await upsertSubscription(stripe, admin, sub);
 
       const price = sub.items?.data?.[0]?.price;
       const role = resolveBaseRole(price, sub.metadata);
       if (role) {
         const nextType =
-          sub.status === "active" || sub.status === "trialing"
-            ? role
-            : "member";
+          sub.status === "active" || sub.status === "trialing" ? role : "member";
+
         const stripeCustomerId =
-          typeof sub.customer === "string"
-            ? sub.customer
-            : sub.customer?.id;
+          typeof sub.customer === "string" ? sub.customer : sub.customer?.id;
+
         if (stripeCustomerId) {
           const { data: mapRow } = await admin
             .from("customers")
             .select("id")
             .eq("stripe_customer_id", stripeCustomerId)
             .maybeSingle();
+
           const uid = mapRow?.id;
           if (uid) {
             const { error: updErr } = await admin
               .from("profiles")
               .update({ user_type: nextType })
               .eq("id", uid);
+
             if (updErr) console.error("profiles update error:", updErr);
             else console.log(`profiles.user_type=${nextType} for user ${uid}`);
           }
@@ -685,6 +728,7 @@ export async function POST(req: NextRequest) {
       if ((sub.metadata?.purpose ?? "") === "listing_promo") {
         const mainItem = sub.items?.data?.[0];
         const { endISO: currentPeriodEnd } = extractPeriodISO(sub, mainItem);
+
         const { error: promoUpdErr } = await admin
           .from("listing_promotions")
           .update({
@@ -693,6 +737,7 @@ export async function POST(req: NextRequest) {
             cancel_at_period_end: sub.cancel_at_period_end ?? false,
           })
           .eq("stripe_subscription_id", sub.id);
+
         if (promoUpdErr)
           console.error("listing_promotions update error:", promoUpdErr);
       }
@@ -705,7 +750,7 @@ export async function POST(req: NextRequest) {
       const sub = event.data.object as Stripe.Subscription;
 
       // This will mark status = 'canceled', set ended_at, cancel_at, etc.
-      await upsertSubscription(admin, sub);
+      await upsertSubscription(stripe, admin, sub);
 
       // If this was a promo sub, keep listing_promotions in sync too
       if ((sub.metadata?.purpose ?? "") === "listing_promo") {
@@ -718,6 +763,7 @@ export async function POST(req: NextRequest) {
             cancel_at_period_end: sub.cancel_at_period_end ?? false,
           })
           .eq("stripe_subscription_id", sub.id);
+
         if (promoUpdErr)
           console.error("listing_promotions update error:", promoUpdErr);
       }
@@ -732,14 +778,16 @@ export async function POST(req: NextRequest) {
     ) {
       const inv = event.data.object as Stripe.Invoice;
       const subId = extractSubscriptionIdFromInvoice(inv);
+
       if (subId) {
         const sub = await stripe.subscriptions.retrieve(subId, {
           expand: ["items.data.price.product", "customer"],
         });
-        await upsertSubscription(admin, sub);
+        await upsertSubscription(stripe, admin, sub);
       } else {
         console.warn("Invoice had no resolvable subscription id");
       }
+
       return new Response("ok", { status: 200 });
     }
 

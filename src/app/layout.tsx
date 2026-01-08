@@ -7,6 +7,8 @@ import { Analytics } from "@vercel/analytics/next";
 import TurnstileScript from "./TurnstileScript";
 import "./globals.css";
 
+const GTM_ID = "GTM-PG77BVJ4";
+
 const sairaCondensed = Saira_Condensed({
   subsets: ["latin"],
   weight: ["400", "600", "700"],
@@ -156,33 +158,31 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        {/* Load gtag.js ONCE (use GA4 ID here) */}
-        <Script
-          async
-          src={`https://www.googletagmanager.com/gtag/js?id=${process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID}`}
-          strategy="afterInteractive"
-        />
-
-        {/* Initialize + configure GA4 + Google Ads */}
-        <Script id="gtag-init" strategy="afterInteractive">
+        {/* Google Tag Manager */}
+        <Script id="gtm" strategy="beforeInteractive">
           {`
-      window.dataLayer = window.dataLayer || [];
-      function gtag(){dataLayer.push(arguments);}
-      gtag('js', new Date());
-
-      // GA4
-      gtag('config', '${process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID}', {
-        page_path: window.location.pathname,
-      });
-
-      // Google Ads
-      gtag('config', 'AW-17790035839');
-    `}
+            (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+            new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+            j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+            'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+            })(window,document,'script','dataLayer','${GTM_ID}');
+          `}
         </Script>
+        {/* End Google Tag Manager */}
       </head>
-      <body
-        className={`${poppins.variable} ${sairaCondensed.variable} antialiased`}
-      >
+
+      <body className={`${poppins.variable} ${sairaCondensed.variable} antialiased`}>
+        {/* Google Tag Manager (noscript) */}
+        <noscript>
+          <iframe
+            src={`https://www.googletagmanager.com/ns.html?id=${GTM_ID}`}
+            height="0"
+            width="0"
+            style={{ display: "none", visibility: "hidden" }}
+          />
+        </noscript>
+        {/* End Google Tag Manager (noscript) */}
+
         <TurnstileScript />
         {children}
         <Analytics />

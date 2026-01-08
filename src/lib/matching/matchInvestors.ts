@@ -73,7 +73,7 @@ function calculateMatchScore(
 }
 
 /** Batch-enrich investors with names from profiles in one query */
-async function attachNames(
+ async function attachNames(
   supabase: SupabaseClient<Database>,
   investors: (InvestorPreview & {
     _source: "matched" | "newest";
@@ -89,7 +89,7 @@ async function attachNames(
   }
 
   const { data: profs, error: profErr } = await supabase
-    .from("public_profiles")
+    .from("profiles")
     .select("id, first_name, last_name")
     .in("id", userIds);
 
@@ -101,7 +101,7 @@ async function attachNames(
   const byId = new Map<string, Pick<ProfileRow, "first_name" | "last_name">>();
 
   (profs ?? []).forEach((p) => {
-    if (!p?.id) return; // <- guard null/undefined
+    if (!p?.id) return;
     byId.set(p.id, { first_name: p.first_name, last_name: p.last_name });
   });
 
@@ -110,6 +110,7 @@ async function attachNames(
     profiles: byId.get(inv.user_id) ?? null,
   }));
 }
+
 
 export async function matchInvestorsToListings(
   supabase: SupabaseClient<Database>,
