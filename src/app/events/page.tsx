@@ -50,6 +50,7 @@ export default async function Events() {
           <div className="gap-5 flex flex-col">
             {events.map((event) => {
               const eventDate = new Date(event.date);
+              const isUpcoming = eventDate > new Date();
               const formattedDate = eventDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
               const formattedTime = eventDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
 
@@ -58,17 +59,27 @@ export default async function Events() {
 
                   {/* Event Image */}
                   <div className="flex min-w-1/4">
+
                     <img
                       src={event.image?.asset?.url}
                       alt={event.image?.alt || event.title}
-                      className="rounded-t-lg lg:rounded-none lg:rounded-l-lg w-full lg:w-[300px] h-auto object-cover"
+                      className="border-b-2 md:border-b-0 md:border-r-2 rounded-t-lg lg:rounded-none lg:rounded-l-lg w-full lg:w-[300px] h-auto object-cover"
                     />
                   </div>
 
-                  <div className="flex flex-col p-5 gap-2">
+                  <div className="flex flex-col p-5 gap-2 relative">
+                    {isUpcoming ? (
+                      <div className="absolute top-0 md:top-4 right-4 z-10 bg-green-100 text-green-800 text-[10px] font-bold tracking-widest px-2 py-1 -mt-2 rounded border border-green-200 uppercase">
+                        Upcoming
+                      </div>
+                    ) : (
+                      <div className="absolute top-0 md:top-4 right-4 z-10 bg-orange-100 text-orange-800 text-[10px] font-bold tracking-widest px-2 py-1 -mt-2 rounded border border-orange-200 uppercase">
+                        Past
+                      </div>
+                    )}
 
                     {/* Event Title */}
-                    <h4 className="large">{event.title}</h4>
+                    <h4 className="large pr-0 md:pr-20">{event.title}</h4>
 
                     {/* Event Meta */}
                     <div className="flex flex-col lg:flex-row items-left mt-0 mb-0 lg:mt-3 lg:mb-3 flex-wrap gap-1 lg:gap-4">

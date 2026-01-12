@@ -23,7 +23,7 @@ const experts = [
     name: "John Wilson",
     title: "Business & Banking Attorney",
     shortDescription:
-      "Experienced business and banking attorney advising companies on mergers, acquisitions, and complex financial transactions.",
+      "Experienced business and banking attorney advising companies on mergers, acquisitions, and complex financial transactions with expertise in corporate structuring.",
     description:
       "John Wilson is a business and banking attorney with extensive experience guiding companies through mergers and acquisitions, securities offerings, and complex regulatory matters. Having advised public and private financial institutions on transactions ranging from multi-branch acquisitions to major debt and equity issuances, he brings a deep understanding of corporate structure and compliance. As founder of Wilson Business & Banking Law, he regularly counsels clients on entity formation, governance, contract negotiation, and strategic business planning. His practical, detail-driven approach makes him a trusted resource for RPBX members navigating growth, acquisition, or structural transitions.",
     img: "/images/experts/john-wilson.png",
@@ -34,7 +34,7 @@ const experts = [
     name: "Abby Young",
     title: "Certified Public Accountant & Managing Partner",
     shortDescription:
-      "CPA providing tax strategy, virtual CFO services, and financial planning for growing businesses and nonprofits.",
+      "CPA providing tax strategy, virtual CFO services, and financial planning for growing businesses and nonprofits, with a focus on proactive, strategic financial leadership.",
     description:
       "Abby Young is a Certified Public Accountant with over a decade of experience supporting businesses, families, and nonprofits with tax strategy, financial planning, and virtual CFO guidance. As Managing Partner of Abigail Young CPA PLLC, she specializes in comprehensive accounting, forecasting, and tax preparation tailored to small and medium-sized businesses across the Rio Grande Valley. Her background in corporate accounting and financial operations allows her to provide proactive, cost-efficient financial leadership to growing organizations. Abby’s commitment to service, accuracy, and community involvement makes her a trusted resource for RPBX members seeking clarity and confidence in their financial decisions.",
     img: "/images/experts/abby-young.png",
@@ -45,7 +45,7 @@ const experts = [
     name: "Juan A. Garcia",
     title: "Corporate & M&A Advisor",
     shortDescription:
-      "Senior advisor specializing in mergers and acquisitions, private equity, and complex corporate transactions.",
+      "Senior advisor specializing in mergers and acquisitions, private equity, and complex corporate transactions, with extensive experience guiding institutional clients.",
     description:
       "Juan A. Garcia brings over 20 years of experience advising institutional clients on complex mergers and acquisitions, private equity, and strategic corporate transactions. With a background that includes roles at Skadden, Arps and Citigroup, as well as financial executive and external counsel positions, he combines top-tier legal training with practical financial expertise. His work spans corporate structuring, investment management, and asset protection strategies for high-net-worth individuals and investment firms. Juan’s leadership and longstanding commitment to community service make him a trusted resource for RPBX members navigating sophisticated business and financial decisions.",
     img: "/images/experts/juan-garcia.png",
@@ -136,7 +136,7 @@ export default function AboutPage() {
 
           <Carousel
             opts={{ align: "start", loop: true }}
-            className="w-full mt-8" // ⬅ full width of the 1140px container
+            className="w-full mt-8 " // ⬅ full width of the 1140px container
           >
             <CarouselContent className="-ml-4">
               {" "}
@@ -144,10 +144,10 @@ export default function AboutPage() {
               {experts.map((expert) => (
                 <CarouselItem
                   key={expert.index}
-                  className="pl-4 basis-full sm:basis-1/2 lg:basis-1/3"
+                  className="pl-4 basis-full sm:basis-1/2 lg:basis-1/3 "
                   // full-width on mobile, 2-up on small, 3-up on large
                 >
-                  <div className="rounded-2xl shadow-lg overflow-hidden flex flex-col items-center bg-white transition-all duration-300 h-full">
+                  <div className="rounded-2xl border-1 overflow-hidden flex flex-col items-center bg-white transition-all duration-300 h-full">
                     {/* Top gray section */}
                     <div className="relative bg-[#272727] w-full h-[120px]">
                       <a
@@ -171,16 +171,16 @@ export default function AboutPage() {
                       </div>
 
                       <h4 className="mt-4 mb-2 large">{expert.name}</h4>
-                      <p className="mt-1 text-[15px] text-[#4b4b4b] text-start">
+                      <p className="mt-1 text-[15px] text-[#4b4b4b] text-center">
                         {expert.shortDescription}
                       </p>
 
-                      <div className="w-full mt-4 flex justify-start">
+                      <div className="w-full mt-4 flex justify-end">
                         <Modal
                           trigger={
                             <button
                               type="button"
-                              className="group inline-flex items-center gap-2 text-[14px] font-semibold text-[#272727] transition-colors hover:text-[#9ed3c3] focus:outline-none"
+                              className="hover:cursor-pointer group inline-flex items-center gap-2 text-[14px] font-semibold text-[#272727] transition-colors hover:text-[#9ed3c3] focus:outline-none"
                             >
                               <span className="relative">
                                 Read More
