@@ -138,7 +138,7 @@ const formattedTime = eventDate
                 <span className="hidden lg:block"><p>•</p></span>
                 <span className="flex items-center gap-1">
                   <Image src="/images/icons/clock.png" alt="Time" width={16} height={16} />
-                  <p>{formattedTime}</p>
+                  <p>{formattedTime} (Local)</p>
                 </span>
               </>
             )}
