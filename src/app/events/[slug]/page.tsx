@@ -89,12 +89,9 @@ export default async function PostPage({ params }: PostPageProps) {
       day: "numeric",
     })
     : "";
-  const formattedTime = eventDate
-    ? eventDate.toLocaleTimeString([], {
-      hour: "2-digit",
-      minute: "2-digit",
-    })
-    : "";
+const formattedTime = eventDate
+ ? eventDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) 
+ : "";
 
   return (
     <div className="flex flex-col bg-[url('/images/backgrounds/white-bg.png')] bg-repeat bg-top ">
