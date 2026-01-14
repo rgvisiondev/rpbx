@@ -1,10 +1,9 @@
-import { Resend } from "resend";
-
-
-const resend = new Resend(process.env.RESEND_API_KEY);
+import { getEmailFrom, getResendClient } from "@/lib/resend";
 
 export async function POST(req: Request) {
   try {
+    const resend = getResendClient();
+    const from = getEmailFrom();
     const body = await req.json();
     const { to, subject, html } = body as {
       to?: string;
@@ -18,8 +17,6 @@ export async function POST(req: Request) {
         headers: { "Content-Type": "application/json" },
       });
     }
-
-    const from = process.env.EMAIL_FROM ?? "RioPlex <notifications@rioplexbizx.com>";
 
     await resend.emails.send({
       from,
