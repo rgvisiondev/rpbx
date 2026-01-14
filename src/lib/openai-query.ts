@@ -3,8 +3,6 @@ import OpenAI from "openai";
 import * as cheerio from 'cheerio';
 import type { CheerioAPI } from 'cheerio';
 
-const client = new OpenAI();
-
 function textCleanup($page: CheerioAPI){
 
     $page('script, style, noscript').remove();
@@ -48,6 +46,8 @@ function collectHrefs($: CheerioAPI){
 
 
 export async function getBusinessDescriptionFromSite(url: string, address: string, business_name: string): Promise<string>{
+
+    const client = new OpenAI();
     
     const text: string[] = []
     
