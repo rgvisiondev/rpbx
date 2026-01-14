@@ -1,3 +1,6 @@
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
 import { NextResponse } from 'next/server';
 import { getBusinessDescriptionFromSite } from '@/lib/openai-query';
 import { Redis } from "@upstash/redis";

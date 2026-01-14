@@ -3,6 +3,14 @@ import OpenAI from "openai";
 import * as cheerio from 'cheerio';
 import type { CheerioAPI } from 'cheerio';
 
+function getOpenAIClient() {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) {
+    throw new Error("OPENAI_API_KEY is not set");
+  }
+  return new OpenAI({ apiKey });
+}
+
 function textCleanup($page: CheerioAPI){
 
     $page('script, style, noscript').remove();
@@ -47,7 +55,7 @@ function collectHrefs($: CheerioAPI){
 
 export async function getBusinessDescriptionFromSite(url: string, address: string, business_name: string): Promise<string>{
 
-    const client = new OpenAI();
+    const client = getOpenAIClient();
     
     const text: string[] = []
     
