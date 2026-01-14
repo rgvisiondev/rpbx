@@ -1,7 +1,7 @@
 // app/api/checkout/evaluation-public/route.ts
 export const runtime = "nodejs";
 
-import { stripe } from "@/lib/stripe";
+import { getStripe } from "@/lib/stripe";
 import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
@@ -27,6 +27,13 @@ export async function POST(req: Request) {
       );
     }
 
+    const stripe = getStripe();
+    if (!stripe) {
+      return Response.json(
+        { error: "Stripe is not configured" },
+        { status: 500 }
+      );
+    }
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
       line_items: [{ price: priceId, quantity: 1 }],
@@ -35,7 +42,7 @@ export async function POST(req: Request) {
       cancel_url: `${origin}?eval=canceled`,
       metadata: {
         purpose: "evaluation_public",
-      }
+      },
     });
 
     console.log("Checkout session created:", session.id);
@@ -43,9 +50,6 @@ export async function POST(req: Request) {
   } catch (err) {
     console.error("Public evaluation checkout error:", err);
     const errorMessage = err instanceof Error ? err.message : "Unknown error";
-    return NextResponse.json(
-      { error: errorMessage },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }

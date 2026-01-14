@@ -1,11 +1,11 @@
 // app/api/checkout/evaluation/route.ts
 export const runtime = "nodejs";
 
-import { stripe } from "@/lib/stripe";
 import { ensureCustomer } from "@/lib/ensure-customer";
 import { pickEvaluationPriceId } from "@/lib/evaluations/pricing";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/types/database.types";
+import { getStripe } from "@/lib/stripe";
 
 type ListingRow = {
   id: string;
@@ -22,7 +22,9 @@ export async function POST(req: Request) {
     // Give supabase its concrete type
     const supabase = (await createClientRSC()) as SupabaseClient<Database>;
 
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) return new Response("Unauthorized", { status: 401 });
 
     // Parse body safely (no any)
@@ -51,9 +53,12 @@ export async function POST(req: Request) {
       .returns<ListingRow | null>();
 
     if (listErr) return new Response("DB error", { status: 500 });
-    if (!listing || listing.owner_id !== user.id) return new Response("Forbidden", { status: 403 });
+    if (!listing || listing.owner_id !== user.id)
+      return new Response("Forbidden", { status: 403 });
     if (!listing.is_active || listing.status !== "published") {
-      return new Response("Listing is not eligible for evaluation", { status: 400 });
+      return new Response("Listing is not eligible for evaluation", {
+        status: 400,
+      });
     }
 
     // Member vs public price — no `any`
@@ -69,7 +74,13 @@ export async function POST(req: Request) {
 
     const successUrl = `${origin}/api/evaluations/redirect?listing_id=${encodeURIComponent(listingId)}`;
     const cancelUrl = `${origin}/dashboard/listings?eval=canceled`;
-
+    const stripe = getStripe();
+    if (!stripe) {
+      return Response.json(
+        { error: "Stripe is not configured" },
+        { status: 500 }
+      );
+    }
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
       customer: customerId,

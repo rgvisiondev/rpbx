@@ -1,9 +1,9 @@
 // src/app/subscribe/[lookup]/page.tsx
 import { notFound } from "next/navigation";
-import { stripe } from "@/lib/stripe";
 import Stripe from "stripe";
 import Link from "next/link";
 import { SubscribeForm } from "./subscribe-form";
+import { getStripe } from "@/lib/stripe";
 
 export const revalidate = 300;
 
@@ -37,7 +37,6 @@ export async function generateMetadata() {
   };
 }
 
-
 export default async function SubscribePage({
   params,
   searchParams,
@@ -45,6 +44,10 @@ export default async function SubscribePage({
   params: Promise<{ lookup: string }>;
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
+  const stripe = getStripe();
+  if (!stripe) {
+    throw new Error("Stripe is not configured");
+  }
   const { lookup } = await params;
   const q = await searchParams;
   const rawErr = readParam(q, "error");
@@ -68,9 +71,7 @@ export default async function SubscribePage({
   const trialDays =
     trialParam && /^\d+$/.test(trialParam) ? parseInt(trialParam, 10) : 0;
   const displayPriceText =
-    trialDays > 0
-      ? `$0 for ${trialDays} days, then ${baseLabel}`
-      : baseLabel;
+    trialDays > 0 ? `$0 for ${trialDays} days, then ${baseLabel}` : baseLabel;
 
   // Map known error codes/messages to friendly copy
   let friendlyError: string | null = null;
@@ -90,7 +91,10 @@ export default async function SubscribePage({
   return (
     <div className="flex flex-col bg-[url('/images/backgrounds/white-bg.png')] bg-repeat bg-center min-h-screen justify-center">
       <div className="bg-white mx-auto max-w-lg lg:min-w-[500px] p-6 my-5 rounded-xl border border-neutral-200 shadow">
-        <Link href="/pricing" className="text-sm underline hover:text-[#60BC9B]">
+        <Link
+          href="/pricing"
+          className="text-sm underline hover:text-[#60BC9B]"
+        >
           &larr; All plans
         </Link>
         <h1 className="mt-2 text-2xl font-semibold">Create Your Account</h1>

@@ -9,14 +9,18 @@ import { getListingBadges } from "@/lib/listings/badges";
 import { imageUrl } from "@/lib/industryImages";
 import NavGate from "@/app/components/NavGate";
 import { headers } from "next/headers";
+import { getStripe } from "@/lib/stripe";
 
-const PRICE_LISTING_MONTHLY = process.env.NEXT_PUBLIC_STRIPE_PRICE_BUSINESS_MONTHLY!;
-const PRICE_LISTING_YEARLY = process.env.NEXT_PUBLIC_STRIPE_PRICE_BUSINESS_YEARLY!;
+const PRICE_LISTING_MONTHLY =
+  process.env.NEXT_PUBLIC_STRIPE_PRICE_BUSINESS_MONTHLY!;
+const PRICE_LISTING_YEARLY =
+  process.env.NEXT_PUBLIC_STRIPE_PRICE_BUSINESS_YEARLY!;
 const ORIGIN = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
 export const metadata: Metadata = {
   title: "Your Listings | RioPlex Business Exchange",
-  description: "Manage your business listings and subscriptions on RioPlex Business Exchange.",
+  description:
+    "Manage your business listings and subscriptions on RioPlex Business Exchange.",
 };
 
 // ---- SERVER ACTIONS ----
@@ -24,7 +28,9 @@ async function startListingPriceCheckout(priceId: string) {
   "use server";
 
   const supabase = await createClientRSC();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) redirect("/login?next=/dashboard/listings");
 
   const h = await headers();
@@ -88,7 +94,11 @@ async function startEvaluation(listingId: string) {
     } catch {
       // ignore
     }
-    console.error("Failed to create evaluation checkout session", res.status, body);
+    console.error(
+      "Failed to create evaluation checkout session",
+      res.status,
+      body
+    );
     return redirect("/dashboard/listings?err=eval_checkout");
   }
 
@@ -103,7 +113,9 @@ async function startBoost(listingId: string) {
 
   const { createClientRSC } = await import("@/../utils/supabase/server");
   const supabase = await createClientRSC();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) redirect("/login?next=/dashboard/listings");
 
   // Verify if profile is a business owner
@@ -124,7 +136,8 @@ async function startBoost(listingId: string) {
     .maybeSingle();
 
   if (listErr) redirect("/dashboard/listings?err=promo_db");
-  if (!listing || listing.owner_id !== user.id) redirect("/dashboard/listings?err=forbidden");
+  if (!listing || listing.owner_id !== user.id)
+    redirect("/dashboard/listings?err=forbidden");
 
   // Whitelist promo price
   const promoPriceId = process.env.NEXT_PUBLIC_STRIPE_PRICE_PROMO;
@@ -133,11 +146,15 @@ async function startBoost(listingId: string) {
   const { ensureCustomer } = await import("@/lib/ensure-customer");
   const customerId = await ensureCustomer(user);
 
-  const { stripe } = await import("@/lib/stripe");
+  const stripe = getStripe();
+  if (!stripe) {
+  redirect("/dashboard/listings?err=stripe_not_configured");
+}
 
   // (Optional) ensure the price is recurring
   const price = await stripe.prices.retrieve(promoPriceId);
-  if (price.type !== "recurring") redirect("/dashboard/listings?err=not_recurring");
+  if (price.type !== "recurring")
+    redirect("/dashboard/listings?err=not_recurring");
 
   const session = await stripe.checkout.sessions.create({
     mode: "subscription",
@@ -168,8 +185,9 @@ async function startBoost(listingId: string) {
   redirect(session.url);
 }
 
-async function openPortal() {
+async function openPortal(_formData: FormData) {
   "use server";
+  void _formData;
   const { openBillingPortal } = await import("@/app/server/billing");
   const url = await openBillingPortal(`${ORIGIN}/dashboard/listings`);
   redirect(url);
@@ -178,13 +196,17 @@ async function openPortal() {
 // ---- PAGE ----
 export default async function OwnerListings() {
   const supabase = await createClientRSC();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) redirect("/login?next=/dashboard/listings");
 
   // 1) Fetch listings
   const { data: rows } = await supabase
     .from("business_listings")
-    .select("id, title, industry, listing_image_choice, status, is_active, updated_at")
+    .select(
+      "id, title, industry, listing_image_choice, status, is_active, updated_at"
+    )
     .eq("owner_id", user.id)
     .order("updated_at", { ascending: false });
 
@@ -214,7 +236,8 @@ export default async function OwnerListings() {
         <div className="w-full lg:w-[1140px] mx-auto py-10 px-5 lg:px-0">
           <h1 className="mb-4">Your Listings</h1>
           <p className="text-sm text-gray-600 mb-6">
-            Use the customer portal to update payment methods, view invoices, or cancel plans.
+            Use the customer portal to update payment methods, view invoices, or
+            cancel plans.
           </p>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -412,7 +435,7 @@ export default async function OwnerListings() {
             </div>
           </div>
         </div>
-      </div>  
+      </div>
     </div>
   );
 }
