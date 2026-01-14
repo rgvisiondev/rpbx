@@ -3,11 +3,10 @@ export const runtime = "nodejs";
 
 import { NextRequest, NextResponse } from "next/server";
 import { createClientRSC } from "@/../utils/supabase/server";
-import { stripe } from "@/lib/stripe";
 import { ensureCustomer } from "@/lib/ensure-customer";
+import { getStripe } from "@/lib/stripe";
 
-const ORIGIN =
-  process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+const ORIGIN = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
 export async function POST(req: NextRequest) {
   const { subscriptionId, action } = (await req.json()) as {
@@ -52,15 +51,22 @@ export async function POST(req: NextRequest) {
   const flowData =
     action === "cancel"
       ? {
-        type: "subscription_cancel" as const,
-        subscription_cancel: { subscription: subscriptionId },
-      }
+          type: "subscription_cancel" as const,
+          subscription_cancel: { subscription: subscriptionId },
+        }
       : {
-        type: "subscription_update" as const,
-        subscription_update: { subscription: subscriptionId },
-      };
+          type: "subscription_update" as const,
+          subscription_update: { subscription: subscriptionId },
+        };
 
   try {
+    const stripe = getStripe();
+    if (!stripe) {
+      return Response.json(
+        { error: "Stripe is not configured" },
+        { status: 500 }
+      );
+    }
     const session = await stripe.billingPortal.sessions.create({
       customer: customerId,
       return_url: `${ORIGIN}/dashboard/billing`,

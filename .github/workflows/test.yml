@@ -2,11 +2,12 @@ name: CI
 
 on:
   pull_request:
-    branches:
-      - main
+    branches: [main]
+  push:
+    branches: [main]
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -23,11 +24,17 @@ jobs:
 
       - run: npm ci
       - run: npm test --if-present
+      - run: npm run lint
 
   build:
-    name: Lint & Build
+    name: Build
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     needs: test
+    env:
+        STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+        OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
     steps:
       - uses: actions/checkout@v4
 
@@ -37,5 +44,4 @@ jobs:
           cache: npm
 
       - run: npm ci
-      - run: npm run lint
       - run: npm run build

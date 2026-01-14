@@ -2,8 +2,8 @@
 export const runtime = "nodejs";
 
 import { NextResponse } from "next/server";
-import { stripe } from "@/lib/stripe";
 import { ensureCustomer } from "@/lib/ensure-customer";
+import { getStripe } from "@/lib/stripe";
 
 const ORIGIN = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
@@ -19,6 +19,13 @@ const ORIGIN = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
  */
 export async function POST(req: Request) {
   try {
+    const stripe = getStripe();
+    if (!stripe) {
+      return Response.json(
+        { error: "Stripe is not configured" },
+        { status: 500 }
+      );
+    }
     const { createClientRSC } = await import("@/../utils/supabase/server");
     const supabase = await createClientRSC();
 
@@ -39,7 +46,11 @@ export async function POST(req: Request) {
     let successUrl: string | undefined;
     let cancelUrl: string | undefined;
     let listingId: string | undefined;
-    let purpose: "listing_promo" | "listing_plan" | "base_membership" | undefined;
+    let purpose:
+      | "listing_promo"
+      | "listing_plan"
+      | "base_membership"
+      | undefined;
     let trialDaysFromClient: number | undefined;
 
     if (ct.includes("application/json")) {
@@ -58,13 +69,13 @@ export async function POST(req: Request) {
       trialDaysFromClient =
         Number.isFinite(td) && td > 0 ? Math.floor(td) : undefined;
 
-        console.log("Parsed JSON body", {
-          priceId,
-          purpose,
-          listingId,
-          trialDaysRaw: body.trialDays,
-          trialDaysFromClient,
-        });
+      console.log("Parsed JSON body", {
+        priceId,
+        purpose,
+        listingId,
+        trialDaysRaw: body.trialDays,
+        trialDaysFromClient,
+      });
     } else {
       const form = await req.formData();
       priceId = String(form.get("priceId") ?? "");
@@ -72,20 +83,24 @@ export async function POST(req: Request) {
       quantity = Number.isFinite(q) && q > 0 ? Math.floor(q) : 1;
       listingId = form.get("listingId")?.toString();
       const p = form.get("purpose")?.toString();
-      if (p === "listing_promo" || p === "listing_plan" || p === "base_membership") {
+      if (
+        p === "listing_promo" ||
+        p === "listing_plan" ||
+        p === "base_membership"
+      ) {
         purpose = p;
       }
       const td = Number(form.get("trialDays"));
       trialDaysFromClient =
         Number.isFinite(td) && td > 0 ? Math.floor(td) : undefined;
 
-        console.log("Parsed FORM body", {
-          priceId,
-          purpose,
-          listingId,
-          trialDaysRaw: form.get("trialDays"),
-          trialDaysFromClient
-        })
+      console.log("Parsed FORM body", {
+        priceId,
+        purpose,
+        listingId,
+        trialDaysRaw: form.get("trialDays"),
+        trialDaysFromClient,
+      });
     }
 
     if (!priceId) {
@@ -111,7 +126,10 @@ export async function POST(req: Request) {
 
     // Coerce metadata to strings
     const safeMeta: Record<string, string> = Object.fromEntries(
-      Object.entries(rawMeta ?? {}).map(([k, v]) => [k, v == null ? "" : String(v)])
+      Object.entries(rawMeta ?? {}).map(([k, v]) => [
+        k,
+        v == null ? "" : String(v),
+      ])
     );
 
     // Decide purpose: default promo when listingId present, else base_membership
@@ -119,7 +137,9 @@ export async function POST(req: Request) {
       purpose ?? (listingId ? "listing_promo" : "base_membership");
 
     // Fetch and validate price (metadata-driven; no env whitelist)
-    const fetchedPrice = await stripe.prices.retrieve(priceId, { expand: ["product"] });
+    const fetchedPrice = await stripe.prices.retrieve(priceId, {
+      expand: ["product"],
+    });
 
     if (!fetchedPrice.active) {
       return new Response("Inactive price", { status: 400 });
@@ -130,8 +150,12 @@ export async function POST(req: Request) {
       });
     }
 
-    const priceUserType = String(fetchedPrice.metadata?.user_type || "").toLowerCase(); // 'business' | 'investor' | ''
-    const pricePurpose = String(fetchedPrice.metadata?.purpose || "").toLowerCase(); // 'listing_promo' | 'listing_plan' | ''
+    const priceUserType = String(
+      fetchedPrice.metadata?.user_type || ""
+    ).toLowerCase(); // 'business' | 'investor' | ''
+    const pricePurpose = String(
+      fetchedPrice.metadata?.purpose || ""
+    ).toLowerCase(); // 'listing_promo' | 'listing_plan' | ''
 
     // Ensure Stripe customer once (used for all branches)
     const customerId = await ensureCustomer(user);
@@ -166,10 +190,7 @@ export async function POST(req: Request) {
         console.error("Stripe session created without URL (listing_plan)", {
           sessionId: session.id,
         });
-        return NextResponse.json(
-          { error: "No session URL" },
-          { status: 500 }
-        );
+        return NextResponse.json({ error: "No session URL" }, { status: 500 });
       }
 
       return NextResponse.json({ url: session.url });
@@ -210,7 +231,10 @@ export async function POST(req: Request) {
     }
 
     // Allow client to override (only for base memberships)
-    if (finalPurpose === "base_membership" && typeof trialDaysFromClient === "number") {
+    if (
+      finalPurpose === "base_membership" &&
+      typeof trialDaysFromClient === "number"
+    ) {
       trialDays = trialDaysFromClient;
     }
 
@@ -270,8 +294,7 @@ export async function POST(req: Request) {
       client_reference_id: user.id,
       line_items: [{ price: priceId, quantity }],
       success_url:
-        successUrl ??
-        `${ORIGIN}/welcome?session_id={CHECKOUT_SESSION_ID}`,
+        successUrl ?? `${ORIGIN}/welcome?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: cancelUrl ?? `${ORIGIN}/dashboard`,
       allow_promotion_codes: true,
       subscription_data: {
@@ -284,22 +307,21 @@ export async function POST(req: Request) {
     });
 
     if (!session.url) {
-      console.error("Stripe session created without URL", { sessionId: session.id });
-      return NextResponse.json(
-        { error: "No session URL" },
-        { status: 500 }
-      );
+      console.error("Stripe session created without URL", {
+        sessionId: session.id,
+      });
+      return NextResponse.json({ error: "No session URL" }, { status: 500 });
     }
 
     return NextResponse.json({ url: session.url });
   } catch (err: unknown) {
     const error =
-      err instanceof Error
-        ? err
-        : new Error("Unknown error in checkout route");
+      err instanceof Error ? err : new Error("Unknown error in checkout route");
 
     const stripeError =
-      typeof err === "object" && err !== null ? (err as Record<string, unknown>) : {};
+      typeof err === "object" && err !== null
+        ? (err as Record<string, unknown>)
+        : {};
 
     console.error("Checkout error", {
       message: error.message,

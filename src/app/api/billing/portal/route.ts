@@ -1,12 +1,20 @@
 // app/api/billing/portal/route.ts
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
-import { stripe } from "@/lib/stripe";
+import { getStripe } from "@/lib/stripe";
 import { ensureCustomer } from "@/lib/ensure-customer";
 import { createClientRSC } from "@/../utils/supabase/server";
 
 export async function POST(req: Request) {
   try {
+    const stripe = getStripe();
+    if (!stripe) {
+      return Response.json(
+        { error: "Stripe is not configured" },
+        { status: 500 }
+      );
+    }
     const supabase = await createClientRSC();
     const {
       data: { user },
@@ -31,6 +39,9 @@ export async function POST(req: Request) {
     return Response.json({ url: session.url });
   } catch (e) {
     console.error("billing portal error:", e);
-    return Response.json({ error: "Failed to open billing portal" }, { status: 500 });
+    return Response.json(
+      { error: "Failed to open billing portal" },
+      { status: 500 }
+    );
   }
 }

@@ -1,16 +1,22 @@
 // app/onboarding/business/claim/page.tsx
 import { redirect } from "next/navigation";
-import { stripe } from "@/lib/stripe";
 import { createClientRSC } from "@/../utils/supabase/server";
+import { getStripe } from "@/lib/stripe";
 
 // Utility: small delay to let webhook (if any) write first
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-export default async function ClaimPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ session_id?: string }>;
-}) {
+type Props = {
+  searchParams?: Promise<{
+    session_id?: string;
+  }>;
+};
+
+export default async function ClaimPage({ searchParams }: Props) {
+  const stripe = getStripe();
+  if (!stripe) {
+    throw new Error("Stripe is not configured");
+  }
   const sp = await searchParams;
   const sessionId = sp?.session_id;
   if (!sessionId) redirect("/dashboard/listings?err=no_session");
@@ -21,9 +27,7 @@ export default async function ClaimPage({
   });
 
   const subId =
-    typeof cs.subscription === "string"
-      ? cs.subscription
-      : cs.subscription?.id;
+    typeof cs.subscription === "string" ? cs.subscription : cs.subscription?.id;
 
   if (!subId) redirect("/dashboard/listings?err=no_sub");
 
@@ -35,7 +39,7 @@ export default async function ClaimPage({
   if (!user) {
     redirect(
       "/login?next=/onboarding/business/claim&session_id=" +
-      encodeURIComponent(sessionId)
+        encodeURIComponent(sessionId)
     );
   }
 
@@ -117,8 +121,8 @@ export default async function ClaimPage({
     await stripe.subscriptions.update(subId, {
       metadata: {
         ...(cs.subscription &&
-          typeof cs.subscription !== "string" &&
-          cs.subscription.metadata
+        typeof cs.subscription !== "string" &&
+        cs.subscription.metadata
           ? cs.subscription.metadata
           : {}),
         listing_id: listingId,
