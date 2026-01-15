@@ -6,18 +6,12 @@ import Stripe from "stripe";
 import { NextRequest } from "next/server";
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
 import type { Database, TablesInsert } from "@/types/database.types";
-import { Resend } from "resend";
 import ValuationEmail from "@/emails/ValuationEmail";
 import SubscriptionConfirmationEmail from "@/emails/SubscriptionConfirmationEmail";
 import BoostedListingEmail from "@/emails/BoostedListingEmail";
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
-const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET!;
-const BIZ_EQUITY_URL = process.env.BIZEQUITY_URL!;
-const CALENDLY_VALUATION_URL = process.env.CALENDLY_VALUATION_URL!;
-const resend = new Resend(process.env.RESEND_API_KEY!);
-const baseUrl = process.env.NEXT_PUBLIC_BASE_URL!;
-
+import { getStripe, getWebhookSecret } from "@/lib/stripe";
+import { getResendClient } from "@/lib/resend";
+import { getBaseUrl, getBizEquityUrl, getCalendlyUrl } from "@/lib/envUrls";
 
 const subscribeNewsletter = async (email: string, membership: BaseRole) => {
   if (!email) return;
@@ -29,15 +23,16 @@ const subscribeNewsletter = async (email: string, membership: BaseRole) => {
     groups.push("172616046280181040"); // Business group
   }
 
+  const baseUrl = getBaseUrl();
+
   const res = await fetch(`${baseUrl}/api/ml-subscribe`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "Accept": "application/json"
+      Accept: "application/json",
     },
     body: JSON.stringify({ email, groups }),
   });
-
 
   if (!res.ok) {
     console.error("Newsletter subscribe failed", await res.text());
@@ -50,12 +45,8 @@ function isDeletedCustomer(
   return (c as Stripe.DeletedCustomer).deleted === true;
 }
 
-
 function getAdmin(): SupabaseClient<Database> {
-  console.log(
-    "Webhook Supabase URL:",
-    process.env.NEXT_PUBLIC_SUPABASE_URL
-  );
+  console.log("Webhook Supabase URL:", process.env.NEXT_PUBLIC_SUPABASE_URL);
   console.log(
     "Webhook has service role key?",
     !!process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -180,6 +171,9 @@ async function upsertSubscription(
     return;
   }
 
+  const stripe = getStripe();
+  if (!stripe) throw new Error("Stripe not configured");
+
   // 1) Map Stripe customer -> Supabase user via customers table
   const { data: mapRow, error: mapErr } = await admin
     .from("customers")
@@ -276,7 +270,9 @@ async function upsertSubscription(
     trial_start: toISO(sub.trial_start ?? null),
     trial_end: toISO(sub.trial_end ?? null),
     product_id:
-      typeof price?.product === "string" ? price?.product : product?.id ?? null,
+      typeof price?.product === "string"
+        ? price?.product
+        : (product?.id ?? null),
     product_name: product?.name ?? null,
     price_currency: price?.currency ?? null,
     price_unit_amount: price?.unit_amount ?? null,
@@ -303,7 +299,6 @@ async function upsertSubscription(
   }
 }
 
-
 // Type for listing_evaluations insert
 type ListingEvaluationInsert = {
   listing_id: string;
@@ -314,6 +309,14 @@ type ListingEvaluationInsert = {
 export async function POST(req: NextRequest) {
   const sig = req.headers.get("stripe-signature");
   if (!sig) return new Response("Missing signature", { status: 400 });
+
+  const stripe = getStripe();
+  if (!stripe) throw new Error("Stripe not configured");
+
+  const endpointSecret = getWebhookSecret();
+  if (!endpointSecret) {
+    throw new Error("Stripe endpointSecret not configured");
+  }
 
   let event: Stripe.Event;
   try {
@@ -329,15 +332,18 @@ export async function POST(req: NextRequest) {
 
   try {
     const admin = getAdmin();
+    const resend = getResendClient();
 
     if (type === "checkout.session.completed") {
       const sess = event.data.object as Stripe.Checkout.Session;
 
-      const userId = (sess.metadata?.["supabase_user_id"] ?? null) as string | null;
+      const userId = (sess.metadata?.["supabase_user_id"] ?? null) as
+        | string
+        | null;
       const customerId =
         typeof sess.customer === "string"
           ? (sess.customer as string)
-          : (sess.customer as Stripe.Customer | null)?.id ?? null;
+          : ((sess.customer as Stripe.Customer | null)?.id ?? null);
 
       if (userId && customerId) {
         const { error } = await admin
@@ -358,7 +364,9 @@ export async function POST(req: NextRequest) {
 
         // Send subscription confirmation email for initial subscriptions
         try {
-          const uid = (sess.metadata?.["supabase_user_id"] ?? null) as string | null;
+          const uid = (sess.metadata?.["supabase_user_id"] ?? null) as
+            | string
+            | null;
           if (uid) {
             // Check if user already had other subscriptions (excluding this one)
             const { data: otherSubs } = await admin
@@ -368,7 +376,8 @@ export async function POST(req: NextRequest) {
               .neq("id", sub.id)
               .limit(1);
 
-            const hadPrevious = Array.isArray(otherSubs) && otherSubs.length > 0;
+            const hadPrevious =
+              Array.isArray(otherSubs) && otherSubs.length > 0;
             if (!hadPrevious) {
               let toEmail: string | null =
                 (sess.customer_details?.email as string | null) ||
@@ -410,14 +419,15 @@ export async function POST(req: NextRequest) {
                 const membership = resolveBaseRole(
                   sub.items?.data?.[0]?.price,
                   sub.metadata
-                ); 
-                
-                if (membership){
+                );
+
+                if (membership) {
                   await subscribeNewsletter(toEmail, membership);
                 }
-
               } else {
-                console.warn("No email found for subscription confirmation; skipped email send.");
+                console.warn(
+                  "No email found for subscription confirmation; skipped email send."
+                );
               }
             }
           }
@@ -431,23 +441,27 @@ export async function POST(req: NextRequest) {
       const listingId = String(meta["listing_id"] ?? "");
 
       if (purpose === "listing_plan" && sess.subscription) {
-        const subId = typeof sess.subscription === "string"
-          ? sess.subscription
-          : (sess.subscription as Stripe.Subscription).id;
+        const subId =
+          typeof sess.subscription === "string"
+            ? sess.subscription
+            : (sess.subscription as Stripe.Subscription).id;
 
         // fetch sub with expand so we have everything we need
         const sub = await stripe.subscriptions.retrieve(subId, {
           expand: ["items.data.price.product", "customer"],
         });
 
-        const userId = (sess.metadata?.["supabase_user_id"] ?? null) as string | null;
+        const userId = (sess.metadata?.["supabase_user_id"] ?? null) as
+          | string
+          | null;
         if (!userId) {
           console.error("Missing supabase_user_id on listing_plan session");
           return new Response("ok", { status: 200 });
         }
 
         // If listing_id already present, skip creation (idempotency)
-        const existingListingId = (sub.metadata?.["listing_id"] ?? "") as string;
+        const existingListingId = (sub.metadata?.["listing_id"] ??
+          "") as string;
 
         let listingId = existingListingId;
         if (!listingId) {
@@ -465,7 +479,10 @@ export async function POST(req: NextRequest) {
             .maybeSingle();
 
           if (draftErr || !newDraft?.id) {
-            console.error("Failed to create draft listing post-payment", draftErr);
+            console.error(
+              "Failed to create draft listing post-payment",
+              draftErr
+            );
             return new Response("ok", { status: 200 });
           }
 
@@ -483,7 +500,6 @@ export async function POST(req: NextRequest) {
         await upsertSubscription(admin, refreshed);
       }
 
-
       // Boosted Listing
       if (purpose === "listing_promo" && sess.subscription && listingId) {
         const subId =
@@ -497,17 +513,20 @@ export async function POST(req: NextRequest) {
         const mainItem = sub.items?.data?.[0];
         const { endISO: currentPeriodEnd } = extractPeriodISO(sub, mainItem);
 
-        const { error: promoErr } = await admin.from("listing_promotions").upsert(
-          {
-            listing_id: listingId,
-            stripe_subscription_id: sub.id,
-            status: sub.status,
-            current_period_end: currentPeriodEnd,
-            cancel_at_period_end: sub.cancel_at_period_end ?? false,
-          },
-          { onConflict: "stripe_subscription_id" }
-        );
-        if (promoErr) console.error("listing_promotions upsert error:", promoErr);
+        const { error: promoErr } = await admin
+          .from("listing_promotions")
+          .upsert(
+            {
+              listing_id: listingId,
+              stripe_subscription_id: sub.id,
+              status: sub.status,
+              current_period_end: currentPeriodEnd,
+              cancel_at_period_end: sub.cancel_at_period_end ?? false,
+            },
+            { onConflict: "stripe_subscription_id" }
+          );
+        if (promoErr)
+          console.error("listing_promotions upsert error:", promoErr);
 
         let toEmail: string | null =
           (sess.customer_details?.email as string | null) ||
@@ -535,7 +554,9 @@ export async function POST(req: NextRequest) {
             { idempotencyKey: idemKey }
           );
         } else {
-          console.warn("No email found for boosted listing purchase; skipped email send.");
+          console.warn(
+            "No email found for boosted listing purchase; skipped email send."
+          );
         }
       }
 
@@ -544,7 +565,8 @@ export async function POST(req: NextRequest) {
         const piId =
           typeof sess.payment_intent === "string"
             ? (sess.payment_intent as string)
-            : (sess.payment_intent as Stripe.PaymentIntent | null)?.id ?? null;
+            : ((sess.payment_intent as Stripe.PaymentIntent | null)?.id ??
+              null);
 
         const evaluationData: ListingEvaluationInsert = {
           listing_id: listingId,
@@ -555,9 +577,13 @@ export async function POST(req: NextRequest) {
         // Use a generic query builder approach
         const { error: evalErr } = await admin
           .from("listing_evaluations" as never)
-          .upsert(evaluationData as never, { onConflict: "listing_id" } as never);
+          .upsert(
+            evaluationData as never,
+            { onConflict: "listing_id" } as never
+          );
 
-        if (evalErr) console.error("listing_evaluations upsert error:", evalErr);
+        if (evalErr)
+          console.error("listing_evaluations upsert error:", evalErr);
 
         let toEmail: string | null =
           (sess.customer_details?.email as string | null) ||
@@ -574,8 +600,8 @@ export async function POST(req: NextRequest) {
         }
 
         if (toEmail) {
-          const evaluationLink = BIZ_EQUITY_URL;
-          const calendlyLink = CALENDLY_VALUATION_URL;
+          const evaluationLink = getBizEquityUrl();
+          const calendlyLink = getCalendlyUrl();
           const idemKey = `eval-email:${piId ?? sess.id}`;
           await resend.emails.send(
             {
@@ -584,13 +610,15 @@ export async function POST(req: NextRequest) {
               subject: "Your RPBX Valuation is ready to begin",
               react: ValuationEmail({
                 link: evaluationLink,
-                calendlyLink
+                calendlyLink,
               }),
             },
             { idempotencyKey: idemKey }
           );
         } else {
-          console.warn("No email found for valuation purchase; skipped email send.");
+          console.warn(
+            "No email found for valuation purchase; skipped email send."
+          );
         }
       }
 
@@ -598,7 +626,8 @@ export async function POST(req: NextRequest) {
         const piId =
           typeof sess.payment_intent === "string"
             ? (sess.payment_intent as string)
-            : (sess.payment_intent as Stripe.PaymentIntent | null)?.id ?? null;
+            : ((sess.payment_intent as Stripe.PaymentIntent | null)?.id ??
+              null);
 
         const toEmail: string | null =
           (sess.customer_details?.email as string | null) ||
@@ -606,24 +635,27 @@ export async function POST(req: NextRequest) {
           null;
 
         if (!toEmail) {
-          console.warn("No email found for public valuation; skipped email send");
+          console.warn(
+            "No email found for public valuation; skipped email send"
+          );
           return new Response("ok", { status: 200 });
         }
 
-        const evaluationLink = BIZ_EQUITY_URL;
-        const calendlyLink = CALENDLY_VALUATION_URL;
+        const evaluationLink = getBizEquityUrl();
+        const calendlyLink = getCalendlyUrl();
 
         const idemKey = `public-eval-email:${piId ?? sess.id}`;
-        await resend.emails.send({
-          from: "RioPlex <notifications@rioplexbizx.com>",
-          to: toEmail,
-          subject: "Your RPBX Valuation is ready to begin",
-          react: ValuationEmail({
-            link: evaluationLink,
-            calendlyLink,
-          }),
-        },
-          { idempotencyKey: idemKey },
+        await resend.emails.send(
+          {
+            from: "RioPlex <notifications@rioplexbizx.com>",
+            to: toEmail,
+            subject: "Your RPBX Valuation is ready to begin",
+            react: ValuationEmail({
+              link: evaluationLink,
+              calendlyLink,
+            }),
+          },
+          { idempotencyKey: idemKey }
         );
 
         try {
@@ -635,7 +667,6 @@ export async function POST(req: NextRequest) {
         } catch (e) {
           console.error("Failed to insert public_valuation row", e);
         }
-
       }
 
       return new Response("ok", { status: 200 });
@@ -661,9 +692,7 @@ export async function POST(req: NextRequest) {
             ? role
             : "member";
         const stripeCustomerId =
-          typeof sub.customer === "string"
-            ? sub.customer
-            : sub.customer?.id;
+          typeof sub.customer === "string" ? sub.customer : sub.customer?.id;
         if (stripeCustomerId) {
           const { data: mapRow } = await admin
             .from("customers")
