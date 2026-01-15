@@ -1,11 +1,10 @@
 // app/checkout/success/page.tsx
 import Stripe from "stripe";
 import NavGate from "@/app/components/NavGate";
+import { getStripe } from "@/lib/stripe";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
 function getCustomerEmail(
   customer: string | Stripe.Customer | Stripe.DeletedCustomer | null
@@ -22,6 +21,8 @@ export default async function SuccessPage({
 }) {
   // ✅ match your original pattern: searchParams is a Promise
   const params = await searchParams;
+
+  const stripe = getStripe();
 
   const raw = params?.session_id;
   const type = params?.type;
