@@ -18,3 +18,15 @@ export function getStripe(): Stripe {
 
   return stripeSingleton;
 }
+
+export function getWebhookSecret(): string {
+
+    const secret = process.env.STRIPE_WEBHOOK_SECRET;
+
+    if (!secret || secret.trim().length === 0){
+        throw new Error("STRIPE_WEBHOOK_SECRET is not set");
+    }
+
+    return secret;
+
+}
