@@ -31,6 +31,7 @@ jobs:
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
     needs: test
+    environment: production
     env:
         STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
         OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
