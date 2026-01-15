@@ -4,8 +4,7 @@ import Stripe from "stripe";
 import { createClientRSC } from "@/../utils/supabase/server";
 import EmailVerifiedCTA from "@/components/EmailVerifiedCTA";
 import { AdsSubscribeConversion } from "@/components/analytics/AdsSubscribeConversion";
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+import { getStripe } from "@/lib/stripe";
 
 // Map a role to the page they should land on
 type Role = "business" | "investor" | "admin" | "member" | null;
@@ -33,6 +32,8 @@ async function getCheckoutContext(sessionId?: string): Promise<{
   isVerified: boolean;
 }> {
   if (!sessionId) return { intendedRole: null, isVerified: false };
+
+  const stripe = getStripe();
 
   const session = await stripe.checkout.sessions.retrieve(sessionId, {
     expand: ["subscription"],
