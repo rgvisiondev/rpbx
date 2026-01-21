@@ -15,6 +15,7 @@ import Legal from "./components/popups/Legal";
 import Cpa from "./components/popups/Cpa";
 import ValuateCta from "./components/valuate-cta";
 import CardCarousel from "./components/Card-carousel";
+import Marketing from "./components/popups/marketing";
 
 export const dynamic = "force-dynamic";
 
@@ -68,9 +69,9 @@ export default async function Home() {
 
 
       {/* Div 3: 3 rows */}
-      <div className="flex flex-col items-center bg-[url('/images/backgrounds/white-bg.png')] bg-repeat bg-top py-[15px]">
+      <div className="flex flex-col items-center bg-[url('/images/backgrounds/white-bg.png')] bg-repeat bg-top py-[15px] overflow-hidden">
 
-        
+
         {/* Row 1 */}
         <div className="w-full px-4 lg:max-w-[1140px] lg:px-2 mx-auto flex flex-col lg:flex-row gap-y-6 lg:gap-y-0 lg:gap-x-[45px] py-10">
           <div className="flex justify-center lg:justify-end lg:w-2/5">
@@ -125,15 +126,15 @@ export default async function Home() {
           </div>
         </div>
 
-          <div className="max-w-[1140px] mx-auto flex flex-col md:flex-row items-center">
-            <div className="w-full md:w-1/2 lg:w-2/3">
-              <ValuateCta />
-            </div>
-            <div className="w-full md:w-1/2 lg:w-1/3 overflow-hidden xl:overflow-visible">
-              <CardCarousel />
-              <p className="small text-grey text-center pt-2">Swipe left to explore</p>
-            </div>
+        <div className="max-w-[1140px] mx-auto flex flex-col md:flex-row items-center">
+          <div className="w-full md:w-1/2 lg:w-2/3">
+            <ValuateCta />
           </div>
+          <div className="w-full md:w-1/2 lg:w-1/3 overflow-hidden xl:overflow-visible">
+            <CardCarousel />
+            <p className="small text-grey text-center pt-2">Swipe left to explore</p>
+          </div>
+        </div>
 
 
         {/* Row 3 */}
@@ -142,7 +143,7 @@ export default async function Home() {
           <p className="text-center pt-1">Connect with Our Trusted Advisors for Tailored Business Solutions</p>
 
           {/* four cols on desktop, two on tablet/mobile */}
-          <div className="mt-4 lg:px-10 grid grid-cols-1 md:grid-cols-3 gap-10 lg:gap-0 w-full">
+          <div className="mt-4 lg:px-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10 lg:gap-0 w-full">
 
             {/* 1 */}
             <div className="flex flex-col items-center">
@@ -204,11 +205,30 @@ export default async function Home() {
               <h4 className="text-center mt-2">CPA &amp; Book Keeping Assistant</h4>
             </div>
 
+            {/* 4 */}
+            <div className="flex flex-col items-center">
+              <Modal
+                trigger={
+                  <HoverGif
+                    staticSrc="/images/icons/marketing.png"
+                    gifSrc="/images/gifs/marketing.gif"
+                    alt="solution-icon-4"
+                    width={250}
+                    height={250}
+                  />
+                }
+              >
+                <Marketing />
+
+              </Modal>
+              <h4 className="text-center mt-2">Media Amplification</h4>
+            </div>
+
           </div>
         </div>
       </div>
       {/* Div 5: Newsletter */}
-        <NewsletterSignup />
+      <NewsletterSignup />
     </div>
   );
 }
