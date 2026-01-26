@@ -10,9 +10,8 @@ export async function requestReset(_: unknown, formData: FormData) {
 
     const base = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
 
-    const redirectTo = `${base}/reset-password`
-
-    const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo })
+    const redirectTo = `${base}/confirm?next=/reset-password`
+    const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: redirectTo })
     if (error) return { ok: false, message: error.message }
 
     return { ok: true, message: "Check your email for the reset link." }

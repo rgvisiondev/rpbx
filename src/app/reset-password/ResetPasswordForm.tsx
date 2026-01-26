@@ -13,11 +13,11 @@ export default function ResetPasswordForm() {
         <form action={formAction} className="space-y-4 max-w-sm">
             <label className="block">
                 <span>New Password</span>
-                <input name="password" type="password" required className="border p-2 w-full" />
+                <input name="password" type="password" required className="border p-2 w-full bg-white" />
             </label>
             <label className="block">
                 <span>Confirm Password</span>
-                <input name="confirm" type="password" required className="border p-2 w-full" />
+                <input name="confirm" type="password" required className="border p-2 w-full bg-white" />
             </label>
             <Button type="submit">
                 Update Password
