@@ -1,0 +1,6 @@
+[auth.email.template.recovery]
+subject = "Reset password"
+content_path = "supabase/templates/recovery.html"
+
+[auth]
+site_url = "http://localhost:3000"

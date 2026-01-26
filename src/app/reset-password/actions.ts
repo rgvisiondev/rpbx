@@ -10,7 +10,7 @@ export async function updatePassword(_: unknown, formData: FormData) {
     if (password != confirm) return { ok: false, message: "Passwords do not match" }
 
     const supabase = await createClientRSC()
-    const { error } = await supabase.auth.updateUser({ password })
+    const { error } = await supabase.auth.updateUser({ password: password })
     if (error) return { ok: false, message: error.message }
 
     return { ok: true, message: 'Password updated. You can now sign in' }
