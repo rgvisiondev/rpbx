@@ -13,7 +13,7 @@ function nextPathForRole(role: Role, sessionId?: string | null) {
   if (role === "business") {
     if (sessionId) {
       return `/onboarding/business/claim?session_id=${encodeURIComponent(
-        sessionId
+        sessionId,
       )}`;
     }
     return "/dashboard/listings";
@@ -44,11 +44,19 @@ async function getCheckoutContext(sessionId?: string): Promise<{
   const hasSubscription =
     typeof session.subscription === "object" && session.subscription !== null;
 
-  const subscription =
-    hasSubscription ? (session.subscription as Stripe.Subscription) : null;
+  const subscription = hasSubscription
+    ? (session.subscription as Stripe.Subscription)
+    : null;
 
-  const intendedFromSub = asRole(subscription?.metadata?.intended_user_type);
-  const intendedFromSession = asRole(session.metadata?.intended_user_type);
+  const intendedFromSub = asRole(
+    subscription?.metadata?.intended_user_type ??
+      subscription?.metadata?.user_type_intended,
+  );
+
+  const intendedFromSession = asRole(
+    session.metadata?.intended_user_type ??
+      session.metadata?.user_type_intended,
+  );
 
   const intendedRole = intendedFromSub ?? intendedFromSession ?? null;
 
@@ -57,7 +65,6 @@ async function getCheckoutContext(sessionId?: string): Promise<{
 
   return { intendedRole, isVerified };
 }
-
 
 export default async function Welcome({
   searchParams,
@@ -70,9 +77,11 @@ export default async function Welcome({
   } = await supabase.auth.getUser();
 
   const sp = await searchParams;
-  const session_id = Array.isArray(sp.session_id) ? sp.session_id[0] : sp.session_id;
+  const session_id = Array.isArray(sp.session_id)
+    ? sp.session_id[0]
+    : sp.session_id;
 
-  const {intendedRole, isVerified } = await getCheckoutContext(session_id);
+  const { intendedRole, isVerified } = await getCheckoutContext(session_id);
   const intendedNext = nextPathForRole(intendedRole, session_id);
 
   if (user) {
@@ -102,8 +111,9 @@ export default async function Welcome({
 
         <h1 className="text-2xl font-semibold pt-10">Welcome to RPBX!</h1>
         <p className="mt-2 text-neutral-600">
-          We’ve saved your purchase. To keep your account secure, please verify your email.
-          We’ve sent a link to the email used to create your account.
+          We’ve saved your purchase. To keep your account secure, please verify
+          your email. We’ve sent a link to the email used to create your
+          account.
         </p>
 
         {/* ✅ Checkbox + Button */}
