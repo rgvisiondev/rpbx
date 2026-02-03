@@ -1,9 +1,9 @@
 // app/onboarding/business/claim/page.tsx
 import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
 import { createClientRSC } from "@/../utils/supabase/server";
 import { getStripe } from "@/lib/stripe";
 
-// Utility: small delay to let webhook (if any) write first
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 type Props = {
@@ -12,16 +12,29 @@ type Props = {
   }>;
 };
 
+function getBaseUrl() {
+  // Prefer a server-only base URL if you have it, otherwise fall back
+  // NOTE: NEXT_PUBLIC_SITE_URL should be like https://yourdomain.com
+  return process.env.NEXT_PUBLIC_SITE_URL ||
+    process.env.VERCEL_URL?.startsWith("http")
+    ? process.env.VERCEL_URL
+    : process.env.VERCEL_URL
+      ? `https://${process.env.VERCEL_URL}`
+      : "http://localhost:3000";
+}
+
 export default async function ClaimPage({ searchParams }: Props) {
   const stripe = getStripe();
-  if (!stripe) {
-    throw new Error("Stripe is not configured");
-  }
+  if (!stripe) throw new Error("Stripe is not configured");
+
   const sp = await searchParams;
   const sessionId = sp?.session_id;
   if (!sessionId) redirect("/dashboard/listings?err=no_session");
 
-  // 1) Get the Checkout Session and Subscription id
+  // ✅ Read cookies ONCE (awaited)
+  const cookieStore = await cookies();
+
+  // 1) Get Checkout Session → subscription id
   const cs = await stripe.checkout.sessions.retrieve(sessionId, {
     expand: ["subscription"],
   });
@@ -39,97 +52,70 @@ export default async function ClaimPage({ searchParams }: Props) {
   if (!user) {
     redirect(
       "/login?next=/onboarding/business/claim&session_id=" +
-        encodeURIComponent(sessionId)
+        encodeURIComponent(sessionId),
     );
   }
 
   // Helper: look up listing_id from our subscriptions table
-  const tryFindFromSubscriptions = async () => {
-    const { data: subRow } = await supabase
-      .from("subscriptions")
-      .select("listing_id, user_id")
-      .eq("id", subId)
-      .maybeSingle();
+const tryFindFromSubscriptions = async () => {
+  const { data: subRow, error } = await supabase
+    .from("subscriptions")
+    .select("metadata, user_id")
+    .eq("id", subId)
+    .maybeSingle();
 
-    if (!subRow || subRow.user_id !== user.id) return null;
-    return (subRow.listing_id as string | null) ?? null;
-  };
+  if (error) {
+    console.error("Claim: subscriptions lookup error", error);
+    return null;
+  }
 
-  // 2) First, see if this subscription is already bound to a listing
+  if (!subRow || subRow.user_id !== user.id) return null;
+
+  const meta = subRow.metadata as Record<string, unknown> | null;
+  const lid = meta && typeof meta["listing_id"] === "string" ? meta["listing_id"] : null;
+  return lid;
+};
+
+
+  // 2) First, see if webhook already bound it
   let listingId = await tryFindFromSubscriptions();
 
-  // Give any webhook a moment to write, then retry once
+  // Retry once (webhook timing)
   if (!listingId) {
     await sleep(800);
     listingId = await tryFindFromSubscriptions();
   }
 
-  // 3) If still no listing_id, create or reuse a draft
+  // 3) If still missing, call ensure route (needs cookie auth)
   if (!listingId) {
-    // Prefer reusing an existing draft for this owner to avoid duplicates
-    const { data: existingDraft, error: draftLookupErr } = await supabase
-      .from("business_listings")
-      .select("id")
-      .eq("owner_id", user.id)
-      .eq("status", "draft")
-      .eq("is_active", false)
-      .order("created_at", { ascending: false })
-      .maybeSingle();
+    const baseUrl = getBaseUrl();
+    const ensureUrl = new URL("/api/listings/ensure", baseUrl);
 
-    if (draftLookupErr) {
-      console.error("Claim: error looking up existing draft", draftLookupErr);
-    }
-
-    if (existingDraft?.id) {
-      listingId = existingDraft.id;
-    } else {
-      // No existing draft → create a fresh one
-      const { data: draft, error: insertErr } = await supabase
-        .from("business_listings")
-        .insert({
-          owner_id: user.id,
-          title: "Untitled Listing",
-          industry: "Unspecified",
-          status: "draft",
-          is_active: false,
-        })
-        .select("id")
-        .maybeSingle();
-
-      if (!draft?.id || insertErr) {
-        console.error("Claim: draft insert failed", insertErr);
-        redirect("/dashboard/listings?err=draft_fallback");
-      }
-
-      listingId = draft.id;
-    }
-
-    // Bind subscription → listing in our DB
-    const { error: subUpdErr } = await supabase
-      .from("subscriptions")
-      .update({ listing_id: listingId })
-      .eq("id", subId);
-
-    if (subUpdErr) {
-      console.error(
-        "Claim: failed to stamp listing_id on subscriptions",
-        subUpdErr
-      );
-    }
-
-    // Also stamp on Stripe subscription metadata (for observability / debugging)
-    await stripe.subscriptions.update(subId, {
-      metadata: {
-        ...(cs.subscription &&
-        typeof cs.subscription !== "string" &&
-        cs.subscription.metadata
-          ? cs.subscription.metadata
-          : {}),
-        listing_id: listingId,
+    const res = await fetch(ensureUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        cookie: cookieStore.toString(),
       },
+      body: JSON.stringify({ subId }),
+      cache: "no-store",
     });
+
+    if (!res.ok) {
+      const txt = await res.text().catch(() => "");
+      console.error("Claim: ensure failed", res.status, txt);
+      redirect("/dashboard/listings?err=ensure_failed");
+    }
+
+    const data = (await res.json()) as { listingId?: string | null };
+    if (!data?.listingId) {
+      console.error("Claim: ensure returned no listingId");
+      redirect("/dashboard/listings?err=ensure_no_listing");
+    }
+
+    listingId = data.listingId;
   }
 
-  // 4) Now we *always* have a listingId → send user into set-up step
+  // 4) Always have listingId now
   redirect(`/onboarding/business/${listingId}/set-up`);
 }
