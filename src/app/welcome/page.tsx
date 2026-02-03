@@ -49,9 +49,16 @@ async function getCheckoutContext(sessionId?: string): Promise<{
     : null;
 
   const intendedFromSub = asRole(
-    (subscription?.metadata?.user_type_intended as string | undefined) ?? null,
+    subscription?.metadata?.intended_user_type ??
+      subscription?.metadata?.user_type_intended,
   );
-  const intendedRole = intendedFromSub ?? null;
+
+  const intendedFromSession = asRole(
+    session.metadata?.intended_user_type ??
+      session.metadata?.user_type_intended,
+  );
+
+  const intendedRole = intendedFromSub ?? intendedFromSession ?? null;
 
   // "Verified" = session completed + subscription exists
   const isVerified = session.status === "complete" && hasSubscription;
