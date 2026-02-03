@@ -6,7 +6,6 @@ import { getStripe } from "@/lib/stripe";
 
 type BusinessListingInsert = TablesInsert<"business_listings">;
 
-
 export function getAdmin(): SupabaseClient<Database> {
   if (
     !process.env.NEXT_PUBLIC_SUPABASE_URL ||
@@ -48,6 +47,7 @@ export function extractPeriodISO(
       };
     }
   }
+
   const subUnknown = sub as unknown;
   const s2 = getNumber(subUnknown, "current_period_start");
   const e2 = getNumber(subUnknown, "current_period_end");
@@ -57,6 +57,7 @@ export function extractPeriodISO(
       endISO: toISO(e2) ?? new Date().toISOString(),
     };
   }
+
   const now = new Date().toISOString();
   return { startISO: now, endISO: now };
 }
@@ -67,54 +68,203 @@ function isDeletedCustomer(
   return (c as Stripe.DeletedCustomer).deleted === true;
 }
 
+/**
+ * Strictly resolve the Supabase user id for a Stripe subscription.
+ * Priority:
+ *  1) sub.metadata.supabase_user_id (most reliable)
+ *  2) customers table mapping (must be unique!)
+ *  3) stripe customer metadata supabase_user_id (legacy fallback)
+ */
+async function resolveUserIdForSubscription(
+  admin: SupabaseClient<Database>,
+  sub: Stripe.Subscription,
+): Promise<{ userId: string | null; stripeCustomerId: string | null }> {
+  const stripe = getStripe();
+  if (!stripe) throw new Error("Stripe not configured");
+
+  const stripeCustomerId =
+    typeof sub.customer === "string"
+      ? sub.customer
+      : (sub.customer?.id ?? null);
+
+  // 1) Prefer sub.metadata.supabase_user_id
+  const metaUidRaw = sub.metadata?.supabase_user_id;
+  const metaUid =
+    typeof metaUidRaw === "string" && metaUidRaw.length > 0 ? metaUidRaw : null;
+  if (metaUid) {
+    // best effort: keep customers table synced
+    if (stripeCustomerId) {
+      await admin
+        .from("customers")
+        .upsert({ id: metaUid, stripe_customer_id: stripeCustomerId });
+    }
+    return { userId: metaUid, stripeCustomerId };
+  }
+
+  if (!stripeCustomerId) return { userId: null, stripeCustomerId: null };
+
+  // 2) customers table mapping — but guard against ambiguity
+  const { data: mapRows, error: mapErr } = await admin
+    .from("customers")
+    .select("id")
+    .eq("stripe_customer_id", stripeCustomerId)
+    .limit(2);
+
+  if (mapErr) {
+    console.error(
+      "resolveUserIdForSubscription: customers lookup error",
+      mapErr,
+    );
+  } else if (Array.isArray(mapRows)) {
+    if (mapRows.length === 1) {
+      return { userId: mapRows[0]!.id as string, stripeCustomerId };
+    }
+    if (mapRows.length > 1) {
+      // This should NEVER happen. It means stripe_customer_id is not unique in your DB.
+      console.error("FATAL: multiple users mapped to same stripe_customer_id", {
+        stripeCustomerId,
+        mapRows,
+      });
+      // Fail safe: do not upsert subscriptions with a nondeterministic user_id.
+      return { userId: null, stripeCustomerId };
+    }
+  }
+
+  // 3) Legacy fallback: Stripe customer metadata
+  try {
+    const cust = await stripe.customers.retrieve(stripeCustomerId);
+    if (!cust || isDeletedCustomer(cust))
+      return { userId: null, stripeCustomerId };
+
+    const custMetaUid = cust.metadata?.supabase_user_id;
+    const uid =
+      typeof custMetaUid === "string" && custMetaUid.length > 0
+        ? custMetaUid
+        : null;
+
+    if (uid) {
+      await admin
+        .from("customers")
+        .upsert({ id: uid, stripe_customer_id: stripeCustomerId });
+    }
+    return { userId: uid, stripeCustomerId };
+  } catch (e) {
+    console.error(
+      "resolveUserIdForSubscription: stripe customer retrieve failed",
+      e,
+    );
+    return { userId: null, stripeCustomerId };
+  }
+}
+
+/* ================================
+   Base membership → profiles.user_type
+   Safeguards:
+   - ONLY updates profiles.user_type
+   - ONLY for base memberships (purpose empty)
+   - ONLY when active/trialing
+   - NEVER sets "member" (no-op if can't resolve business/investor)
+================================== */
+
+type BaseRole = "business" | "investor" | null;
+
+function jsonGetString(obj: unknown, key: string): string | null {
+  if (!obj || typeof obj !== "object") return null;
+  const v = (obj as Record<string, unknown>)[key];
+  return typeof v === "string" ? v : null;
+}
+
+function resolveBaseRoleFromSub(args: {
+  priceLookupKey: string | null;
+  priceMetadata: unknown;
+  subMetadata: unknown;
+}): BaseRole {
+  const byMeta = (jsonGetString(args.priceMetadata, "user_type") ?? "").toLowerCase();
+  if (byMeta === "business") return "business";
+  if (byMeta === "investor") return "investor";
+
+  const intended = (jsonGetString(args.subMetadata, "user_type_intended") ?? "").toLowerCase();
+  if (intended === "business") return "business";
+  if (intended === "investor") return "investor";
+
+  const lk = (args.priceLookupKey ?? "").toLowerCase();
+  if (lk.startsWith("business_")) return "business";
+  if (lk.startsWith("investor_")) return "investor";
+
+  return null;
+}
+
+function isActiveish(status: Stripe.Subscription["status"] | null | undefined) {
+  return status === "active" || status === "trialing";
+}
+
+async function syncProfileUserTypeFromSubscription(
+  admin: SupabaseClient<Database>,
+  sub: Stripe.Subscription,
+  userId: string,
+) {
+  // Base memberships should NOT have a "purpose". Add-ons should.
+  const purpose = String(sub.metadata?.purpose ?? "").trim();
+  if (purpose) return;
+
+  if (!isActiveish(sub.status)) return;
+
+  const item = sub.items?.data?.[0];
+  const price = item?.price;
+
+  const role = resolveBaseRoleFromSub({
+    priceLookupKey: price?.lookup_key ?? null,
+    priceMetadata: price?.metadata ?? null,
+    subMetadata: sub.metadata ?? null,
+  });
+
+  // hard safety: never set "member" on webhook sync
+  if (!role) return;
+
+  const { error } = await admin
+    .from("profiles")
+    .update({ user_type: role })
+    .eq("id", userId);
+
+  if (error) {
+    console.error("syncProfileUserTypeFromSubscription: profiles update error", {
+      userId,
+      subId: sub.id,
+      error,
+    });
+  }
+}
+
 // Canonical mirror into `subscriptions`
 export async function upsertSubscription(
   admin: SupabaseClient<Database>,
   sub: Stripe.Subscription,
 ) {
-  const stripeCustomerId =
-    typeof sub.customer === "string" ? sub.customer : sub.customer?.id;
-  if (!stripeCustomerId) return;
-
-  const stripe = getStripe();
-  if (!stripe) throw new Error("Stripe not configured");
-
-  // 1) Map Stripe customer -> Supabase user via customers table
-  const { data: mapRow } = await admin
-    .from("customers")
-    .select("id")
-    .eq("stripe_customer_id", stripeCustomerId)
-    .maybeSingle();
-
-  let userId = mapRow?.id ?? null;
-
-  // 2) Fallback: Stripe customer metadata (old flows)
-  if (!userId) {
-    const cust =
-      typeof sub.customer === "string"
-        ? await stripe.customers.retrieve(sub.customer)
-        : sub.customer;
-
-    if (!cust || isDeletedCustomer(cust)) return;
-
-    const metaUserId = cust.metadata?.supabase_user_id as string | undefined;
-    if (metaUserId) {
-      userId = metaUserId;
-      await admin.from("customers").upsert({
-        id: metaUserId,
-        stripe_customer_id: stripeCustomerId,
-      });
-    }
-  }
-
+  const { userId, stripeCustomerId } = await resolveUserIdForSubscription(
+    admin,
+    sub,
+  );
   if (!userId) return;
 
-  // 3) Must have profile
-  const { data: profileRow } = await admin
+  // Optional: log if Stripe customer missing (shouldn't happen)
+  if (!stripeCustomerId) {
+    console.warn("upsertSubscription: missing stripeCustomerId", {
+      subId: sub.id,
+      userId,
+    });
+  }
+
+  // Must have profile row (don’t create or update here)
+  const { data: profileRow, error: profErr } = await admin
     .from("profiles")
     .select("id")
     .eq("id", userId)
     .maybeSingle();
+
+  if (profErr) {
+    console.error("upsertSubscription: profiles lookup error", profErr);
+    return;
+  }
   if (!profileRow) return;
 
   const item = sub.items?.data?.[0];
@@ -158,33 +308,44 @@ export async function upsertSubscription(
       {}) as TablesInsert<"subscriptions">["price_metadata"],
     product_metadata: (product?.metadata ??
       {}) as TablesInsert<"subscriptions">["product_metadata"],
-
   };
 
   const { error } = await admin.from("subscriptions").upsert(row);
   if (error) {
-    console.error("subscriptions upsert error:", error);
+    console.error("subscriptions upsert error:", error, {
+      subId: sub.id,
+      userId,
+    });
+    return;
   }
+
+  // ✅ Only place we update profile role off Stripe subs
+  // (guarded to ONLY base membership)
+  await syncProfileUserTypeFromSubscription(admin, sub, userId);
 }
 
-// Canonical entitlement
+// Canonical entitlement (business listing per qualifying subscription)
 export async function ensureListingForSubscription(
   admin: SupabaseClient<Database>,
   stripe: Stripe,
   sub: Stripe.Subscription,
-  userId: string
+  userId: string,
 ): Promise<string | null> {
   try {
+    // HARD SAFETY: never touch profiles here (this function should ONLY deal with listings/subscriptions)
+
+    // If subscription already has listing_id, trust it
     const existing = (sub.metadata?.["listing_id"] ?? "") as string;
     if (existing) {
-      console.log("ensureListingForSubscription: already has listing_id in Stripe metadata", {
-        subId: sub.id,
-        listingId: existing,
-      });
       return existing;
     }
 
-    // 1) Existing listing for this subscription?
+    // Optional extra safety: only allow listing creation for intended-purpose subs
+    // If you want, uncomment this to block accidental calls:
+    // const purpose = String(sub.metadata?.purpose ?? "");
+    // if (purpose && purpose !== "listing_plan") return null;
+
+    // 1) Find listing bound to this subscription
     const { data: existingRow, error: findErr } = await admin
       .from("business_listings")
       .select("id")
@@ -201,46 +362,46 @@ export async function ensureListingForSubscription(
 
     let listingId = existingRow?.id ?? null;
 
-    // 2) Create if missing (race-safe)
+    // 2) Create draft listing if missing
     if (!listingId) {
       const listingInsert: BusinessListingInsert = {
-            owner_id: userId,
-            title: "Untitled Listing",
-            industry: "Agriculture, Forestry, Fishing & Hunting",
-            status: "draft",
-            is_active: false,
-            stripe_subscription_id: sub.id,
-          };
-        const { data: draft, error: upErr } = await admin
-          .from("business_listings")
-          .upsert(listingInsert, { onConflict: "stripe_subscription_id" })
-          .select("id")
-          .maybeSingle();
+        owner_id: userId,
+        title: "Untitled Listing",
+        industry: "Agriculture, Forestry, Fishing & Hunting",
+        status: "draft",
+        is_active: false,
+        stripe_subscription_id: sub.id,
+      };
+
+      const { data: draft, error: upErr } = await admin
+        .from("business_listings")
+        .upsert(listingInsert, { onConflict: "stripe_subscription_id" })
+        .select("id")
+        .maybeSingle();
 
       if (upErr) {
-        console.error("ensureListingForSubscription: business_listings upsert failed", {
-          subId: sub.id,
-          userId,
-          upErr,
-        });
+        console.error(
+          "ensureListingForSubscription: business_listings upsert failed",
+          {
+            subId: sub.id,
+            userId,
+            upErr,
+          },
+        );
         return null;
       }
 
-      if (!draft?.id) {
-        console.error("ensureListingForSubscription: upsert succeeded but returned no id", {
-          subId: sub.id,
-          userId,
-          draft,
-        });
+      listingId = draft?.id ?? null;
 
-        // Try a follow-up fetch (in case insert worked but select was blocked)
+      // Fallback select if returning row was blocked
+      if (!listingId) {
         const { data: retryRow, error: retryErr } = await admin
           .from("business_listings")
           .select("id")
           .eq("stripe_subscription_id", sub.id)
           .maybeSingle();
 
-        if (retryErr) {
+        if (retryErr || !retryRow?.id) {
           console.error("ensureListingForSubscription: retry select failed", {
             subId: sub.id,
             userId,
@@ -248,36 +409,13 @@ export async function ensureListingForSubscription(
           });
           return null;
         }
-
-        if (!retryRow?.id) {
-          console.error("ensureListingForSubscription: retry select still found nothing", {
-            subId: sub.id,
-            userId,
-          });
-          return null;
-        }
-
         listingId = retryRow.id;
-      } else {
-        listingId = draft.id;
       }
     }
 
-    // 3) Stamp Stripe metadata
+    // 3) Stamp Stripe subscription metadata
     await stripe.subscriptions.update(sub.id, {
       metadata: { ...(sub.metadata ?? {}), listing_id: listingId },
-    });
-
-    // 4) Refresh mirror so `subscriptions.listing_id` appears ASAP
-    const refreshed = await stripe.subscriptions.retrieve(sub.id, {
-      expand: ["items.data.price.product", "customer"],
-    });
-    await upsertSubscription(admin, refreshed);
-
-    console.log("ensureListingForSubscription: success", {
-      subId: sub.id,
-      userId,
-      listingId,
     });
 
     return listingId;

@@ -1,8 +1,8 @@
 // app/onboarding/business/claim/page.tsx
 import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
 import { createClientRSC } from "@/../utils/supabase/server";
 import { getStripe } from "@/lib/stripe";
-import { cookies } from "next/headers";
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -12,6 +12,17 @@ type Props = {
   }>;
 };
 
+function getBaseUrl() {
+  // Prefer a server-only base URL if you have it, otherwise fall back
+  // NOTE: NEXT_PUBLIC_SITE_URL should be like https://yourdomain.com
+  return process.env.NEXT_PUBLIC_SITE_URL ||
+    process.env.VERCEL_URL?.startsWith("http")
+    ? process.env.VERCEL_URL
+    : process.env.VERCEL_URL
+      ? `https://${process.env.VERCEL_URL}`
+      : "http://localhost:3000";
+}
+
 export default async function ClaimPage({ searchParams }: Props) {
   const stripe = getStripe();
   if (!stripe) throw new Error("Stripe is not configured");
@@ -19,6 +30,9 @@ export default async function ClaimPage({ searchParams }: Props) {
   const sp = await searchParams;
   const sessionId = sp?.session_id;
   if (!sessionId) redirect("/dashboard/listings?err=no_session");
+
+  // ✅ Read cookies ONCE (awaited)
+  const cookieStore = await cookies();
 
   // 1) Get Checkout Session → subscription id
   const cs = await stripe.checkout.sessions.retrieve(sessionId, {
@@ -42,22 +56,26 @@ export default async function ClaimPage({ searchParams }: Props) {
     );
   }
 
-  // Helper: look up listing_id from our subscriptions table (generated from metadata)
-  const tryFindFromSubscriptions = async () => {
-    const { data: subRow, error } = await supabase
-      .from("subscriptions")
-      .select("listing_id, user_id")
-      .eq("id", subId)
-      .maybeSingle();
+  // Helper: look up listing_id from our subscriptions table
+const tryFindFromSubscriptions = async () => {
+  const { data: subRow, error } = await supabase
+    .from("subscriptions")
+    .select("metadata, user_id")
+    .eq("id", subId)
+    .maybeSingle();
 
-    if (error) {
-      console.error("Claim: subscriptions lookup error", error);
-      return null;
-    }
+  if (error) {
+    console.error("Claim: subscriptions lookup error", error);
+    return null;
+  }
 
-    if (!subRow || subRow.user_id !== user.id) return null;
-    return (subRow.listing_id as string | null) ?? null;
-  };
+  if (!subRow || subRow.user_id !== user.id) return null;
+
+  const meta = subRow.metadata as Record<string, unknown> | null;
+  const lid = meta && typeof meta["listing_id"] === "string" ? meta["listing_id"] : null;
+  return lid;
+};
+
 
   // 2) First, see if webhook already bound it
   let listingId = await tryFindFromSubscriptions();
@@ -68,13 +86,16 @@ export default async function ClaimPage({ searchParams }: Props) {
     listingId = await tryFindFromSubscriptions();
   }
 
-  // 3) If still missing, ask our server (service role) to "ensure" entitlement
+  // 3) If still missing, call ensure route (needs cookie auth)
   if (!listingId) {
-    const res = await fetch("/api/listings/ensure", {
+    const baseUrl = getBaseUrl();
+    const ensureUrl = new URL("/api/listings/ensure", baseUrl);
+
+    const res = await fetch(ensureUrl, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        cookie: cookies().toString(),
+        cookie: cookieStore.toString(),
       },
       body: JSON.stringify({ subId }),
       cache: "no-store",
