@@ -47,6 +47,7 @@ export type Database = {
           postal_code: string | null
           state_code: string | null
           status: string
+          stripe_subscription_id: string | null
           title: string
           updated_at: string | null
           years_in_business: string | null
@@ -83,6 +84,7 @@ export type Database = {
           postal_code?: string | null
           state_code?: string | null
           status?: string
+          stripe_subscription_id?: string | null
           title: string
           updated_at?: string | null
           years_in_business?: string | null
@@ -119,6 +121,7 @@ export type Database = {
           postal_code?: string | null
           state_code?: string | null
           status?: string
+          stripe_subscription_id?: string | null
           title?: string
           updated_at?: string | null
           years_in_business?: string | null
@@ -751,6 +754,7 @@ export type Database = {
       }
     }
     Functions: {
+      current_user_type: { Args: never; Returns: string }
       get_investor_email_by_profile_id: {
         Args: { p_profile_id: string }
         Returns: {

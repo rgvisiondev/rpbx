@@ -8,7 +8,7 @@ import { verifyTurnstileToken } from "@/lib/verifyTurnstile";
 import { getStripe } from "@/lib/stripe";
 
 function deriveUserTypeFromPrice(
-  price: Stripe.Price
+  price: Stripe.Price,
 ): "investor" | "business" | "member" {
   const fromMeta = (price.metadata?.user_type ?? "").toLowerCase();
   if (fromMeta === "investor" || fromMeta === "business") return fromMeta;
@@ -32,7 +32,7 @@ export async function POST(req: Request) {
   try {
     const stripe = getStripe();
     if (!stripe) {
-      throw new Error("Stripe is not configured.")
+      throw new Error("Stripe is not configured.");
     }
     const form = await req.formData();
     lookup = String(form.get("lookup") ?? "");
@@ -53,14 +53,14 @@ export async function POST(req: Request) {
     if ((!lookup && !priceIdFromForm) || !email || !password) {
       return Response.redirect(
         `${origin}/subscribe/${lookup}?error=missing_fields`,
-        303
+        303,
       );
     }
 
     if (!turnstileToken || typeof turnstileToken !== "string") {
       return Response.redirect(
         `${origin}/subscribe/${lookup}?error=verification_failed`,
-        303
+        303,
       );
     }
 
@@ -68,7 +68,7 @@ export async function POST(req: Request) {
     if (!ok) {
       return Response.redirect(
         `${origin}/subscribe/${lookup}?error=verification_failed`,
-        303
+        303,
       );
     }
 
@@ -94,7 +94,7 @@ export async function POST(req: Request) {
       ) {
         return Response.redirect(
           `${origin}/subscribe/${lookup}?error=username_taken`,
-          303
+          303,
         );
       }
 
@@ -109,7 +109,7 @@ export async function POST(req: Request) {
       ) {
         return Response.redirect(
           `${origin}/subscribe/${lookup}?error=account_exists`,
-          303
+          303,
         );
       }
 
@@ -120,13 +120,13 @@ export async function POST(req: Request) {
       ) {
         return Response.redirect(
           `${origin}/subscribe/${lookup}?error=rate_limit`,
-          303
+          303,
         );
       }
 
       return Response.redirect(
         `${origin}/subscribe/${lookup}?error=unknown`,
-        303
+        303,
       );
     }
 
@@ -134,7 +134,7 @@ export async function POST(req: Request) {
     if (!userId) {
       return Response.redirect(
         `${origin}/subscribe/${lookup}?error=unknown`,
-        303
+        303,
       );
     }
 
@@ -158,7 +158,7 @@ export async function POST(req: Request) {
     if (!price || !price.active || !(price.product as Stripe.Product)?.active) {
       return Response.redirect(
         `${origin}/subscribe/${lookup}?error=invalid_plan`,
-        303
+        303,
       );
     }
 
@@ -176,15 +176,20 @@ export async function POST(req: Request) {
       customer: customerId,
       line_items: [{ price: price.id, quantity: 1 }],
       client_reference_id: userId,
+      metadata: {
+        user_type_intended: intendedUserType,
+      },
+
       subscription_data: {
         trial_period_days: trialDays > 0 ? trialDays : undefined,
         metadata: {
           supabase_user_id: userId,
           plan_lookup: lookup || "",
           price_id: price.id,
-          user_type_intended: intendedUserType,
+          user_type_intended: intendedUserType, // keep
         },
       },
+
       success_url: `${origin}/welcome?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}/subscribe/${lookup}`,
       allow_promotion_codes: true,
@@ -197,7 +202,7 @@ export async function POST(req: Request) {
     // lookup is available from outer scope
     return Response.redirect(
       `${origin}/subscribe/${lookup || "business_monthly"}?error=unknown`,
-      303
+      303,
     );
   }
 }

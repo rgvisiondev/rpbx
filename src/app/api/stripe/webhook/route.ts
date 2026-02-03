@@ -4,14 +4,18 @@ export const dynamic = "force-dynamic";
 
 import Stripe from "stripe";
 import { NextRequest } from "next/server";
-import { createClient, SupabaseClient } from "@supabase/supabase-js";
-import type { Database, TablesInsert } from "@/types/database.types";
 import ValuationEmail from "@/emails/ValuationEmail";
 import SubscriptionConfirmationEmail from "@/emails/SubscriptionConfirmationEmail";
 import BoostedListingEmail from "@/emails/BoostedListingEmail";
 import { getStripe, getWebhookSecret } from "@/lib/stripe";
 import { getResendClient } from "@/lib/resend";
 import { getBaseUrl, getBizEquityUrl, getCalendlyUrl } from "@/lib/envUrls";
+import {
+  extractPeriodISO,
+  getAdmin,
+  upsertSubscription,
+  ensureListingForSubscription,
+} from "@/lib/billing/subscriptionSync";
 
 const subscribeNewsletter = async (email: string, membership: BaseRole) => {
   if (!email) return;
@@ -39,25 +43,6 @@ const subscribeNewsletter = async (email: string, membership: BaseRole) => {
   }
 };
 
-function isDeletedCustomer(
-  c: Stripe.Customer | Stripe.DeletedCustomer
-): c is Stripe.DeletedCustomer {
-  return (c as Stripe.DeletedCustomer).deleted === true;
-}
-
-function getAdmin(): SupabaseClient<Database> {
-  console.log("Webhook Supabase URL:", process.env.NEXT_PUBLIC_SUPABASE_URL);
-  console.log(
-    "Webhook has service role key?",
-    !!process.env.SUPABASE_SERVICE_ROLE_KEY
-  );
-  return createClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    { auth: { persistSession: false } }
-  );
-}
-
 // Normalize Stripe event types
 function norm(evtType: string) {
   if (evtType === "invoice_payment.paid") return "invoice.payment_succeeded";
@@ -69,7 +54,7 @@ type BaseRole = "business" | "investor" | null;
 
 function resolveBaseRole(
   price: Stripe.Price | undefined,
-  subMeta: Record<string, unknown> | null | undefined
+  subMeta: Record<string, unknown> | null | undefined,
 ): BaseRole {
   if (!price) return null;
   const byMeta = String(price.metadata?.user_type ?? "").toLowerCase();
@@ -85,8 +70,6 @@ function resolveBaseRole(
 }
 
 // Helper functions
-const toISO = (unix: number | null | undefined) =>
-  typeof unix === "number" ? new Date(unix * 1000).toISOString() : null;
 
 function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
@@ -96,39 +79,6 @@ function getString(obj: unknown, key: string): string | null {
   if (!isObject(obj)) return null;
   const v = obj[key];
   return typeof v === "string" ? v : null;
-}
-
-function getNumber(obj: unknown, key: string): number | null {
-  if (!isObject(obj)) return null;
-  const v = obj[key];
-  return typeof v === "number" ? v : null;
-}
-
-function extractPeriodISO(
-  sub: Stripe.Subscription,
-  item?: Stripe.SubscriptionItem
-): { startISO: string; endISO: string } {
-  if (item && isObject(item)) {
-    const s = getNumber(item, "current_period_start");
-    const e = getNumber(item, "current_period_end");
-    if (s !== null || e !== null) {
-      return {
-        startISO: toISO(s) ?? new Date().toISOString(),
-        endISO: toISO(e) ?? new Date().toISOString(),
-      };
-    }
-  }
-  const subUnknown = sub as unknown;
-  const s2 = getNumber(subUnknown, "current_period_start");
-  const e2 = getNumber(subUnknown, "current_period_end");
-  if (s2 !== null || e2 !== null) {
-    return {
-      startISO: toISO(s2) ?? new Date().toISOString(),
-      endISO: toISO(e2) ?? new Date().toISOString(),
-    };
-  }
-  const now = new Date().toISOString();
-  return { startISO: now, endISO: now };
 }
 
 function extractSubscriptionIdFromInvoice(inv: Stripe.Invoice): string | null {
@@ -158,145 +108,6 @@ function extractSubscriptionIdFromInvoice(inv: Stripe.Invoice): string | null {
     }
   }
   return null;
-}
-
-async function upsertSubscription(
-  admin: SupabaseClient<Database>,
-  sub: Stripe.Subscription
-) {
-  const stripeCustomerId =
-    typeof sub.customer === "string" ? sub.customer : sub.customer?.id;
-  if (!stripeCustomerId) {
-    console.warn("No stripeCustomerId on subscription", sub.id);
-    return;
-  }
-
-  const stripe = getStripe();
-  if (!stripe) throw new Error("Stripe not configured");
-
-  // 1) Map Stripe customer -> Supabase user via customers table
-  const { data: mapRow, error: mapErr } = await admin
-    .from("customers")
-    .select("id")
-    .eq("stripe_customer_id", stripeCustomerId)
-    .maybeSingle();
-
-  if (mapErr) {
-    console.error("customers lookup error:", mapErr);
-  }
-
-  let userId = mapRow?.id ?? null;
-
-  // 2) Fallback: from Stripe customer metadata (old flows)
-  if (!userId) {
-    const cust =
-      typeof sub.customer === "string"
-        ? await stripe.customers.retrieve(sub.customer)
-        : sub.customer;
-
-    if (!cust || isDeletedCustomer(cust)) {
-      console.warn(
-        "upsertSubscription: Stripe customer is deleted or missing, cannot resolve supabase_user_id"
-      );
-      return;
-    }
-    const metaUserId = cust.metadata?.supabase_user_id as string | undefined;
-    if (metaUserId) {
-      userId = metaUserId;
-
-      // keep customers table in sync
-      await admin
-        .from("customers")
-        .upsert({ id: metaUserId, stripe_customer_id: stripeCustomerId });
-    }
-  }
-
-  if (!userId) {
-    console.warn(
-      "upsertSubscription: no mapped userId for stripeCustomerId",
-      stripeCustomerId,
-      "sub",
-      sub.id
-    );
-    return;
-  }
-
-  // 3) Make sure this user actually exists on our app side (mirrors auth.users)
-  const { data: profileRow } = await admin
-    .from("profiles")
-    .select("id")
-    .eq("id", userId)
-    .maybeSingle();
-
-  if (!profileRow) {
-    console.warn(
-      "upsertSubscription: userId has no profile (likely no auth.user), skipping",
-      userId,
-      "sub",
-      sub.id
-    );
-    return; // <-- prevents FK error 23503
-  }
-
-  // 4) Build row as before
-  const item = sub.items?.data?.[0];
-  const price = item?.price ?? undefined;
-  const { startISO: currentPeriodStart, endISO: currentPeriodEnd } =
-    extractPeriodISO(sub, item);
-
-  const product =
-    typeof price?.product === "string"
-      ? null
-      : (price?.product as Stripe.Product | null);
-
-  const subMetadata: Record<string, string> = sub.metadata ?? {};
-  const priceMetadata: Record<string, string> = price?.metadata ?? {};
-  const productMetadata: Record<string, string> = product?.metadata ?? {};
-
-  const row: TablesInsert<"subscriptions"> = {
-    id: sub.id,
-    user_id: userId,
-    status: sub.status as Database["public"]["Enums"]["subscription_status"],
-    price_id: price?.id ?? null,
-    quantity: item?.quantity ?? null,
-    metadata: subMetadata as TablesInsert<"subscriptions">["metadata"],
-    cancel_at: toISO(sub.cancel_at ?? null),
-    cancel_at_period_end: sub.cancel_at_period_end ?? null,
-    canceled_at: toISO(sub.canceled_at ?? null),
-    created: toISO(sub.created) ?? new Date().toISOString(),
-    current_period_start: currentPeriodStart,
-    current_period_end: currentPeriodEnd,
-    ended_at: toISO(sub.ended_at ?? null),
-    trial_start: toISO(sub.trial_start ?? null),
-    trial_end: toISO(sub.trial_end ?? null),
-    product_id:
-      typeof price?.product === "string"
-        ? price?.product
-        : (product?.id ?? null),
-    product_name: product?.name ?? null,
-    price_currency: price?.currency ?? null,
-    price_unit_amount: price?.unit_amount ?? null,
-    price_interval: price?.recurring?.interval ?? null,
-    price_interval_count: price?.recurring?.interval_count ?? null,
-    price_nickname: price?.nickname ?? null,
-    price_lookup_key: price?.lookup_key ?? null,
-    price_metadata:
-      priceMetadata as TablesInsert<"subscriptions">["price_metadata"],
-    product_metadata:
-      productMetadata as TablesInsert<"subscriptions">["product_metadata"],
-  };
-
-  const { error } = await admin.from("subscriptions").upsert(row);
-  if (error) {
-    console.error(
-      "subscriptions upsert error (after profile check):",
-      JSON.stringify(error, null, 2)
-    );
-  } else {
-    console.log(
-      `upserted subscription ${sub.id} for user ${userId} with status ${sub.status}`
-    );
-  }
 }
 
 // Type for listing_evaluations insert
@@ -413,12 +224,12 @@ export async function POST(req: NextRequest) {
                     subject: "Your RPBX subscription is active",
                     react: SubscriptionConfirmationEmail({ dashboardUrl }),
                   },
-                  { idempotencyKey: idemKey }
+                  { idempotencyKey: idemKey },
                 );
                 // for new subscribers, also subscribe to newsletter
                 const membership = resolveBaseRole(
                   sub.items?.data?.[0]?.price,
-                  sub.metadata
+                  sub.metadata,
                 );
 
                 if (membership) {
@@ -426,7 +237,7 @@ export async function POST(req: NextRequest) {
                 }
               } else {
                 console.warn(
-                  "No email found for subscription confirmation; skipped email send."
+                  "No email found for subscription confirmation; skipped email send.",
                 );
               }
             }
@@ -446,58 +257,21 @@ export async function POST(req: NextRequest) {
             ? sess.subscription
             : (sess.subscription as Stripe.Subscription).id;
 
-        // fetch sub with expand so we have everything we need
-        const sub = await stripe.subscriptions.retrieve(subId, {
-          expand: ["items.data.price.product", "customer"],
-        });
-
-        const userId = (sess.metadata?.["supabase_user_id"] ?? null) as
+        const uid = (sess.metadata?.["supabase_user_id"] ?? null) as
           | string
           | null;
-        if (!userId) {
+        if (!uid) {
           console.error("Missing supabase_user_id on listing_plan session");
           return new Response("ok", { status: 200 });
         }
 
-        // If listing_id already present, skip creation (idempotency)
-        const existingListingId = (sub.metadata?.["listing_id"] ??
-          "") as string;
-
-        let listingId = existingListingId;
-        if (!listingId) {
-          // Create the draft listing now (post-payment)
-          const { data: newDraft, error: draftErr } = await admin
-            .from("business_listings")
-            .insert({
-              owner_id: userId,
-              title: "Untitled Listing",
-              industry: "Unspecified",
-              status: "draft",
-              is_active: false,
-            })
-            .select("id")
-            .maybeSingle();
-
-          if (draftErr || !newDraft?.id) {
-            console.error(
-              "Failed to create draft listing post-payment",
-              draftErr
-            );
-            return new Response("ok", { status: 200 });
-          }
-
-          listingId = newDraft.id;
-
-          // Stamp listing_id onto the Stripe subscription metadata
-          const mergedMeta = { ...(sub.metadata ?? {}), listing_id: listingId };
-          await stripe.subscriptions.update(sub.id, { metadata: mergedMeta });
-        }
-
-        // Re-upsert subscription so subscriptions.metadata includes listing_id
-        const refreshed = await stripe.subscriptions.retrieve(sub.id, {
+        const sub = await stripe.subscriptions.retrieve(subId, {
           expand: ["items.data.price.product", "customer"],
         });
-        await upsertSubscription(admin, refreshed);
+
+        await ensureListingForSubscription(admin, stripe, sub, uid);
+
+        return new Response("ok", { status: 200 });
       }
 
       // Boosted Listing
@@ -523,7 +297,7 @@ export async function POST(req: NextRequest) {
               current_period_end: currentPeriodEnd,
               cancel_at_period_end: sub.cancel_at_period_end ?? false,
             },
-            { onConflict: "stripe_subscription_id" }
+            { onConflict: "stripe_subscription_id" },
           );
         if (promoErr)
           console.error("listing_promotions upsert error:", promoErr);
@@ -551,11 +325,11 @@ export async function POST(req: NextRequest) {
               subject: "Your Boosted Listing is now active",
               react: BoostedListingEmail(),
             },
-            { idempotencyKey: idemKey }
+            { idempotencyKey: idemKey },
           );
         } else {
           console.warn(
-            "No email found for boosted listing purchase; skipped email send."
+            "No email found for boosted listing purchase; skipped email send.",
           );
         }
       }
@@ -579,7 +353,7 @@ export async function POST(req: NextRequest) {
           .from("listing_evaluations" as never)
           .upsert(
             evaluationData as never,
-            { onConflict: "listing_id" } as never
+            { onConflict: "listing_id" } as never,
           );
 
         if (evalErr)
@@ -613,11 +387,11 @@ export async function POST(req: NextRequest) {
                 calendlyLink,
               }),
             },
-            { idempotencyKey: idemKey }
+            { idempotencyKey: idemKey },
           );
         } else {
           console.warn(
-            "No email found for valuation purchase; skipped email send."
+            "No email found for valuation purchase; skipped email send.",
           );
         }
       }
@@ -636,7 +410,7 @@ export async function POST(req: NextRequest) {
 
         if (!toEmail) {
           console.warn(
-            "No email found for public valuation; skipped email send"
+            "No email found for public valuation; skipped email send",
           );
           return new Response("ok", { status: 200 });
         }
@@ -655,7 +429,7 @@ export async function POST(req: NextRequest) {
               calendlyLink,
             }),
           },
-          { idempotencyKey: idemKey }
+          { idempotencyKey: idemKey },
         );
 
         try {
@@ -684,30 +458,97 @@ export async function POST(req: NextRequest) {
 
       await upsertSubscription(admin, sub);
 
-      const price = sub.items?.data?.[0]?.price;
+      // ✅ Declare ONCE
+      const mainItem = sub.items?.data?.[0];
+      const price = mainItem?.price;
+
+      // -----------------------------
+      // 1) AWARD LISTING (entitlement)
+      // -----------------------------
       const role = resolveBaseRole(price, sub.metadata);
-      if (role) {
-        const nextType =
-          sub.status === "active" || sub.status === "trialing"
-            ? role
-            : "member";
-        const stripeCustomerId =
-          typeof sub.customer === "string" ? sub.customer : sub.customer?.id;
-        if (stripeCustomerId) {
-          const { data: mapRow } = await admin
-            .from("customers")
-            .select("id")
-            .eq("stripe_customer_id", stripeCustomerId)
-            .maybeSingle();
-          const uid = mapRow?.id;
-          if (uid) {
-            const { error: updErr } = await admin
-              .from("profiles")
-              .update({ user_type: nextType })
-              .eq("id", uid);
-            if (updErr) console.error("profiles update error:", updErr);
-            else console.log(`profiles.user_type=${nextType} for user ${uid}`);
-          }
+      const grantsListing =
+        String(price?.metadata?.grants_listing ?? "").toLowerCase() === "true";
+
+      const isActive = sub.status === "active" || sub.status === "trialing";
+
+      // --- Resolve uid robustly ---
+      const stripeCustomerId =
+        typeof sub.customer === "string" ? sub.customer : sub.customer?.id;
+
+      let uid: string | null =
+        (sub.metadata?.supabase_user_id as string | undefined) ?? null;
+
+      // If not present on sub.metadata, try customers mapping
+      if (!uid && stripeCustomerId) {
+        const { data: mapRow, error: mapErr } = await admin
+          .from("customers")
+          .select("id")
+          .eq("stripe_customer_id", stripeCustomerId)
+          .maybeSingle();
+
+        if (mapErr)
+          console.error("[award listing] customers map lookup error", mapErr);
+        uid = mapRow?.id ?? null;
+      }
+
+      // If still missing, last resort: retrieve customer and check metadata
+      if (!uid && stripeCustomerId) {
+        try {
+          const cust = await stripe.customers.retrieve(stripeCustomerId);
+          const metaUid =
+            "deleted" in cust
+              ? null
+              : ((cust.metadata?.supabase_user_id as string | undefined) ??
+                null);
+          uid = metaUid ?? null;
+        } catch (e) {
+          console.error(
+            "[award listing] failed to retrieve customer for uid",
+            e,
+          );
+        }
+      }
+
+      // If we found uid + customerId, ensure customers table is synced (prevents future misses)
+      if (uid && stripeCustomerId) {
+        const { error: upErr } = await admin
+          .from("customers")
+          .upsert({ id: uid, stripe_customer_id: stripeCustomerId });
+        if (upErr)
+          console.error("[award listing] customers upsert error", upErr);
+      }
+
+      console.log("[award listing] resolved uid:", {
+        uid,
+        stripeCustomerId,
+        role,
+        grantsListing,
+        status: sub.status,
+        subId: sub.id,
+      });
+
+      if (role === "business" && grantsListing && isActive) {
+        if (!uid) {
+          console.error(
+            "[award listing] cannot award listing: uid unresolved",
+            {
+              subId: sub.id,
+              stripeCustomerId,
+              subMeta: sub.metadata,
+            },
+          );
+        } else {
+          const listingId = await ensureListingForSubscription(
+            admin,
+            stripe,
+            sub,
+            uid,
+          );
+          console.log("[award listing] ensureListingForSubscription result:", {
+            subId: sub.id,
+            uid,
+            listingId,
+          });
         }
       }
 
