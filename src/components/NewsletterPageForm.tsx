@@ -22,8 +22,6 @@ export function NewsletterPageForm({ className, ...props }: React.ComponentProps
   const submitLockRef = useRef(false);
   const lastTokenRef = useRef<string | null>(null);
 
-  const groups = ["172616011480041008", "172615978122740973"];
-
   async function submitWithToken(token: string) {
     // Stop duplicate submits (Turnstile can call callback multiple times)
     if (submitLockRef.current) return;
@@ -39,7 +37,7 @@ export function NewsletterPageForm({ className, ...props }: React.ComponentProps
       const res = await fetch("/api/ml-subscribe-public", {
         method: "POST",
         headers: { "Content-Type": "application/json", Accept: "application/json" },
-        body: JSON.stringify({ name, email, groups, turnstileToken: token }),
+        body: JSON.stringify({ name, email, turnstileToken: token }),
       });
 
       if (res.ok) {

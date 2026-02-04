@@ -1,54 +1,26 @@
 import { NextResponse } from "next/server";
 import { verifyTurnstileToken } from "@/lib/verifyTurnstile";
+import { syncMailerLiteGroups } from "@/lib/mailerlite/mailerlite";
 
 export async function POST(request: Request) {
   try {
-    const { name, email, groups, turnstileToken } = await request.json();
-    const apiKey = process.env.NEWSLETTER_NON_MEMBERS_API_KEY;
+    const { name, email, turnstileToken } = await request.json();
 
-
-    if (!name) {
-      return NextResponse.json({ error: "Missing name"}, { status: 400 });
-    }
-    if (!email) {
-      return NextResponse.json({ error: "Missing email" }, { status: 400 });
-    }
-    if (!turnstileToken){
-      return NextResponse.json({ error: "Missing TurnstileToken"}, {status: 400 });
-    }
-    if (!apiKey){
-      return NextResponse.json({error: "Missing API Key"}, {status: 500});
-    }
+    if (!name) return NextResponse.json({ error: "Missing name" }, { status: 400 });
+    if (!email) return NextResponse.json({ error: "Missing email" }, { status: 400 });
+    if (!turnstileToken)
+      return NextResponse.json({ error: "Missing TurnstileToken" }, { status: 400 });
 
     const ok = await verifyTurnstileToken(turnstileToken);
-
-    if (!ok){
-      return NextResponse.json({error: "Failed human verification."}, {status: 400});
+    if (!ok) {
+      return NextResponse.json({ error: "Failed human verification." }, { status: 400 });
     }
 
-    // Ensure "groups" is a valid array or fallback to your default MailerLite group
-    const groupArray = Array.isArray(groups) && groups.length > 0
-      ? groups
-      : ["172616011480041008"]; // Default group
-
-    const res = await fetch("https://connect.mailerlite.com/api/subscribers", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        name,
-        email,
-        groups: groupArray,
-      }),
-    });
-
-    // Error handling for MailerLite API
-    if (!res.ok) {
-      const text = await res.text();
-      console.error("MailerLite Error:", text);
-      return NextResponse.json({ error: "MailerLite error" }, { status: 500 });
+    try {
+      await syncMailerLiteGroups(email, null, name, "newsletter");
+    } catch (e) {
+      console.error("[MailerLite] Public signup sync failed", e);
+      // still return success
     }
 
     return NextResponse.json({ success: true });

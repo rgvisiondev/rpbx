@@ -6,6 +6,7 @@ import { createClientRSC } from "@/../utils/supabase/server";
 import { ensureCustomer } from "@/lib/ensure-customer";
 import { verifyTurnstileToken } from "@/lib/verifyTurnstile";
 import { getStripe } from "@/lib/stripe";
+import { syncMailerLiteGroups } from "@/lib/mailerlite/mailerlite";
 
 function deriveUserTypeFromPrice(
   price: Stripe.Price,
@@ -135,6 +136,20 @@ export async function POST(req: Request) {
       return Response.redirect(
         `${origin}/subscribe/${lookup}?error=unknown`,
         303,
+      );
+    }
+
+    // ✅ MailerLite pre-checkout sync (non-subscriber) — NEVER break subscribe flow
+    try {
+      const fullName =
+        [firstName, lastName].filter(Boolean).join(" ").trim() || undefined;
+
+      // role = null means "non-subscriber" path in your MailerLite grouping logic
+      await syncMailerLiteGroups(email, null, fullName, "incomplete");
+    } catch (e) {
+      console.error(
+        "[MailerLite] Pre-checkout sync failed (/api/subscribe)",
+        e,
       );
     }
 

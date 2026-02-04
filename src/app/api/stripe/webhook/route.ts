@@ -9,7 +9,7 @@ import SubscriptionConfirmationEmail from "@/emails/SubscriptionConfirmationEmai
 import BoostedListingEmail from "@/emails/BoostedListingEmail";
 import { getStripe, getWebhookSecret } from "@/lib/stripe";
 import { getResendClient } from "@/lib/resend";
-import { getBaseUrl, getBizEquityUrl, getCalendlyUrl } from "@/lib/envUrls";
+import { getBizEquityUrl, getCalendlyUrl } from "@/lib/envUrls";
 import {
   extractPeriodISO,
   getAdmin,
@@ -17,31 +17,38 @@ import {
   ensureListingForSubscription,
 } from "@/lib/billing/subscriptionSync";
 
-const subscribeNewsletter = async (email: string, membership: BaseRole) => {
-  if (!email) return;
-  const groups = ["172616011480041008", "172615978122740973"]; // Default newsletter group
+import { syncMailerLiteGroups } from "@/lib/mailerlite/mailerlite";
 
-  if (membership === "investor") {
-    groups.push("172616029418030559"); // Investor group
-  } else if (membership === "business") {
-    groups.push("172616046280181040"); // Business group
+// -----------------------------
+// MailerLite helper (ONLY for sub-created/updated sync email extraction)
+// -----------------------------
+async function getEmailForSubscription(
+  stripe: Stripe,
+  sub: Stripe.Subscription,
+): Promise<string | null> {
+  // Prefer expanded customer email if present and not deleted
+  if (
+    typeof sub.customer === "object" &&
+    sub.customer &&
+    !("deleted" in sub.customer)
+  ) {
+    return sub.customer.email ?? null;
   }
 
-  const baseUrl = getBaseUrl();
+  const customerId =
+    typeof sub.customer === "string" ? sub.customer : sub.customer?.id ?? null;
 
-  const res = await fetch(`${baseUrl}/api/ml-subscribe`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Accept: "application/json",
-    },
-    body: JSON.stringify({ email, groups }),
-  });
+  if (!customerId) return null;
 
-  if (!res.ok) {
-    console.error("Newsletter subscribe failed", await res.text());
+  try {
+    const cust = await stripe.customers.retrieve(customerId);
+    if ("deleted" in cust) return null;
+    return cust.email ?? null;
+  } catch (e) {
+    console.error("[MailerLite] Failed to retrieve customer for email", e);
+    return null;
   }
-};
+}
 
 // Normalize Stripe event types
 function norm(evtType: string) {
@@ -168,9 +175,10 @@ export async function POST(req: NextRequest) {
           typeof sess.subscription === "string"
             ? (sess.subscription as string)
             : (sess.subscription as Stripe.Subscription).id;
-        const sub = await stripe.subscriptions.retrieve(subId, {
+        const sub = (await stripe.subscriptions.retrieve(subId, {
           expand: ["items.data.price.product", "customer"],
-        });
+        })) as Stripe.Subscription;
+
         await upsertSubscription(admin, sub);
 
         // Send subscription confirmation email for initial subscriptions
@@ -226,6 +234,7 @@ export async function POST(req: NextRequest) {
                   },
                   { idempotencyKey: idemKey },
                 );
+
                 // for new subscribers, also subscribe to newsletter
                 const membership = resolveBaseRole(
                   sub.items?.data?.[0]?.price,
@@ -233,7 +242,12 @@ export async function POST(req: NextRequest) {
                 );
 
                 if (membership) {
-                  await subscribeNewsletter(toEmail, membership);
+                  // ✅ MailerLite sync (place #1) — wrapped so it never breaks webhook
+                  try {
+                    await syncMailerLiteGroups(toEmail, membership, undefined, "subscription");
+                  } catch (e) {
+                    console.error("[MailerLite] Sync failed (checkout)", e);
+                  }
                 }
               } else {
                 console.warn(
@@ -265,9 +279,9 @@ export async function POST(req: NextRequest) {
           return new Response("ok", { status: 200 });
         }
 
-        const sub = await stripe.subscriptions.retrieve(subId, {
+        const sub = (await stripe.subscriptions.retrieve(subId, {
           expand: ["items.data.price.product", "customer"],
-        });
+        })) as Stripe.Subscription;
 
         await ensureListingForSubscription(admin, stripe, sub, uid);
 
@@ -280,9 +294,9 @@ export async function POST(req: NextRequest) {
           typeof sess.subscription === "string"
             ? (sess.subscription as string)
             : (sess.subscription as Stripe.Subscription).id;
-        const sub = await stripe.subscriptions.retrieve(subId, {
+        const sub = (await stripe.subscriptions.retrieve(subId, {
           expand: ["items.data.price", "customer"],
-        });
+        })) as Stripe.Subscription;
 
         const mainItem = sub.items?.data?.[0];
         const { endISO: currentPeriodEnd } = extractPeriodISO(sub, mainItem);
@@ -452,9 +466,9 @@ export async function POST(req: NextRequest) {
       type === "customer.subscription.updated"
     ) {
       const subObj = event.data.object as Stripe.Subscription;
-      const sub = await stripe.subscriptions.retrieve(subObj.id, {
+      const sub = (await stripe.subscriptions.retrieve(subObj.id, {
         expand: ["items.data.price.product", "customer"],
-      });
+      })) as Stripe.Subscription;
 
       await upsertSubscription(admin, sub);
 
@@ -567,6 +581,18 @@ export async function POST(req: NextRequest) {
           console.error("listing_promotions update error:", promoUpdErr);
       }
 
+      // ✅ MailerLite sync (place #2) — wrapped so it never breaks webhook
+      if (role) {
+        try {
+          const email = await getEmailForSubscription(stripe, sub);
+          if (email) {
+            await syncMailerLiteGroups(email, role, undefined, "subscription");
+          }
+        } catch (e) {
+          console.error("[MailerLite] Sync failed (subscription created/updated)", e);
+        }
+      }
+
       return new Response("ok", { status: 200 });
     }
 
@@ -603,9 +629,9 @@ export async function POST(req: NextRequest) {
       const inv = event.data.object as Stripe.Invoice;
       const subId = extractSubscriptionIdFromInvoice(inv);
       if (subId) {
-        const sub = await stripe.subscriptions.retrieve(subId, {
+        const sub = (await stripe.subscriptions.retrieve(subId, {
           expand: ["items.data.price.product", "customer"],
-        });
+        })) as Stripe.Subscription;
         await upsertSubscription(admin, sub);
       } else {
         console.warn("Invoice had no resolvable subscription id");

@@ -18,8 +18,6 @@ export default function NewsletterSignup() {
   const submitLockRef = useRef(false);
   const lastTokenRef = useRef<string | null>(null);
 
-  const groups = ["172616011480041008", "172615978122740973"];
-
   async function submitWithToken(token: string) {
     // Prevent duplicate submits (callback can fire more than once)
     if (submitLockRef.current) return;
@@ -38,7 +36,7 @@ export default function NewsletterSignup() {
           "Content-Type": "application/json",
           Accept: "application/json",
         },
-        body: JSON.stringify({ name, email, groups, turnstileToken: token }),
+        body: JSON.stringify({ name, email, turnstileToken: token }),
       });
 
       if (res.ok) {
