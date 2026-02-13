@@ -16,6 +16,14 @@ import {
 import { Mail } from "lucide-react";
 import { Experts } from "../components/popups/Experts";
 import Modal from "../components/Modal";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 const experts = [
   {
@@ -130,7 +138,7 @@ export default function AboutPage() {
       </div>
 
       {/* Div 3: Experts Section */}
-      <div className="flex flex-col items-center bg-[url('/images/backgrounds/white-bg.png')] bg-repeat bg-top py-[15px] overflow-hidden">
+      <div className="flex flex-col items-center bg-[url('/images/backgrounds/white-bg.png')] bg-repeat bg-top pt-[15px] overflow-hidden">
         <div className="w-full px-4 lg:max-w-[1140px] lg:px-2 mx-auto py-10">
           <h2 className="text-center -mt-4">Meet Our Experts</h2>
 
@@ -210,6 +218,69 @@ export default function AboutPage() {
             <CarouselPrevious />
             <CarouselNext />
           </Carousel>
+        </div>
+        <div className="bg-[#272727] w-full">
+          <div className="mx-auto w-full max-w-[1140px] px-4 lg:px-2 py-6">
+            <p className="text-white text-center">
+              <span className="font-bold">Disclaimer:</span> Information shared
+              is for educational purposes only and is not professional advice.
+              Advisors are independent and not representatives of RioPlex. Users
+              are responsible for their own decisions. 
+              <Dialog>
+                <DialogTrigger asChild>
+                  <button
+                    type="button"
+                    className="hover:cursor-pointer group inline-flex items-center gap-2 text-[14px] font-semibold text-white transition-colors hover:text-[#9ed3c3] focus:outline-none ml-2"
+                  >
+                    <span className="relative">
+                        Read More
+                      <span className="absolute left-0 -bottom-[2px] h-[2px] w-0 bg-[#9ed3c3] transition-all duration-300 group-hover:w-full" />
+                    </span>
+                    <span className="transition-transform duration-300 group-hover:translate-x-1">
+                      →
+                    </span>
+                  </button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>
+                      RioPlex Business Exchange – Advisor & Platform Disclaimer
+                    </DialogTitle>
+                    <DialogDescription>
+                      Independent Advisors & Fiduciary Disclosure
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="no-scrollbar -mx-4 max-h-[50vh] overflow-y-auto px-4">
+                    <p className="mb-4 leading-normal">
+                      RioPlex Business Exchange (“RioPlex”) is a technology and
+                      education platform designed to connect business owners,
+                      buyers, and trusted professional advisors. All
+                      professionals featured on or affiliated with RioPlex
+                      participate as independent, third-party advisors and are
+                      not employees, agents, or representatives of RioPlex. Each
+                      advisor acts independently and, where applicable, in a
+                      fiduciary capacity, owing duties solely to their
+                      individual clients. Advisors are required to act in their
+                      clients’ best interests and do not provide advice on
+                      behalf of RioPlex. RioPlex does not provide legal,
+                      financial, tax, or investment advice and does not endorse
+                      or guarantee the services, outcomes, or recommendations of
+                      any advisor or user on the platform. Engagement with any
+                      advisor is at the sole discretion of the user and governed
+                      by a separate agreement between the advisor and the
+                      client. Participation in RioPlex does not create a
+                      partnership, joint venture, agency, or employment
+                      relationship between RioPlex and any advisor or user.
+                      Users are encouraged to conduct their own due diligence
+                      and consult appropriate licensed professionals before
+                      making business, legal, financial, or investment
+                      decisions.
+                    </p>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            </p>
+          </div>
         </div>
       </div>
       {/* Div 4: video */}
