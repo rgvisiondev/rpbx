@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { createClientRSC } from "@/../utils/supabase/server";
 import { getEntitlement } from "@/lib/entitlements";
 import PaywallOverlay from "./dashboard/_components/PaywallOverlay";
+import { IdleLogout } from "@/components/IdleLogout";
 
 export default async function MemberLayout({
   children,
@@ -34,6 +35,7 @@ export default async function MemberLayout({
         className={!entitled ? "pointer-events-none select-none blur-sm" : ""}
         aria-hidden={!entitled}
       >
+        <IdleLogout />
         {children}
       </div>
     </div>
