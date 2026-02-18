@@ -90,7 +90,8 @@ export async function matchListingsToInvestor(
       "id, title, industry, city, county, created_at, listing_image_choice, listing_image_alt, status, is_active, ebitda_range, cash_flow_range, annual_revenue_range"
     )
     .eq("status", "published")
-    .eq("is_active", true);
+    .eq("is_active", true)
+    .eq("is_hidden", false);
 
   if (listErr) throw listErr;
 

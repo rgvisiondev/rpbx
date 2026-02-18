@@ -10,6 +10,8 @@ import { imageUrl } from "@/lib/industryImages";
 import NavGate from "@/app/components/NavGate";
 import { headers } from "next/headers";
 import { getStripe } from "@/lib/stripe";
+import { ListingVisibilityToggle } from "./ListingVisibilityToggle";
+import { setListingHidden } from "./actions";
 
 const PRICE_LISTING_MONTHLY =
   process.env.NEXT_PUBLIC_STRIPE_PRICE_BUSINESS_MONTHLY!;
@@ -205,7 +207,7 @@ export default async function OwnerListings() {
   const { data: rows } = await supabase
     .from("business_listings")
     .select(
-      "id, title, industry, listing_image_choice, status, is_active, updated_at"
+      "id, title, industry, listing_image_choice, status, is_active, updated_at, is_hidden"
     )
     .eq("owner_id", user.id)
     .order("updated_at", { ascending: false });
@@ -256,7 +258,7 @@ export default async function OwnerListings() {
                 return (
                   <div
                     key={l.id}
-                    className="
+                    className={`
                       bg-white 
                       rounded-2xl 
                       shadow-sm 
@@ -267,7 +269,7 @@ export default async function OwnerListings() {
                       transition-all 
                       hover:shadow-xl 
                       hover:-translate-y-1
-                    "
+                     ${l.is_hidden ? "opacity-90" : ""}`}
                   >
                     {/* Thumbnail */}
                     <div className="relative h-50 w-full mb-4 overflow-hidden rounded-t-xl">
@@ -284,6 +286,18 @@ export default async function OwnerListings() {
                           fill
                           className="object-cover"
                         />
+                      )}
+
+                      {/* gray overlay when hidden */}
+                      {l.is_hidden && (
+                        <div className="absolute inset-0 bg-neutral-200/50"/>
+                      )}
+
+                      {/* HIDDEN pill */}
+                      {l.is_hidden && (
+                        <span className="absolute top-3 right-3 px-2 py-1 text-xs font-semibold rounded-full bg-neutral-900/80 text-white">
+                          HIDDEN
+                        </span>
                       )}
                     </div>
 
@@ -338,6 +352,12 @@ export default async function OwnerListings() {
                           Edit
                         </Link>
                       </div>
+
+                      <ListingVisibilityToggle 
+                        listingId={l.id}
+                        initialHidden={!!l.is_hidden}
+                        setHiddenAction={setListingHidden}
+                      />
 
                       {/* Action buttons */}
                       <div className="mt-5 grid grid-cols-3 gap-1 text-sm text-center">

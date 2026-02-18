@@ -4,6 +4,7 @@ export const revalidate = 0;
 import type { ReactNode } from "react";
 import { redirect } from "next/navigation";
 import { createClientRSC } from "@/../utils/supabase/server";
+import { Toaster } from "sonner";
 
 export default async function DashboardLayout({ children }: { children: ReactNode }) {
   const supabase = await createClientRSC();
@@ -12,6 +13,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
 
   return (
     <div className="bg-white"> {/* no container, no padding here */}
+      <Toaster />
       {children}
     </div>
   );

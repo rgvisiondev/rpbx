@@ -245,6 +245,7 @@ CREATE TABLE IF NOT EXISTS "public"."business_listings" (
     "geocode_confidence" numeric,
     "listing_image_choice" "text",
     "address" "text",
+    "stripe_subscription_id" "text",
     CONSTRAINT "business_listings_county_len_check" CHECK ((("county" IS NULL) OR ("char_length"("county") <= 100))),
     CONSTRAINT "business_listings_status_check" CHECK (("status" = ANY (ARRAY['draft'::"text", 'published'::"text"])))
 );
@@ -566,6 +567,11 @@ ALTER TABLE ONLY "public"."business_listings"
 
 
 
+ALTER TABLE ONLY "public"."business_listings"
+    ADD CONSTRAINT "business_listings_stripe_subscription_id_key" UNIQUE ("stripe_subscription_id");
+
+
+
 ALTER TABLE ONLY "public"."business_memberships"
     ADD CONSTRAINT "business_memberships_pkey" PRIMARY KEY ("id");
 
@@ -646,6 +652,10 @@ CREATE INDEX "business_listings_country_code_postal_code_idx" ON "public"."busin
 
 
 CREATE INDEX "business_listings_country_code_state_code_city_idx" ON "public"."business_listings" USING "btree" ("country_code", "state_code", "city");
+
+
+
+CREATE UNIQUE INDEX "business_listings_one_per_sub" ON "public"."business_listings" USING "btree" ("stripe_subscription_id") WHERE ("stripe_subscription_id" IS NOT NULL);
 
 
 
