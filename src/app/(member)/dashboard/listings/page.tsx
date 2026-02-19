@@ -10,8 +10,8 @@ import { imageUrl } from "@/lib/industryImages";
 import NavGate from "@/app/components/NavGate";
 import { headers } from "next/headers";
 import { getStripe } from "@/lib/stripe";
-import { ListingVisibilityToggle } from "./ListingVisibilityToggle";
 import { setListingHidden } from "./actions";
+import { VisibilityToggle } from "../_components/VisibilityToggle";
 
 const PRICE_LISTING_MONTHLY =
   process.env.NEXT_PUBLIC_STRIPE_PRICE_BUSINESS_MONTHLY!;
@@ -353,10 +353,15 @@ export default async function OwnerListings() {
                         </Link>
                       </div>
 
-                      <ListingVisibilityToggle 
-                        listingId={l.id}
+                      <VisibilityToggle
+                        id={l.id}
                         initialHidden={!!l.is_hidden}
                         setHiddenAction={setListingHidden}
+                        labelVisible="Visible to investors"
+                        labelHidden="Hidden from investors"
+                        helper="Turn off to hide this listing"
+                        toastHidden="Listing hidden"
+                        toastVisible="Listing is now visible"
                       />
 
                       {/* Action buttons */}

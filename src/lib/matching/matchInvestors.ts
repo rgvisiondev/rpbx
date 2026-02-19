@@ -3,7 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/types/database.types";
 
 type Listing = Database["public"]["Tables"]["business_listings"]["Row"];
-type InvestorRow = Database["public"]["Tables"]["investor_profiles"]["Row"];
+type InvestorRow = Database["public"]["Views"]["v_investor_profiles_public"]["Row"];
 type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"];
 
 // Only the columns we SELECT from investor_profiles (plus user_id & avatar_path for UI)
@@ -107,7 +107,7 @@ async function attachNames(
 
   return investors.map((inv) => ({
     ...inv,
-    profiles: byId.get(inv.user_id) ?? null,
+    profiles: inv.user_id ? byId.get(inv.user_id) ?? null : null,
   }));
 }
 
@@ -120,11 +120,11 @@ export async function matchInvestorsToListings(
 
   // 1) Pull PUBLISHED investors (only columns we need)
   const { data: investorsRaw, error } = await supabase
-    .from("investor_profiles")
-    .select(
-      "id, user_id, created_at, primary_industry, additional_industries, target_ebitda, target_cash_flow, status, avatar_path"
-    )
-    .eq("status", "published");
+  .from("v_investor_profiles_public")
+  .select(
+    "id, user_id, created_at, primary_industry, additional_industries, target_ebitda, target_cash_flow, status, avatar_path"
+  );
+
 
   if (error) throw error;
 
