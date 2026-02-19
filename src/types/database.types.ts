@@ -7,10 +7,30 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instantiate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
-  __InternalSupabase: {
-    PostgrestVersion: "12.2.12 (cd3cf9e)"
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
   }
   public: {
     Tables: {
@@ -37,6 +57,7 @@ export type Database = {
           id: string
           industry: string
           is_active: boolean | null
+          is_hidden: boolean
           listing_image_alt: string | null
           listing_image_choice: string | null
           listing_image_h: number | null
@@ -74,6 +95,7 @@ export type Database = {
           id?: string
           industry: string
           is_active?: boolean | null
+          is_hidden?: boolean
           listing_image_alt?: string | null
           listing_image_choice?: string | null
           listing_image_h?: number | null
@@ -111,6 +133,7 @@ export type Database = {
           id?: string
           industry?: string
           is_active?: boolean | null
+          is_hidden?: boolean
           listing_image_alt?: string | null
           listing_image_choice?: string | null
           listing_image_h?: number | null
@@ -214,6 +237,7 @@ export type Database = {
           id: string
           industry_experience: string | null
           is_accredited_investor: boolean | null
+          is_hidden: boolean
           last_name: string | null
           net_worth: string | null
           org_name_lc: string | null
@@ -245,6 +269,7 @@ export type Database = {
           id?: string
           industry_experience?: string | null
           is_accredited_investor?: boolean | null
+          is_hidden?: boolean
           last_name?: string | null
           net_worth?: string | null
           org_name_lc?: string | null
@@ -276,6 +301,7 @@ export type Database = {
           id?: string
           industry_experience?: string | null
           is_accredited_investor?: boolean | null
+          is_hidden?: boolean
           last_name?: string | null
           net_worth?: string | null
           org_name_lc?: string | null
@@ -654,6 +680,7 @@ export type Database = {
           id: string | null
           industry: string | null
           is_active: boolean | null
+          is_hidden: boolean | null
           is_promoted_effective: boolean | null
           listing_image_alt: string | null
           listing_image_choice: string | null
@@ -691,6 +718,7 @@ export type Database = {
           id?: string | null
           industry?: string | null
           is_active?: boolean | null
+          is_hidden?: boolean | null
           is_promoted_effective?: never
           listing_image_alt?: string | null
           listing_image_choice?: string | null
@@ -728,6 +756,7 @@ export type Database = {
           id?: string | null
           industry?: string | null
           is_active?: boolean | null
+          is_hidden?: boolean | null
           is_promoted_effective?: never
           listing_image_alt?: string | null
           listing_image_choice?: string | null
@@ -742,6 +771,108 @@ export type Database = {
           title?: string | null
           updated_at?: string | null
           years_in_business?: string | null
+        }
+        Relationships: []
+      }
+      v_investor_profiles_public: {
+        Row: {
+          additional_industries: string[] | null
+          avatar_alt: string | null
+          avatar_h: number | null
+          avatar_path: string | null
+          avatar_updated_at: string | null
+          avatar_w: number | null
+          bio: string | null
+          city: string | null
+          contact_email: string | null
+          created_at: string | null
+          first_name: string | null
+          full_name_lc: string | null
+          has_paid_access: boolean | null
+          id: string | null
+          industry_experience: string | null
+          is_accredited_investor: boolean | null
+          is_hidden: boolean | null
+          last_name: string | null
+          net_worth: string | null
+          org_name_lc: string | null
+          organization_entity: string | null
+          ownership_max: number | null
+          ownership_min: number | null
+          primary_industry: string | null
+          status: string | null
+          target_cash_flow: string | null
+          target_ebitda: string | null
+          updated_at: string | null
+          user_id: string | null
+          willing_to_sign_nda: boolean | null
+          years_in_target_industry: string | null
+        }
+        Insert: {
+          additional_industries?: string[] | null
+          avatar_alt?: string | null
+          avatar_h?: number | null
+          avatar_path?: string | null
+          avatar_updated_at?: string | null
+          avatar_w?: number | null
+          bio?: string | null
+          city?: string | null
+          contact_email?: string | null
+          created_at?: string | null
+          first_name?: string | null
+          full_name_lc?: string | null
+          has_paid_access?: never
+          id?: string | null
+          industry_experience?: string | null
+          is_accredited_investor?: boolean | null
+          is_hidden?: boolean | null
+          last_name?: string | null
+          net_worth?: string | null
+          org_name_lc?: string | null
+          organization_entity?: string | null
+          ownership_max?: number | null
+          ownership_min?: number | null
+          primary_industry?: string | null
+          status?: string | null
+          target_cash_flow?: string | null
+          target_ebitda?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+          willing_to_sign_nda?: boolean | null
+          years_in_target_industry?: string | null
+        }
+        Update: {
+          additional_industries?: string[] | null
+          avatar_alt?: string | null
+          avatar_h?: number | null
+          avatar_path?: string | null
+          avatar_updated_at?: string | null
+          avatar_w?: number | null
+          bio?: string | null
+          city?: string | null
+          contact_email?: string | null
+          created_at?: string | null
+          first_name?: string | null
+          full_name_lc?: string | null
+          has_paid_access?: never
+          id?: string | null
+          industry_experience?: string | null
+          is_accredited_investor?: boolean | null
+          is_hidden?: boolean | null
+          last_name?: string | null
+          net_worth?: string | null
+          org_name_lc?: string | null
+          organization_entity?: string | null
+          ownership_max?: number | null
+          ownership_min?: number | null
+          primary_industry?: string | null
+          status?: string | null
+          target_cash_flow?: string | null
+          target_ebitda?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+          willing_to_sign_nda?: boolean | null
+          years_in_target_industry?: string | null
         }
         Relationships: []
       }
@@ -901,6 +1032,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
       pricing_plan_interval: ["day", "week", "month", "year"],
@@ -918,3 +1052,4 @@ export const Constants = {
     },
   },
 } as const
+

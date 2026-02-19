@@ -567,6 +567,11 @@ ALTER TABLE ONLY "public"."business_listings"
 
 
 
+ALTER TABLE ONLY "public"."business_listings"
+    ADD CONSTRAINT "business_listings_stripe_subscription_id_key" UNIQUE ("stripe_subscription_id");
+
+
+
 ALTER TABLE ONLY "public"."business_memberships"
     ADD CONSTRAINT "business_memberships_pkey" PRIMARY KEY ("id");
 

@@ -6,7 +6,7 @@ import { matchInvestorsToListings } from "@/lib/matching/matchInvestors";
 import { getRecentActivity } from "@/lib/analytics/getRecentActivity";
 import { getUpcomingEvents } from "@/lib/sanity/getUpcomingEvents";
 
-// ✅ Make sure these are exported from their modules.
+// Make sure these are exported from their modules.
 import type { Activity } from "@/lib/analytics/getRecentActivity";
 import type { EventItem } from "@/lib/sanity/getUpcomingEvents";
 
@@ -54,12 +54,13 @@ export async function getBusinessDashboardData(
     getUpcomingEvents(),
   ]);
 
-  const matches = rawMatches.map((m) => ({
+  const matches: InvestorMatch[] = rawMatches
+  .filter((m): m is typeof m & { id: string } => typeof m.id === "string" && m.id.length > 0)
+  .map((m) => ({
     id: m.id,
     primary_industry: m.primary_industry,
     _source: m._source,
     avatar_path: m.avatar_path,
-    score: m.score,
     first_name: m.profiles?.first_name ?? null,
     last_name: m.profiles?.last_name ?? null,
   }));

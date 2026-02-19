@@ -78,9 +78,8 @@ export default async function Investors({ searchParams }: PageProps) {
 
   // ---------- COUNT FIRST ----------
   let countQ = supabase
-    .from("investor_profiles")
-    .select("id", { count: "exact", head: true })
-    .eq("status", "published");
+    .from("v_investor_profiles_public")
+    .select("id", { count: "exact", head: true });
 
   if (industry) countQ = countQ.eq("primary_industry", industry);
   if (ebitda) countQ = countQ.eq("target_ebitda", ebitda);
@@ -102,7 +101,7 @@ export default async function Investors({ searchParams }: PageProps) {
 
   // ---------- DATA QUERY ----------
   let dataQ = supabase
-    .from("investor_profiles")
+    .from("v_investor_profiles_public")
     .select(`
       id,
       first_name,
@@ -116,14 +115,12 @@ export default async function Investors({ searchParams }: PageProps) {
       org_name_lc,
       updated_at,
       is_accredited_investor
-    `)
-    .eq("status", "published");
+    `, { count: "exact" });
 
   if (industry) dataQ = dataQ.eq("primary_industry", industry);
   if (ebitda) dataQ = dataQ.eq("target_ebitda", ebitda);
   if (cash) dataQ = dataQ.eq("target_cash_flow", cash);
-  if (accredited) dataQ = dataQ.eq("is_accredited_investor", accredited);
-
+  
   if (accredited !== null){
     countQ = countQ.eq("is_accredited_investor", accredited);
     dataQ = dataQ.eq("is_accredited_investor", accredited);

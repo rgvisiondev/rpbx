@@ -13,6 +13,8 @@ import {
 } from "@/components/ui/tooltip";
 import { Database } from "@/types/database.types";
 import { EBITDA_BUCKETS } from "@/lib/ranges";
+import { setInvestorHidden } from "./actions";
+import { VisibilityToggle } from "../../../_components/VisibilityToggle";
 
 const INDUSTRIES = Object.keys(INDUSTRY_SLUGS);
 
@@ -37,7 +39,7 @@ export default async function EditInvestorProfilePage() {
       ownership_min, ownership_max, primary_industry, additional_industries,
       target_ebitda, target_cash_flow,
       willing_to_sign_nda, is_accredited_investor,
-      avatar_path, status
+      avatar_path, status, is_hidden
     `
     )
     .eq("user_id", user.id)
@@ -220,6 +222,18 @@ export default async function EditInvestorProfilePage() {
               </p>
             </div>
           </div>
+
+          {/* Visibility Toggle */}
+          <VisibilityToggle
+            id={profile.user_id}
+            initialHidden={!!profile.is_hidden}
+            setHiddenAction={setInvestorHidden}
+            labelVisible="Visible to businesses"
+            labelHidden="Hidden from businesses"
+            helper="Turn off to hide your profile from business owners."
+            toastHidden="Your profile is now hidden from businesses"
+            toastVisible="Your profile is now visible to businesses"
+          />
 
           {/* Basic info */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
