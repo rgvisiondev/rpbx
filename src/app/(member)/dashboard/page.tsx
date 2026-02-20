@@ -5,7 +5,6 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { createClientRSC } from "@/../utils/supabase/server";
-import { blogClient } from "@/sanity/client";
 import RecentActivityList from "./_components/RecentActivity";
 import UpcomingEventsList from "./_components/UpcomingEvents";
 import MatchedBusinesses from "./_components/MatchedBusinesses";
@@ -25,6 +24,14 @@ import {
 
 import { requireEntitlementOrNull } from "@/lib/serverGuard";
 
+import { Experts } from "@/app/components/popups/Experts";
+
+import Modal from "@/app/components/Modal";
+
+import Image from "next/image";
+
+import { experts } from "@/lib/advisors/advisors";
+
 export const metadata: Metadata = {
   title: "Dashboard | RioPlex Business Exchange",
   description: "Connecting Local Business Owners With Investors",
@@ -42,8 +49,8 @@ export default async function Dashboard() {
   }
 
   // From here down, user is entitled & verified.
-  const userType: "business" | "investor" = gate.role === "investor" ? "investor" : "business";
-
+  const userType: "business" | "investor" =
+    gate.role === "investor" ? "investor" : "business";
 
   const supabase = await createClientRSC();
 
@@ -67,7 +74,6 @@ export default async function Dashboard() {
   // No special redirect for business users here for now.
   // We assume their listing was created via the claim flow after checkout.
 
-
   // Fetch private dashboard data now that we know it's safe
   let dashboardData: DashboardData | null = null;
   let pagePaths: string[] = [];
@@ -86,7 +92,7 @@ export default async function Dashboard() {
 
     pagePaths = (owned ?? []).map((l) => `/business-listing/${l.id}`);
     labels = Object.fromEntries(
-      (owned ?? []).map((l) => [`/business-listing/${l.id}`, l.title ?? l.id])
+      (owned ?? []).map((l) => [`/business-listing/${l.id}`, l.title ?? l.id]),
     );
 
     chartTitle = "Listing Page Views";
@@ -103,12 +109,14 @@ export default async function Dashboard() {
       const path = `/investor-listing/${inv.id}`;
       pagePaths = [path];
       const display =
-        `${inv.first_name ?? ""} ${inv.last_name ?? ""}`.trim() || "Your Profile";
+        `${inv.first_name ?? ""} ${inv.last_name ?? ""}`.trim() ||
+        "Your Profile";
       labels = { [path]: display };
     }
 
     chartTitle = "Profile Views";
-    chartDescription = "GA4 page views for your investor profile (last 6 months)";
+    chartDescription =
+      "GA4 page views for your investor profile (last 6 months)";
     dashboardData = await getInvestorDashboardData(supabase, user.id);
   }
 
@@ -124,17 +132,6 @@ export default async function Dashboard() {
     user.email ??
     "User";
 
-  const posts = await blogClient.fetch(
-    `*[_type == "post"] | order(publishedAt desc)[0...4]{
-          _id,
-          title,
-          slug,
-          publishedAt,
-          read,
-        }`
-  );
-
-
   return (
     <div className="relative">
       {/* Header / Hero */}
@@ -143,27 +140,33 @@ export default async function Dashboard() {
         <div className="flex flex-col w-full lg:max-w-[1140px] mx-auto py-10 px-5 lg:px-2 pb-40 md:pb-52">
           <h1 className="mb-4">Welcome back, {displayName}</h1>
           <p className="text-sm text-gray-600 mb-6">
-            {userType === "business" ? "Here’s what’s happening in your business today." : "Here’s what’s happening across your investment opportunities today."}
+            {userType === "business"
+              ? "Here’s what’s happening in your business today."
+              : "Here’s what’s happening across your investment opportunities today."}
           </p>
 
           <div className="flex flex-col gap-10">
             {/* Action buttons */}
             <div className="flex flex-col md:flex-row gap-5">
               <Link
-                href={userType === "business" ? "/dashboard/listings" : "/dashboard/profile/edit"}
+                href={
+                  userType === "business"
+                    ? "/dashboard/listings"
+                    : "/dashboard/profile/edit"
+                }
                 className="flex-1 flex flex-col items-center p-5 bg-[#60A1BC] rounded-2xl hover:opacity-90 transition"
               >
                 <p className="text-white">
-                  {userType === "business" ? "View Listings" : "Update Profile Info"}
+                  {userType === "business"
+                    ? "View Listings"
+                    : "Update Profile Info"}
                 </p>
               </Link>
               <Link
                 href="/dashboard/billing"
                 className="flex-1 flex flex-col items-center p-5 bg-[#60BC9B] rounded-2xl hover:opacity-90 transition"
               >
-                <p className="text-white">
-                  Manage Subscription
-                </p>
+                <p className="text-white">Manage Subscription</p>
               </Link>
             </div>
 
@@ -212,7 +215,9 @@ export default async function Dashboard() {
           <div className="relative -mt-120 md:-mt-82 -mb-18 z-10 w-full">
             <div className="bg-white flex flex-col w-full lg:max-w-[1140px] mx-auto rounded-2xl p-5 shadow-xl">
               <h2 className="pb-5">
-                {dashboardData.kind === "business" ? "Investor Matches" : "Business Matches"}
+                {dashboardData.kind === "business"
+                  ? "Investor Matches"
+                  : "Business Matches"}
               </h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 pb-5">
                 {dashboardData.kind === "business" ? (
@@ -225,46 +230,70 @@ export default async function Dashboard() {
           </div>
 
           <div className="bg-white flex flex-col w-full lg:max-w-[1140px] mx-auto rounded-2xl p-5 mt-30">
-            <h2 className="pb-5">Resources</h2>
+            <h2 className="pb-5">Trusted Advisors</h2>
+            <p className="text-sm text-gray-600">
+              <span className="font-semibold">
+                Need help reviewing an offer?
+              </span>{" "}
+              Talk to an expert about LOIs, purchase agreements, due diligence,
+              and tax strategy.
+            </p>
+            <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-5 pb-5">
+              {experts.map((expert) => (
+                <div
+                  key={expert.index}
+                  className="rounded-2xl border overflow-hidden bg-white"
+                >
+                  <div className="relative bg-[#272727] w-full h-[120px]"></div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pb-5">
-              {(() => {
-                interface PostSlug {
-                  current: string;
-                }
-                interface BlogPost {
-                  _id: string;
-                  title: string;
-                  excerpt?: string;
-                  slug: PostSlug;
-                  publishedAt?: string;
-                  read?: boolean;
-                }
-                return (posts as BlogPost[]).map((post) => (
-                  <div key={post.slug.current} className="bg-[#F3F3F3] rounded-2xl p-5">
-                    <h4 className="pb-1">{post.title}</h4>
-                    <span className="flex flex-row gap-3">
-                      <p className="flex">
-                        {post.publishedAt ? new Date(post.publishedAt).toLocaleDateString() : "Unknown date"}
-                      </p>
-                      <p>•</p>
-                      <p className="flex">{post.read} min read</p>
-                    </span>
-                    <Link href={`/blog/${post.slug.current}`} className="green-link">
-                      Read Blog
-                    </Link>
+                  <div className="p-5 flex flex-col items-center">
+                    <div className="w-[144px] h-[144px] bg-white rounded-full border-4 border-[#272727] flex justify-center items-center -mt-[96px] relative z-10">
+                      <Image
+                        src={expert.img}
+                        alt={expert.name}
+                        width={136}
+                        height={136}
+                        className="w-[136px] h-[136px] rounded-full object-cover p-1"
+                      />
+                    </div>
+
+                    <h4 className="mt-4 mb-2 large">{expert.name}</h4>
+                    <p className="mt-1 text-[15px] text-[#4b4b4b] text-center">
+                      {expert.shortDescription}
+                    </p>
+
+                    <div className="w-full mt-4 flex justify-end">
+                      <Modal
+                        trigger={
+                          <button
+                            type="button"
+                            className="hover:cursor-pointer group inline-flex items-center gap-2 text-[14px] font-semibold text-[#272727] transition-colors hover:text-[#9ed3c3] focus:outline-none"
+                          >
+                            <span className="relative">
+                              Read More
+                              <span className="absolute left-0 -bottom-[2px] h-[2px] w-0 bg-[#9ed3c3] transition-all duration-300 group-hover:w-full" />
+                            </span>
+                            <span className="transition-transform duration-300 group-hover:translate-x-1">
+                              →
+                            </span>
+                          </button>
+                        }
+                      >
+                        <Experts
+                          image={expert.img}
+                          name={expert.name}
+                          description={expert.description}
+                          title={expert.title}
+                          email={expert.email}
+                          contactHeadline={expert.contactHeadline}
+                        />
+                      </Modal>
+                    </div>
                   </div>
-                ));
-              })()}
+                </div>
+              ))}
             </div>
-
-            <button className="px-6 py-2 rounded-full font-medium transition inline-flex items-center justify-center bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-white mt-5">
-              <Link href="/blog">View More Resources</Link>
-            </button>
           </div>
-
-
-
         </div>
       )}
     </div>
