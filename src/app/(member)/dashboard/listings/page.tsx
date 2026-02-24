@@ -12,6 +12,12 @@ import { headers } from "next/headers";
 import { getStripe } from "@/lib/stripe";
 import { setListingHidden } from "./actions";
 import { VisibilityToggle } from "../_components/VisibilityToggle";
+import Modal from "@/app/components/Modal";
+import HoverGif from "@/components/HoverGif";
+import Eval from "@/app/components/popups/Eval";
+import Legal from "@/app/components/popups/Legal";
+import Cpa from "@/app/components/popups/Cpa";
+import Marketing from "@/app/components/popups/marketing";
 
 const PRICE_LISTING_MONTHLY =
   process.env.NEXT_PUBLIC_STRIPE_PRICE_BUSINESS_MONTHLY!;
@@ -99,7 +105,7 @@ async function startEvaluation(listingId: string) {
     console.error(
       "Failed to create evaluation checkout session",
       res.status,
-      body
+      body,
     );
     return redirect("/dashboard/listings?err=eval_checkout");
   }
@@ -150,8 +156,8 @@ async function startBoost(listingId: string) {
 
   const stripe = getStripe();
   if (!stripe) {
-  redirect("/dashboard/listings?err=stripe_not_configured");
-}
+    redirect("/dashboard/listings?err=stripe_not_configured");
+  }
 
   // (Optional) ensure the price is recurring
   const price = await stripe.prices.retrieve(promoPriceId);
@@ -207,7 +213,7 @@ export default async function OwnerListings() {
   const { data: rows } = await supabase
     .from("business_listings")
     .select(
-      "id, title, industry, listing_image_choice, status, is_active, updated_at, is_hidden"
+      "id, title, industry, listing_image_choice, status, is_active, updated_at, is_hidden",
     )
     .eq("owner_id", user.id)
     .order("updated_at", { ascending: false });
@@ -290,7 +296,7 @@ export default async function OwnerListings() {
 
                       {/* gray overlay when hidden */}
                       {l.is_hidden && (
-                        <div className="absolute inset-0 bg-neutral-200/50"/>
+                        <div className="absolute inset-0 bg-neutral-200/50" />
                       )}
 
                       {/* HIDDEN pill */}
@@ -432,7 +438,7 @@ export default async function OwnerListings() {
                   <form
                     action={startListingPriceCheckout.bind(
                       null,
-                      PRICE_LISTING_MONTHLY
+                      PRICE_LISTING_MONTHLY,
                     )}
                   >
                     <button
@@ -445,7 +451,7 @@ export default async function OwnerListings() {
                   <form
                     action={startListingPriceCheckout.bind(
                       null,
-                      PRICE_LISTING_YEARLY
+                      PRICE_LISTING_YEARLY,
                     )}
                   >
                     <button
@@ -459,6 +465,103 @@ export default async function OwnerListings() {
               </div>
             </div>
           </div>
+          {/* Business Solutions Section */}
+          <section className="max-w-[1140px] mx-auto px-5 lg:px-0 py-14">
+            <div className="relative bg-[url('/images/backgrounds/footer-bg.png')] bg-fixed bg-center bg-cover rounded-[40px] p-8 lg:p-12 text-white overflow-hidden">
+              {/* subtle glow */}
+              <div className="absolute -top-24 -right-24 w-64 h-64 bg-[#4da685]/20 rounded-full blur-3xl pointer-events-none"></div>
+
+              {/* Header */}
+              <div className="max-w-2xl">
+                <h2 className=" text-white text-2xl lg:text-3xl font-semibold">
+                  Need support beyond your listing?
+                </h2>
+                <p className="text-white mt-2 text-sm lg:text-base">
+                  Work with trusted advisors to strengthen your valuation, legal
+                  positioning, financial structure, and media exposure.
+                </p>
+              </div>
+
+              {/* Grid */}
+              <div className="mt-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+                <div className="flex flex-col items-center">
+                  <Modal
+                    trigger={
+                      <HoverGif
+                        staticSrc="/images/icons/evaluation.png"
+                        gifSrc="/images/gifs/evaluation.gif"
+                        alt="Business Valuation"
+                        width={170}
+                        height={170}
+                      />
+                    }
+                  >
+                    <Eval />
+                  </Modal>
+                  <h4 className="mt-4 text-white font-medium text-center">
+                    Business Valuation
+                  </h4>
+                </div>
+
+                <div className="flex flex-col items-center">
+                  <Modal
+                    trigger={
+                      <HoverGif
+                        staticSrc="/images/icons/legal.png"
+                        gifSrc="/images/gifs/legal.gif"
+                        alt="Legal Representation"
+                        width={170}
+                        height={170}
+                      />
+                    }
+                  >
+                    <Legal />
+                  </Modal>
+                  <h4 className="mt-4 text-white font-medium text-center">
+                    Legal Representation
+                  </h4>
+                </div>
+
+                <div className="flex flex-col items-center">
+                  <Modal
+                    trigger={
+                      <HoverGif
+                        staticSrc="/images/icons/cpa.png"
+                        gifSrc="/images/gifs/cpa.gif"
+                        alt="CPA & Bookkeeping"
+                        width={170}
+                        height={170}
+                      />
+                    }
+                  >
+                    <Cpa />
+                  </Modal>
+                  <h4 className="mt-4 text-white font-medium text-center">
+                    CPA &amp; Bookkeeping
+                  </h4>
+                </div>
+
+                <div className="flex flex-col items-center">
+                  <Modal
+                    trigger={
+                      <HoverGif
+                        staticSrc="/images/icons/marketing.png"
+                        gifSrc="/images/gifs/marketing.gif"
+                        alt="Media Amplification"
+                        width={170}
+                        height={170}
+                      />
+                    }
+                  >
+                    <Marketing />
+                  </Modal>
+                  <h4 className="mt-4 text-white font-medium text-center">
+                    Media Amplification
+                  </h4>
+                </div>
+              </div>
+            </div>
+          </section>
         </div>
       </div>
     </div>

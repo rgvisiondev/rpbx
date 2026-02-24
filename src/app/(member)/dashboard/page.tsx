@@ -31,6 +31,7 @@ import Modal from "@/app/components/Modal";
 import Image from "next/image";
 
 import { experts } from "@/lib/advisors/advisors";
+import { Mail } from "lucide-react";
 
 export const metadata: Metadata = {
   title: "Dashboard | RioPlex Business Exchange",
@@ -244,7 +245,29 @@ export default async function Dashboard() {
                   key={expert.index}
                   className="rounded-2xl border overflow-hidden bg-white"
                 >
-                  <div className="relative bg-[#272727] w-full h-[120px]"></div>
+                  <div className="relative bg-[#272727] w-full h-[120px]">
+                    <Modal
+                      trigger={
+                        <button
+                          type="button"
+                          className="cursor-pointer absolute top-3 right-3 text-white hover:text-[#9ed3c3] transition-colors"
+                          aria-label={`Contact ${expert.name}`}
+                        >
+                          <Mail size={22} />
+                        </button>
+                      }
+                    >
+                      <Experts
+                        image={expert.img}
+                        name={expert.name}
+                        description={expert.description}
+                        title={expert.title}
+                        email={expert.email}
+                        defaultSection="contact"
+                        contactHeadline={expert.contactHeadline}
+                      />
+                    </Modal>
+                  </div>
 
                   <div className="p-5 flex flex-col items-center">
                     <div className="w-[144px] h-[144px] bg-white rounded-full border-4 border-[#272727] flex justify-center items-center -mt-[96px] relative z-10">

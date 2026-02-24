@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/dialog";
 
 import { experts } from "@/lib/advisors/advisors";
+import { Mail } from "lucide-react";
 
 export const metadata: Metadata = {
   title: "About RPBX | RioPlex Business Exchange",
@@ -112,6 +113,27 @@ export default function AboutPage() {
                   <div className="rounded-2xl border-1 overflow-hidden flex flex-col items-center bg-white transition-all duration-300 h-full">
                     {/* Top gray section */}
                     <div className="relative bg-[#272727] w-full h-[120px]">
+                      <Modal
+                        trigger={
+                          <button
+                            type="button"
+                            className="cursor-pointer absolute top-3 right-3 text-white hover:text-[#9ed3c3] transition-colors"
+                            aria-label={`Contact ${expert.name}`}
+                          >
+                            <Mail size={22} />
+                          </button>
+                        }
+                      >
+                        <Experts
+                          image={expert.img}
+                          name={expert.name}
+                          description={expert.description}
+                          title={expert.title}
+                          email={expert.email}
+                          defaultSection="contact"
+                          contactHeadline={expert.contactHeadline}
+                        />
+                      </Modal>
                     </div>
 
                     {/* Bottom white section */}
@@ -174,7 +196,7 @@ export default function AboutPage() {
               <span className="font-bold">Disclaimer:</span> Information shared
               is for educational purposes only and is not professional advice.
               Advisors are independent and not representatives of RioPlex. Users
-              are responsible for their own decisions. 
+              are responsible for their own decisions.
               <Dialog>
                 <DialogTrigger asChild>
                   <button
@@ -182,7 +204,7 @@ export default function AboutPage() {
                     className="hover:cursor-pointer group inline-flex items-center gap-2 text-[14px] font-semibold text-white transition-colors hover:text-[#9ed3c3] focus:outline-none ml-2"
                   >
                     <span className="relative">
-                        Read More
+                      Read More
                       <span className="absolute left-0 -bottom-[2px] h-[2px] w-0 bg-[#9ed3c3] transition-all duration-300 group-hover:w-full" />
                     </span>
                     <span className="transition-transform duration-300 group-hover:translate-x-1">
