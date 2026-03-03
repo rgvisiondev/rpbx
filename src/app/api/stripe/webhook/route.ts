@@ -8,7 +8,7 @@ import ValuationEmail from "@/emails/ValuationEmail";
 import SubscriptionConfirmationEmail from "@/emails/SubscriptionConfirmationEmail";
 import BoostedListingEmail from "@/emails/BoostedListingEmail";
 import { getStripe, getWebhookSecret } from "@/lib/stripe";
-import { getResendClient } from "@/lib/resend";
+import { getEmailFrom, getResendClient } from "@/lib/resend";
 import { getBizEquityUrl, getCalendlyUrl } from "@/lib/envUrls";
 import {
   extractPeriodISO,
@@ -18,6 +18,12 @@ import {
 } from "@/lib/billing/subscriptionSync";
 
 import { syncMailerLiteGroups } from "@/lib/mailerlite/mailerlite";
+
+import { getUserIdForStripeCustomer, getCancellationReasonForSub, getContactEmailForUser } from "@/lib/billing/churn";
+import { PaymentFailedEmail } from "@/emails/PaymentFailedEmail";
+
+const fromEmail = getEmailFrom();
+const resend = getResendClient();
 
 // -----------------------------
 // MailerLite helper (ONLY for sub-created/updated sync email extraction)
@@ -227,7 +233,7 @@ export async function POST(req: NextRequest) {
                 const idemKey = `sub-confirm:${sess.id}`;
                 await resend.emails.send(
                   {
-                    from: "RioPlex <notifications@rioplexbizx.com>",
+                    from: fromEmail,
                     to: toEmail,
                     subject: "Your RPBX subscription is active",
                     react: SubscriptionConfirmationEmail({ dashboardUrl }),
@@ -334,7 +340,7 @@ export async function POST(req: NextRequest) {
           const idemKey = `promo-email:${sess.id}`;
           await resend.emails.send(
             {
-              from: "RioPlex <notifications@rioplexbizx.com>",
+              from: fromEmail,
               to: toEmail,
               subject: "Your Boosted Listing is now active",
               react: BoostedListingEmail(),
@@ -393,7 +399,7 @@ export async function POST(req: NextRequest) {
           const idemKey = `eval-email:${piId ?? sess.id}`;
           await resend.emails.send(
             {
-              from: "RioPlex <notifications@rioplexbizx.com>",
+              from: fromEmail,
               to: toEmail,
               subject: "Your RPBX Valuation is ready to begin",
               react: ValuationEmail({
@@ -435,7 +441,7 @@ export async function POST(req: NextRequest) {
         const idemKey = `public-eval-email:${piId ?? sess.id}`;
         await resend.emails.send(
           {
-            from: "RioPlex <notifications@rioplexbizx.com>",
+            from: fromEmail,
             to: toEmail,
             subject: "Your RPBX Valuation is ready to begin",
             react: ValuationEmail({
@@ -633,6 +639,53 @@ export async function POST(req: NextRequest) {
           expand: ["items.data.price.product", "customer"],
         })) as Stripe.Subscription;
         await upsertSubscription(admin, sub);
+
+        console.log("[DUNNING] invoice.payment_failed", {
+  invoiceId: inv.id,
+  customerEmail: inv.customer_email,
+  customer: inv.customer,
+  billingReason: inv.billing_reason,
+});
+
+        // failed payment email
+        if (type === "invoice.payment_failed"){
+          // Determine role from price metadata or lookup key
+          const mainItem = sub.items?.data?.[0];
+          const price = mainItem?.price;
+          const role = resolveBaseRole(price, sub.metadata);
+
+          // Determine recipient email
+          const toEmail = 
+            (inv.customer_email as string | null) ||
+            (await getEmailForSubscription(stripe, sub)) || 
+            null;
+
+            console.log("[DUNNING] resolved recipient", { toEmail });
+          
+          // For subscription renewals, Stripe provides hosted invoice URL
+          const invoiceUrl = 
+            (inv.hosted_invoice_url as string | null) ||
+            (inv.invoice_pdf as string | null) ||
+            null;
+          
+          if (toEmail){
+            const idemKey = `dunning-1:${inv.id}`;
+            const updateBillingUrl = `${process.env.NEXT_PUBLIC_SITE_URL}/dashboard/billing`;
+            const name = inv.customer_name ?? "";
+            await resend.emails.send({
+              from: fromEmail,
+              to: toEmail,
+              subject: "Action required: update your payment method",
+              react: PaymentFailedEmail({
+                name,
+                updateBillingUrl
+              }),
+              headers: {
+                "Idempotency-Key": idemKey,
+              },
+          });
+          }
+        }
       } else {
         console.warn("Invoice had no resolvable subscription id");
       }

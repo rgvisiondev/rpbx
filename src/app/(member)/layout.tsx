@@ -9,7 +9,9 @@ import { IdleLogout } from "@/components/IdleLogout";
 
 export default async function MemberLayout({
   children,
-}: { children: React.ReactNode }) {
+}: {
+  children: React.ReactNode;
+}) {
   const supabase = await createClientRSC();
 
   const {
@@ -20,7 +22,7 @@ export default async function MemberLayout({
   if (!user) redirect("/login");
 
   // Email not verified yet? nudge first.
-  const { entitled, unverified } = await getEntitlement();
+  const { blocked, status, unverified } = await getEntitlement();
   if (unverified) redirect("/auth/verify-email");
 
   // OPTIONAL: choose between hard gate vs soft overlay.
@@ -30,10 +32,10 @@ export default async function MemberLayout({
   // Soft gate (your current pattern): show overlay + blur content.
   return (
     <div className="relative">
-      {!entitled && <PaywallOverlay />}
+      {blocked && <PaywallOverlay status={status} />}
       <div
-        className={!entitled ? "pointer-events-none select-none blur-sm" : ""}
-        aria-hidden={!entitled}
+        className={blocked ? "pointer-events-none select-none blur-sm" : ""}
+        aria-hidden={blocked}
       >
         <IdleLogout />
         {children}
