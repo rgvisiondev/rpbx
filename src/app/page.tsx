@@ -50,7 +50,7 @@ export default async function Home() {
         <div className="flex flex-col lg:flex-row py-10 lg:py-0">
           <div className="flex-1 flex justify-center lg:justify-end items-center px-4 lg:p-[15px] order-2 lg:order-1">
             <div className="flex flex-col items-center w-full lg:w-[560px] max-w-lg">
-              <h1 className="text-center">Unlock Your Business Potential</h1>
+              <h1 className="text-center">Where Small Businesses Are Protected, Valued, and Grown</h1>
               <AuthForm />
             </div>
           </div>
