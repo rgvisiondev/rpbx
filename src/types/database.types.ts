@@ -537,6 +537,8 @@ export type Database = {
           cancel_at: string | null
           cancel_at_period_end: boolean | null
           canceled_at: string | null
+          cancellation_feedback_submitted: boolean | null
+          cancellation_reason: string | null
           created: string
           current_period_end: string
           current_period_start: string
@@ -544,6 +546,7 @@ export type Database = {
           id: string
           listing_id: string | null
           metadata: Json | null
+          paused_until: string | null
           price_currency: string | null
           price_id: string | null
           price_interval: string | null
@@ -566,6 +569,8 @@ export type Database = {
           cancel_at?: string | null
           cancel_at_period_end?: boolean | null
           canceled_at?: string | null
+          cancellation_feedback_submitted?: boolean | null
+          cancellation_reason?: string | null
           created?: string
           current_period_end?: string
           current_period_start?: string
@@ -573,6 +578,7 @@ export type Database = {
           id: string
           listing_id?: string | null
           metadata?: Json | null
+          paused_until?: string | null
           price_currency?: string | null
           price_id?: string | null
           price_interval?: string | null
@@ -595,6 +601,8 @@ export type Database = {
           cancel_at?: string | null
           cancel_at_period_end?: boolean | null
           canceled_at?: string | null
+          cancellation_feedback_submitted?: boolean | null
+          cancellation_reason?: string | null
           created?: string
           current_period_end?: string
           current_period_start?: string
@@ -602,6 +610,7 @@ export type Database = {
           id?: string
           listing_id?: string | null
           metadata?: Json | null
+          paused_until?: string | null
           price_currency?: string | null
           price_id?: string | null
           price_interval?: string | null

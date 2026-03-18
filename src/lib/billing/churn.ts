@@ -21,7 +21,7 @@ export async function getUserIdForStripeCustomer(
   try {
     const cust = await stripe.customers.retrieve(stripeCustomerId);
     if ("deleted" in cust) return null;
-    return (cust.metadata?.supabase_user_id as string | undefined) ?? null;
+    return (cust.metadata?.supabase_user_id as string| undefined) ?? null;
   } catch {
     return null;
   }

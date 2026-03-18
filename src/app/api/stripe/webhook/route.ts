@@ -22,8 +22,45 @@ import { syncMailerLiteGroups } from "@/lib/mailerlite/mailerlite";
 import { getUserIdForStripeCustomer, getCancellationReasonForSub, getContactEmailForUser } from "@/lib/billing/churn";
 import { PaymentFailedEmail } from "@/emails/PaymentFailedEmail";
 
+import { siteUrl } from "@/lib/siteUrl";
+
 const fromEmail = getEmailFrom();
 const resend = getResendClient();
+
+async function getCustomerDisplayName({
+  supabase,
+  userId,
+  stripeCustomer,
+  fallbackEmail,
+}: {
+  supabase: any;
+  userId?: string | null;
+  stripeCustomer?: { name?: string | null } | null;
+  fallbackEmail?: string | null;
+}) {
+  // 1) profiles table
+  if (userId) {
+    const { data: prof } = await supabase
+      .from("profiles")
+      .select("first_name, display_name")
+      .eq("id", userId)
+      .maybeSingle();
+
+    const fromProfile = (prof?.first_name || prof?.display_name || "").trim();
+    if (fromProfile) return fromProfile;
+  }
+
+  // 2) Stripe customer name
+  const fromStripe = (stripeCustomer?.name ?? "").trim();
+  if (fromStripe) return fromStripe;
+
+  // 3) email prefix
+  const email = (fallbackEmail ?? "").trim();
+  const prefix = email.split("@")[0] ?? "";
+  if (prefix) return prefix.charAt(0).toUpperCase() + prefix.slice(1);
+
+  return ""; // caller can decide "Hi," vs "Hi {name},"
+}
 
 // -----------------------------
 // MailerLite helper (ONLY for sub-created/updated sync email extraction)
@@ -229,7 +266,7 @@ export async function POST(req: NextRequest) {
               }
 
               if (toEmail) {
-                const dashboardUrl = `${process.env.NEXT_PUBLIC_BASE_URL}/dashboard`;
+                const dashboardUrl = `${siteUrl()}/dashboard`;
                 const idemKey = `sub-confirm:${sess.id}`;
                 await resend.emails.send(
                   {
@@ -639,53 +676,60 @@ export async function POST(req: NextRequest) {
           expand: ["items.data.price.product", "customer"],
         })) as Stripe.Subscription;
         await upsertSubscription(admin, sub);
-
-        console.log("[DUNNING] invoice.payment_failed", {
-  invoiceId: inv.id,
-  customerEmail: inv.customer_email,
-  customer: inv.customer,
-  billingReason: inv.billing_reason,
-});
-
         // failed payment email
-        if (type === "invoice.payment_failed"){
-          // Determine role from price metadata or lookup key
-          const mainItem = sub.items?.data?.[0];
-          const price = mainItem?.price;
-          const role = resolveBaseRole(price, sub.metadata);
+        if (type === "invoice.payment_failed") {
+  const mainItem = sub.items?.data?.[0];
+  const price = mainItem?.price;
+  const role = resolveBaseRole(price, sub.metadata);
 
-          // Determine recipient email
-          const toEmail = 
-            (inv.customer_email as string | null) ||
-            (await getEmailForSubscription(stripe, sub)) || 
-            null;
+  const toEmail =
+    (inv.customer_email as string | null) ||
+    (await getEmailForSubscription(stripe, sub)) ||
+    null;
 
-            console.log("[DUNNING] resolved recipient", { toEmail });
-          
-          // For subscription renewals, Stripe provides hosted invoice URL
-          const invoiceUrl = 
-            (inv.hosted_invoice_url as string | null) ||
-            (inv.invoice_pdf as string | null) ||
-            null;
-          
-          if (toEmail){
-            const idemKey = `dunning-1:${inv.id}`;
-            const updateBillingUrl = `${process.env.NEXT_PUBLIC_SITE_URL}/dashboard/billing`;
-            const name = inv.customer_name ?? "";
-            await resend.emails.send({
-              from: fromEmail,
-              to: toEmail,
-              subject: "Action required: update your payment method",
-              react: PaymentFailedEmail({
-                name,
-                updateBillingUrl
-              }),
-              headers: {
-                "Idempotency-Key": idemKey,
-              },
-          });
-          }
-        }
+  // Fetch Stripe customer (for name fallback)
+  const customerId =
+    typeof inv.customer === "string" ? inv.customer : inv.customer?.id;
+
+  const stripeCustomer =
+    customerId ? await stripe.customers.retrieve(customerId) : null;
+
+  // Resolve supabase user id (best effort)
+  let uid: string | null =
+    (sub.metadata?.supabase_user_id as string | undefined) ?? null;
+
+  if (!uid && customerId) {
+    uid = await getUserIdForStripeCustomer(admin, stripe, customerId)
+  }
+
+  const name = await getCustomerDisplayName({
+    supabase: admin,
+    userId: uid,
+    stripeCustomer:
+      stripeCustomer && typeof stripeCustomer === "object" && !("deleted" in stripeCustomer)
+        ? { name: stripeCustomer.name ?? null }
+        : null,
+    fallbackEmail: toEmail,
+  });
+
+  if (toEmail) {
+    const idemKey = `dunning-1:${inv.id}`;
+    const updateBillingUrl = `${siteUrl()}/dashboard/billing`;
+
+    await resend.emails.send(
+      {
+        from: fromEmail,
+        to: toEmail,
+        subject: "Action required: update your payment method",
+        react: PaymentFailedEmail({
+          name, // can be ""
+          updateBillingUrl,
+        }),
+      },
+      { idempotencyKey: idemKey }
+    );
+  }
+}
       } else {
         console.warn("Invoice had no resolvable subscription id");
       }

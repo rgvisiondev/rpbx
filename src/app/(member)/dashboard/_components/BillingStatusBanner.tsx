@@ -1,4 +1,3 @@
-// app/dashboard/_components/BillingStatusBanner.tsx
 "use client";
 
 import * as React from "react";
@@ -12,6 +11,7 @@ export default function BillingStatusBanner({
   status: EntitlementStatus;
 }) {
   const [loading, setLoading] = React.useState(false);
+
   if (!show) return null;
 
   async function openBillingPortal() {
@@ -19,13 +19,26 @@ export default function BillingStatusBanner({
     try {
       const res = await fetch("/api/billing/portal", { method: "POST" });
       const data = await res.json();
-      if (data?.url) window.location.href = data.url;
+
+      if (!res.ok || !data?.url) {
+        throw new Error("Failed to open billing portal");
+      }
+
+      window.location.href = data.url;
+    } catch (err) {
+      console.error("Billing portal error:", err);
     } finally {
       setLoading(false);
     }
   }
 
-  const label = status === "unpaid" ? "Payment overdue" : "Payment issue";
+  const isUnpaid = status === "unpaid";
+
+  const label = isUnpaid ? "Payment overdue" : "Payment issue";
+
+  const message = isUnpaid
+    ? "Your membership has a billing issue. You still have access for now, but please update your billing soon to avoid losing access."
+    : "We couldn’t process your most recent payment. Please update your billing to avoid interruption.";
 
   return (
     <div className="mb-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3">
@@ -34,9 +47,7 @@ export default function BillingStatusBanner({
           <span className="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-900">
             {label}
           </span>
-          <p className="text-sm text-amber-900">
-            We couldn’t process your most recent payment. Update your billing to avoid interruption.
-          </p>
+          <p className="text-sm text-amber-900">{message}</p>
         </div>
 
         <button

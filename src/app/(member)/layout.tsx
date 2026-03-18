@@ -3,7 +3,7 @@ export const revalidate = 0;
 
 import { redirect } from "next/navigation";
 import { createClientRSC } from "@/../utils/supabase/server";
-import { getEntitlement } from "@/lib/entitlements";
+import { requireEntitlementOrNull } from "@/lib/serverGuard";
 import PaywallOverlay from "./dashboard/_components/PaywallOverlay";
 import { IdleLogout } from "@/components/IdleLogout";
 
@@ -18,21 +18,19 @@ export default async function MemberLayout({
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Not logged in? Send to login before anything else.
   if (!user) redirect("/login");
 
-  // Email not verified yet? nudge first.
-  const { blocked, status, unverified } = await getEntitlement();
-  if (unverified) redirect("/auth/verify-email");
+  const gate = await requireEntitlementOrNull();
 
-  // OPTIONAL: choose between hard gate vs soft overlay.
-  // Hard gate example (send to pricing if not entitled):
-  // if (!entitled) redirect("/pricing?from=member");
+  if (gate.block === "unverified") {
+    redirect("/auth/verify-email");
+  }
 
-  // Soft gate (your current pattern): show overlay + blur content.
+  const blocked = gate.block === "paywall";
+
   return (
     <div className="relative">
-      {blocked && <PaywallOverlay status={status} />}
+      {blocked && <PaywallOverlay status={gate.status} />}
       <div
         className={blocked ? "pointer-events-none select-none blur-sm" : ""}
         aria-hidden={blocked}
