@@ -4,9 +4,11 @@ export const dynamic = "force-dynamic";
 
 import Stripe from "stripe";
 import { NextRequest } from "next/server";
-import ValuationEmail from "@/emails/ValuationEmail";
-import SubscriptionConfirmationEmail from "@/emails/SubscriptionConfirmationEmail";
-import BoostedListingEmail from "@/emails/BoostedListingEmail";
+import ValuationEmail from "../../../../../emails/ValuationEmail";
+import SubscriptionConfirmationEmail from "../../../../../emails/SubscriptionConfirmationEmail";
+import BoostedListingEmail from "../../../../../emails/BoostedListingEmail";
+import { PaymentRecoveredEmail } from "../../../../../emails/PaymentRecoveredEmail";
+import { SubscriptionCanceledForNonpaymentEmail } from "../../../../../emails/SubscriptionCanceledForNonpaymentEmail";
 import { getStripe, getWebhookSecret } from "@/lib/stripe";
 import { getEmailFrom, getResendClient } from "@/lib/resend";
 import { getBizEquityUrl, getCalendlyUrl } from "@/lib/envUrls";
@@ -19,13 +21,16 @@ import {
 
 import { syncMailerLiteGroups } from "@/lib/mailerlite/mailerlite";
 
-import { getUserIdForStripeCustomer, getCancellationReasonForSub, getContactEmailForUser } from "@/lib/billing/churn";
-import { PaymentFailedEmail } from "@/emails/PaymentFailedEmail";
+import {
+  getUserIdForStripeCustomer,
+  getCancellationReasonForSub,
+  getContactEmailForUser,
+} from "@/lib/billing/churn";
+import { PaymentFailedEmail } from "../../../../../emails/PaymentFailedEmail";
 
 import { siteUrl } from "@/lib/siteUrl";
 
 const fromEmail = getEmailFrom();
-const resend = getResendClient();
 
 async function getCustomerDisplayName({
   supabase,
@@ -79,7 +84,9 @@ async function getEmailForSubscription(
   }
 
   const customerId =
-    typeof sub.customer === "string" ? sub.customer : sub.customer?.id ?? null;
+    typeof sub.customer === "string"
+      ? sub.customer
+      : (sub.customer?.id ?? null);
 
   if (!customerId) return null;
 
@@ -287,7 +294,12 @@ export async function POST(req: NextRequest) {
                 if (membership) {
                   // ✅ MailerLite sync (place #1) — wrapped so it never breaks webhook
                   try {
-                    await syncMailerLiteGroups(toEmail, membership, undefined, "subscription");
+                    await syncMailerLiteGroups(
+                      toEmail,
+                      membership,
+                      undefined,
+                      "subscription",
+                    );
                   } catch (e) {
                     console.error("[MailerLite] Sync failed (checkout)", e);
                   }
@@ -632,7 +644,10 @@ export async function POST(req: NextRequest) {
             await syncMailerLiteGroups(email, role, undefined, "subscription");
           }
         } catch (e) {
-          console.error("[MailerLite] Sync failed (subscription created/updated)", e);
+          console.error(
+            "[MailerLite] Sync failed (subscription created/updated)",
+            e,
+          );
         }
       }
 
@@ -642,6 +657,71 @@ export async function POST(req: NextRequest) {
     // Handle deleted subscription events without retrieving from Stripe
     if (type === "customer.subscription.deleted") {
       const sub = event.data.object as Stripe.Subscription;
+
+      // Check if cancellation was due to billing issues
+      const { data: subRow } = await admin
+        .from("subscriptions")
+        .select("billing_issue_open, dunning_canceled_email_sent_at")
+        .eq("id", sub.id)
+        .maybeSingle();
+
+      if (
+        subRow?.billing_issue_open &&
+        !subRow.dunning_canceled_email_sent_at
+      ) {
+        const toEmail = await getEmailForSubscription(stripe, sub);
+
+        if (toEmail) {
+          const idemKey = `canceled-dunning:${sub.id}`;
+
+          const customerId =
+            typeof sub.customer === "string" ? sub.customer : sub.customer?.id;
+
+          const stripeCustomer = customerId
+            ? await stripe.customers.retrieve(customerId)
+            : null;
+
+          let uid: string | null =
+            (sub.metadata?.supabase_user_id as string | undefined) ?? null;
+
+          if (!uid && customerId) {
+            uid = await getUserIdForStripeCustomer(admin, stripe, customerId);
+          }
+
+          const name = await getCustomerDisplayName({
+            supabase: admin,
+            userId: uid,
+            stripeCustomer:
+              stripeCustomer &&
+              typeof stripeCustomer === "object" &&
+              !("deleted" in stripeCustomer)
+                ? { name: stripeCustomer.name ?? null }
+                : null,
+            fallbackEmail: toEmail,
+          });
+
+          await resend.emails.send(
+            {
+              from: fromEmail,
+              to: toEmail,
+              subject: "Your membership has been canceled",
+              react: SubscriptionCanceledForNonpaymentEmail({
+                name,
+                pricingUrl: `${siteUrl()}/pricing`,
+                billingUrl: `${siteUrl()}/dashboard/billing`,
+              }),
+            },
+            { idempotencyKey: idemKey },
+          );
+        }
+        await admin
+          .from("subscriptions")
+          .update({
+            billing_issue_open: false,
+            dunning_canceled_email_sent_at: new Date().toISOString(),
+          })
+          .eq("id", sub.id);
+      }
 
       // This will mark status = 'canceled', set ended_at, cancel_at, etc.
       await upsertSubscription(admin, sub);
@@ -676,60 +756,150 @@ export async function POST(req: NextRequest) {
           expand: ["items.data.price.product", "customer"],
         })) as Stripe.Subscription;
         await upsertSubscription(admin, sub);
+        if (type === "invoice.payment_succeeded" || type === "invoice.paid") {
+          const { data: subRow } = await admin
+            .from("subscriptions")
+            .select("billing_issue_open, payment_recovered_email_sent_at")
+            .eq("id", sub.id)
+            .maybeSingle();
+
+          if (subRow?.billing_issue_open) {
+            const toEmail =
+              (inv.customer_email as string | null) ||
+              (await getEmailForSubscription(stripe, sub)) ||
+              null;
+
+            if (toEmail && !subRow.payment_recovered_email_sent_at) {
+              const idemKey = `recovered:${inv.id}`;
+
+              const customerId =
+                typeof inv.customer === "string"
+                  ? inv.customer
+                  : inv.customer?.id;
+
+              const stripeCustomer = customerId
+                ? await stripe.customers.retrieve(customerId)
+                : null;
+
+              let uid: string | null =
+                (sub.metadata?.supabase_user_id as string | undefined) ?? null;
+
+              if (!uid && customerId) {
+                uid = await getUserIdForStripeCustomer(
+                  admin,
+                  stripe,
+                  customerId,
+                );
+              }
+
+              const name = await getCustomerDisplayName({
+                supabase: admin,
+                userId: uid,
+                stripeCustomer:
+                  stripeCustomer &&
+                  typeof stripeCustomer === "object" &&
+                  !("deleted" in stripeCustomer)
+                    ? { name: stripeCustomer.name ?? null }
+                    : null,
+                fallbackEmail: toEmail,
+              });
+
+              await resend.emails.send(
+                {
+                  from: fromEmail,
+                  to: toEmail,
+                  subject: "Your payment was successful",
+                  react: PaymentRecoveredEmail({
+                    name,
+                    dashboardUrl: `${siteUrl()}/dashboard`,
+                    billingUrl: `${siteUrl()}/dashboard/billing`,
+                  }),
+                },
+                { idempotencyKey: idemKey },
+              );
+            }
+
+            await admin
+              .from("subscriptions")
+              .update({
+                billing_issue_open: false,
+                payment_recovered_email_sent_at:
+                  subRow?.payment_recovered_email_sent_at ??
+                  new Date().toISOString(),
+              })
+              .eq("id", sub.id);
+          }
+        }
+
         // failed payment email
         if (type === "invoice.payment_failed") {
-  const mainItem = sub.items?.data?.[0];
-  const price = mainItem?.price;
-  const role = resolveBaseRole(price, sub.metadata);
+          const { data: existingSub } = await admin
+            .from("subscriptions")
+            .select("billing_issue_open, first_payment_failed_at")
+            .eq("id", sub.id)
+            .maybeSingle();
 
-  const toEmail =
-    (inv.customer_email as string | null) ||
-    (await getEmailForSubscription(stripe, sub)) ||
-    null;
+          await admin
+            .from("subscriptions")
+            .update({
+              billing_issue_open: true,
+              first_payment_failed_at:
+                existingSub?.first_payment_failed_at ??
+                new Date().toISOString(),
+            })
+            .eq("id", sub.id);
 
-  // Fetch Stripe customer (for name fallback)
-  const customerId =
-    typeof inv.customer === "string" ? inv.customer : inv.customer?.id;
+          const toEmail =
+            (inv.customer_email as string | null) ||
+            (await getEmailForSubscription(stripe, sub)) ||
+            null;
 
-  const stripeCustomer =
-    customerId ? await stripe.customers.retrieve(customerId) : null;
+          // Fetch Stripe customer (for name fallback)
+          const customerId =
+            typeof inv.customer === "string" ? inv.customer : inv.customer?.id;
 
-  // Resolve supabase user id (best effort)
-  let uid: string | null =
-    (sub.metadata?.supabase_user_id as string | undefined) ?? null;
+          const stripeCustomer = customerId
+            ? await stripe.customers.retrieve(customerId)
+            : null;
 
-  if (!uid && customerId) {
-    uid = await getUserIdForStripeCustomer(admin, stripe, customerId)
-  }
+          // Resolve supabase user id (best effort)
+          let uid: string | null =
+            (sub.metadata?.supabase_user_id as string | undefined) ?? null;
 
-  const name = await getCustomerDisplayName({
-    supabase: admin,
-    userId: uid,
-    stripeCustomer:
-      stripeCustomer && typeof stripeCustomer === "object" && !("deleted" in stripeCustomer)
-        ? { name: stripeCustomer.name ?? null }
-        : null,
-    fallbackEmail: toEmail,
-  });
+          if (!uid && customerId) {
+            uid = await getUserIdForStripeCustomer(admin, stripe, customerId);
+          }
 
-  if (toEmail) {
-    const idemKey = `dunning-1:${inv.id}`;
-    const updateBillingUrl = `${siteUrl()}/dashboard/billing`;
+          const name = await getCustomerDisplayName({
+            supabase: admin,
+            userId: uid,
+            stripeCustomer:
+              stripeCustomer &&
+              typeof stripeCustomer === "object" &&
+              !("deleted" in stripeCustomer)
+                ? { name: stripeCustomer.name ?? null }
+                : null,
+            fallbackEmail: toEmail,
+          });
 
-    await resend.emails.send(
-      {
-        from: fromEmail,
-        to: toEmail,
-        subject: "Action required: update your payment method",
-        react: PaymentFailedEmail({
-          name, // can be ""
-          updateBillingUrl,
-        }),
-      },
-      { idempotencyKey: idemKey }
-    );
-  }
-}
+          if (toEmail) {
+            const idemKey = `dunning-1:${inv.id}`;
+            const updateBillingUrl = `${siteUrl()}/dashboard/billing`;
+
+            await resend.emails.send(
+              {
+                from: fromEmail,
+                to: toEmail,
+                subject: "Action required: update your payment method",
+                react: PaymentFailedEmail({
+                  name,
+                  updateBillingUrl,
+                }),
+              },
+              { idempotencyKey: idemKey },
+            );
+          }
+        }
       } else {
         console.warn("Invoice had no resolvable subscription id");
       }

@@ -534,6 +534,7 @@ export type Database = {
       }
       subscriptions: {
         Row: {
+          billing_issue_open: boolean | null
           cancel_at: string | null
           cancel_at_period_end: boolean | null
           canceled_at: string | null
@@ -542,11 +543,14 @@ export type Database = {
           created: string
           current_period_end: string
           current_period_start: string
+          dunning_canceled_email_sent_at: string | null
           ended_at: string | null
+          first_payment_failed_at: string | null
           id: string
           listing_id: string | null
           metadata: Json | null
           paused_until: string | null
+          payment_recovered_email_sent_at: string | null
           price_currency: string | null
           price_id: string | null
           price_interval: string | null
@@ -566,6 +570,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          billing_issue_open?: boolean | null
           cancel_at?: string | null
           cancel_at_period_end?: boolean | null
           canceled_at?: string | null
@@ -574,11 +579,14 @@ export type Database = {
           created?: string
           current_period_end?: string
           current_period_start?: string
+          dunning_canceled_email_sent_at?: string | null
           ended_at?: string | null
+          first_payment_failed_at?: string | null
           id: string
           listing_id?: string | null
           metadata?: Json | null
           paused_until?: string | null
+          payment_recovered_email_sent_at?: string | null
           price_currency?: string | null
           price_id?: string | null
           price_interval?: string | null
@@ -598,6 +606,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          billing_issue_open?: boolean | null
           cancel_at?: string | null
           cancel_at_period_end?: boolean | null
           canceled_at?: string | null
@@ -606,11 +615,14 @@ export type Database = {
           created?: string
           current_period_end?: string
           current_period_start?: string
+          dunning_canceled_email_sent_at?: string | null
           ended_at?: string | null
+          first_payment_failed_at?: string | null
           id?: string
           listing_id?: string | null
           metadata?: Json | null
           paused_until?: string | null
+          payment_recovered_email_sent_at?: string | null
           price_currency?: string | null
           price_id?: string | null
           price_interval?: string | null
