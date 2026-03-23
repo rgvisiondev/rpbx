@@ -20,3 +20,13 @@ add column billing_issue_open boolean default false,
 add column first_payment_failed_at timestamp,
 add column dunning_canceled_email_sent_at timestamp,
 add column payment_recovered_email_sent_at timestamp;
+
+/* 
+Phase 3 of the dunning flow update:
+Tracks dunning stage so we can:
+- Send follow up emails when payment is still missing
+- Send one final email before cancellation of subscription
+*/
+alter table subscriptions
+add column dunning_stage text default 'none',
+add column last_dunning_email_sent_at timestamp;
