@@ -538,15 +538,20 @@ export type Database = {
           cancel_at: string | null
           cancel_at_period_end: boolean | null
           canceled_at: string | null
+          cancellation_feedback: string | null
           cancellation_feedback_submitted: boolean | null
           cancellation_reason: string | null
+          cancellation_requested_at: string | null
+          cancellation_type: string | null
           created: string
           current_period_end: string
           current_period_start: string
           dunning_canceled_email_sent_at: string | null
+          dunning_stage: string | null
           ended_at: string | null
           first_payment_failed_at: string | null
           id: string
+          last_dunning_email_sent_at: string | null
           listing_id: string | null
           metadata: Json | null
           paused_until: string | null
@@ -574,15 +579,20 @@ export type Database = {
           cancel_at?: string | null
           cancel_at_period_end?: boolean | null
           canceled_at?: string | null
+          cancellation_feedback?: string | null
           cancellation_feedback_submitted?: boolean | null
           cancellation_reason?: string | null
+          cancellation_requested_at?: string | null
+          cancellation_type?: string | null
           created?: string
           current_period_end?: string
           current_period_start?: string
           dunning_canceled_email_sent_at?: string | null
+          dunning_stage?: string | null
           ended_at?: string | null
           first_payment_failed_at?: string | null
           id: string
+          last_dunning_email_sent_at?: string | null
           listing_id?: string | null
           metadata?: Json | null
           paused_until?: string | null
@@ -610,15 +620,20 @@ export type Database = {
           cancel_at?: string | null
           cancel_at_period_end?: boolean | null
           canceled_at?: string | null
+          cancellation_feedback?: string | null
           cancellation_feedback_submitted?: boolean | null
           cancellation_reason?: string | null
+          cancellation_requested_at?: string | null
+          cancellation_type?: string | null
           created?: string
           current_period_end?: string
           current_period_start?: string
           dunning_canceled_email_sent_at?: string | null
+          dunning_stage?: string | null
           ended_at?: string | null
           first_payment_failed_at?: string | null
           id?: string
+          last_dunning_email_sent_at?: string | null
           listing_id?: string | null
           metadata?: Json | null
           paused_until?: string | null

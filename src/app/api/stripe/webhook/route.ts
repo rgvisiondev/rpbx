@@ -21,11 +21,7 @@ import {
 
 import { syncMailerLiteGroups } from "@/lib/mailerlite/mailerlite";
 
-import {
-  getUserIdForStripeCustomer,
-  getCancellationReasonForSub,
-  getContactEmailForUser,
-} from "@/lib/billing/churn";
+import { getUserIdForStripeCustomer } from "@/lib/billing/churn";
 import { PaymentFailedEmail } from "../../../../../emails/PaymentFailedEmail";
 
 import { siteUrl } from "@/lib/siteUrl";
@@ -661,7 +657,7 @@ export async function POST(req: NextRequest) {
       // Check if cancellation was due to billing issues
       const { data: subRow } = await admin
         .from("subscriptions")
-        .select("billing_issue_open, dunning_canceled_email_sent_at")
+        .select("billing_issue_open, dunning_canceled_email_sent_at, cancellation_type, cancellation_reason")
         .eq("id", sub.id)
         .maybeSingle();
 
@@ -719,6 +715,8 @@ export async function POST(req: NextRequest) {
           .update({
             billing_issue_open: false,
             dunning_canceled_email_sent_at: new Date().toISOString(),
+            cancellation_type: "dunning",
+            cancellation_reason: "nonpayment",
           })
           .eq("id", sub.id);
       }
@@ -826,6 +824,8 @@ export async function POST(req: NextRequest) {
                 payment_recovered_email_sent_at:
                   subRow?.payment_recovered_email_sent_at ??
                   new Date().toISOString(),
+                dunning_stage: "none",
+                last_dunning_email_sent_at: null,
               })
               .eq("id", sub.id);
           }

@@ -29,7 +29,9 @@ export async function GET(req: Request) {
       user_id,
       first_payment_failed_at,
       dunning_stage,
-      billing_issue_open
+      billing_issue_open,
+      cancel_at_period_end,
+      cancellation_type
     `,
     )
     .eq("billing_issue_open", true);
@@ -47,6 +49,7 @@ export async function GET(req: Request) {
     try {
       console.log("Processing sub:", sub.id);
 
+      if (sub.cancellation_type === "voluntary" && sub.cancel_at_period_end) continue;
       if (!sub.billing_issue_open) continue;
       if (!sub.first_payment_failed_at) continue;
 

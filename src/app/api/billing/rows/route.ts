@@ -6,12 +6,12 @@ interface SubscriptionMetadata {
   listing_id?: string;
 }
 interface SubscriptionRow {
-  id: string;                       // Stripe subscription id
+  id: string; // Stripe subscription id
   product_name: string | null;
   status: string | null;
   current_period_end: string | null;
   user_id: string;
-  metadata: SubscriptionMetadata | null;             // holds listing_id, etc.
+  metadata: SubscriptionMetadata | null; // holds listing_id, etc.
   cancel_at: string | null;
   cancel_at_period_end: boolean | null;
 }
@@ -50,9 +50,9 @@ function formatDate(dateString: string | null): string | null {
   if (isNaN(d.getTime())) return null;
 
   return d.toLocaleDateString("en-US", {
-    month: "short",   // "Jan"
-    day: "numeric",   // "5"
-    year: "numeric",  // "2025"
+    month: "short", // "Jan"
+    day: "numeric", // "5"
+    year: "numeric", // "2025"
   });
 }
 
@@ -72,7 +72,7 @@ export async function GET() {
   const { data: subs, error: subsError } = await supabase
     .from("subscriptions")
     .select(
-      "id, product_name, status, current_period_end, user_id, metadata, cancel_at, cancel_at_period_end"
+      "id, product_name, status, current_period_end, user_id, metadata, cancel_at, cancel_at_period_end",
     )
     .eq("user_id", user.id)
     .returns<SubscriptionRow[]>();
@@ -81,9 +81,15 @@ export async function GET() {
     console.error("Error loading subscriptions:", subsError);
     return NextResponse.json(
       { rows: [], error: "Failed to load subscriptions" },
-      { status: 500 }
+      { status: 500 },
     );
   }
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("user_type")
+    .eq("id", user.id)
+    .single();
 
   const allSubs = subs ?? [];
 
@@ -126,8 +132,8 @@ export async function GET() {
           const meta = (s.metadata ?? {}) as { listing_id?: string };
           return meta?.listing_id ?? null;
         })
-        .filter((id): id is string => !!id)
-    )
+        .filter((id): id is string => !!id),
+    ),
   );
 
   let listingTitleById = new Map<string, string>();
@@ -144,7 +150,7 @@ export async function GET() {
       console.error("Error loading listing memberships:", listingError);
     } else {
       listingTitleById = new Map<string, string>(
-        (listingRecords ?? []).map((l) => [l.id, l.title ?? l.id])
+        (listingRecords ?? []).map((l) => [l.id, l.title ?? l.id]),
       );
     }
   }
@@ -175,7 +181,9 @@ export async function GET() {
   // ----------------------------
   const { data: boosts, error: boostsError } = await supabase
     .from("listing_promotions")
-    .select("listing_id, status, current_period_end, stripe_subscription_id, cancel_at_period_end")
+    .select(
+      "listing_id, status, current_period_end, stripe_subscription_id, cancel_at_period_end",
+    )
     .returns<PromotionRow[]>();
 
   if (boostsError) {
@@ -192,7 +200,7 @@ export async function GET() {
         .returns<ListingRow[]>();
 
       const byId = new Map<string, string>(
-        (listings ?? []).map((l) => [l.id, l.title ?? l.id])
+        (listings ?? []).map((l) => [l.id, l.title ?? l.id]),
       );
 
       for (const b of boosts ?? []) {
@@ -212,5 +220,8 @@ export async function GET() {
     }
   }
 
-  return NextResponse.json({ rows });
+  return NextResponse.json({
+    rows,
+    userType: profile?.user_type ?? null,
+  });
 }
