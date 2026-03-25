@@ -657,7 +657,26 @@ export async function POST(req: NextRequest) {
       // Check if cancellation was due to billing issues
       const { data: subRow } = await admin
         .from("subscriptions")
-        .select("billing_issue_open, dunning_canceled_email_sent_at, cancellation_type, cancellation_reason")
+        .select(`
+          billing_issue_open, 
+          dunning_canceled_email_sent_at, 
+          cancellation_type, 
+          cancellation_reason,
+          pause_status,
+          pause_starts_at,
+          pause_ends_at,
+          pause_reason,
+          listing_id,
+          purpose_sub,
+          cancellation_feedback,
+          cancellation_feedback_submitted,
+          cancellation_requested_at,
+          winback_email_sent_at,
+          dunning_stage,
+          last_dunning_email_sent_at,
+          pause_count,
+          last_pause_started_at
+          `)
         .eq("id", sub.id)
         .maybeSingle();
 
@@ -723,6 +742,68 @@ export async function POST(req: NextRequest) {
 
       // This will mark status = 'canceled', set ended_at, cancel_at, etc.
       await upsertSubscription(admin, sub);
+
+      // A scheduled pause reaching Stripe period-end should become an active pause,
+      // not voluntary churn and not dunning cancellation.
+      if (subRow?.pause_status === "scheduled" && !subRow?.billing_issue_open && subRow?.cancellation_type !== "dunning") {
+        const nowIso = new Date().toISOString();
+
+        await admin
+          .from("subscriptions")
+          .update({
+            pause_status: "active",
+            pause_starts_at: subRow.pause_starts_at ?? nowIso,
+            pause_ends_at: subRow.pause_ends_at ?? null,
+
+            // This is a pause NOT a churn
+            cancel_at_period_end: false,
+            cancellation_type: null,
+            cancellation_reason: null,
+            cancellation_feedback: null,
+            cancellation_feedback_submitted: false,
+            cancellation_requested_at: null,
+            winback_email_sent_at: null,
+            pause_count: (subRow.pause_count ?? 0) + 1,
+            last_pause_started_at: subRow.pause_starts_at ?? nowIso,
+
+            // clean up any dunning remnants just in case
+            billing_issue_open: false,
+            dunning_stage: "none",
+            last_dunning_email_sent_at: null,
+          })
+          .eq("id", sub.id);
+
+        // Keep dependent boost rows aligned too
+        if (subRow.listing_id) {
+          await admin
+            .from("subscriptions")
+            .update({
+              pause_status: "active",
+              pause_starts_at: subRow.pause_starts_at ?? nowIso,
+              pause_ends_at: null,
+              cancellation_type: null,
+              cancellation_reason: null,
+              cancellation_feedback: null,
+              cancellation_feedback_submitted: false,
+              cancellation_requested_at: null,
+              winback_email_sent_at: null,
+              cancel_at_period_end: false,
+              last_pause_started_at: subRow.pause_starts_at ?? nowIso,
+            })
+            .eq("listing_id", subRow.listing_id)
+            .eq("purpose_sub", "listing_promo");
+
+          await admin
+            .from("listing_promotions")
+            .update({
+              status: "canceled",
+              cancel_at_period_end: false,
+            })
+            .eq("listing_id", subRow.listing_id);
+        }
+
+        return new Response("ok", {status: 200 });
+      }
 
       // If this was a promo sub, keep listing_promotions in sync too
       if ((sub.metadata?.purpose ?? "") === "listing_promo") {

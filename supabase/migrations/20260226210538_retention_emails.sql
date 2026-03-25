@@ -50,3 +50,20 @@ Tracks post-cancellation lifecycle for win-back emails:
 */
 alter table subscriptions
 add column winback_email_sent_at timestamp;
+
+/*
+Phase 5 of dunning flow update:
+-
+*/
+alter table subscriptions
+add column pause_status text default null,
+add column pause_starts_at timestamp,
+add column pause_ends_at timestamp,
+add column pause_reason text,
+add column pause_feedback text,
+add column pause_email_sent_at timestamp,
+add column resume_email_sent_at timestamp,
+add column pause_scope text default 'subscription',
+add column pause_count integer default 0,
+add column last_pause_started_at timestamp,
+add column last_pause_resumed_at timestamp;

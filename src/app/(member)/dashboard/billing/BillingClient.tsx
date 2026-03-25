@@ -19,6 +19,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { PausedBillingBanner } from "../_components/PausedBillingBanner";
 
 type BillingRow = {
   type: "platform" | "boost";
@@ -30,6 +31,16 @@ type BillingRow = {
   stripeSubscriptionId?: string | null;
   cancelAt?: string | null;
   cancelAtPeriodEnd?: boolean | null;
+
+  pauseStatus?: string | null;
+  pauseStartsAt?: string | null;
+  pauseEndsAt?: string | null;
+  isPauseEligible?: boolean;
+  parentListingSubscriptionId?: string | null;
+
+  // add these from rows route
+  pauseCount?: number | null;
+  lastPauseStartedAt?: string | null;
 };
 
 type CancelReasonOption = {
@@ -38,6 +49,19 @@ type CancelReasonOption = {
   description: string;
   icon: React.ComponentType<{ className?: string }>;
 };
+
+type RowUiState =
+  | "active"
+  | "trialing"
+  | "past_due"
+  | "unpaid"
+  | "canceling"
+  | "pause_scheduled"
+  | "paused"
+  | "canceled"
+  | "incomplete"
+  | "incomplete_expired"
+  | "unknown";
 
 const businessReasonOptions: CancelReasonOption[] = [
   {
@@ -112,25 +136,110 @@ const investorReasonOptions: CancelReasonOption[] = [
   },
 ];
 
-function formatStatus(
-  status: string | null,
-  cancelAtPeriodEnd?: boolean | null,
-) {
-  if (!status) return "—";
-  if (status === "active" && cancelAtPeriodEnd) return "Canceling";
+function deriveRowUiState(row: BillingRow): RowUiState {
+  if (row.pauseStatus === "scheduled") return "pause_scheduled";
+  if (row.pauseStatus === "active" || row.status === "paused") return "paused";
+  if (row.status === "active" && row.cancelAtPeriodEnd) return "canceling";
 
-  const map: Record<string, string> = {
-    trialing: "Trialing",
-    active: "Active",
-    canceled: "Canceled",
-    incomplete: "Incomplete",
-    incomplete_expired: "Incomplete (Expired)",
-    past_due: "Past due",
-    unpaid: "Unpaid",
-    paused: "Paused",
-  };
+  switch (row.status) {
+    case "active":
+      return "active";
+    case "trialing":
+      return "trialing";
+    case "past_due":
+      return "past_due";
+    case "unpaid":
+      return "unpaid";
+    case "canceled":
+      return "canceled";
+    case "incomplete":
+      return "incomplete";
+    case "incomplete_expired":
+      return "incomplete_expired";
+    default:
+      return "unknown";
+  }
+}
 
-  return map[status] ?? status.charAt(0).toUpperCase() + status.slice(1);
+function formatDisplayStatus(row: BillingRow): string {
+  const uiState = deriveRowUiState(row);
+
+  switch (uiState) {
+    case "pause_scheduled":
+      return "Pause Scheduled";
+    case "paused":
+      return "Paused";
+    case "canceling":
+      return "Canceling";
+    case "trialing":
+      return "Trialing";
+    case "active":
+      return "Active";
+    case "canceled":
+      return "Canceled";
+    case "incomplete":
+      return "Incomplete";
+    case "incomplete_expired":
+      return "Incomplete (Expired)";
+    case "past_due":
+      return "Past due";
+    case "unpaid":
+      return "Unpaid";
+    default:
+      return row.status
+        ? row.status.charAt(0).toUpperCase() + row.status.slice(1)
+        : "—";
+  }
+}
+
+function getStatusClass(row: BillingRow): string {
+  const uiState = deriveRowUiState(row);
+
+  switch (uiState) {
+    case "active":
+      return "inline-flex items-center px-2 py-1 rounded-full bg-green-50 text-green-700 text-xs";
+    case "trialing":
+      return "inline-flex items-center px-2 py-1 rounded-full bg-blue-50 text-blue-700 text-xs";
+    case "pause_scheduled":
+      return "inline-flex items-center px-2 py-1 rounded-full bg-sky-50 text-sky-700 text-xs";
+    case "paused":
+      return "inline-flex items-center px-2 py-1 rounded-full bg-sky-50 text-sky-700 text-xs";
+    case "canceling":
+      return "inline-flex items-center px-2 py-1 rounded-full bg-amber-50 text-amber-700 text-xs";
+    case "past_due":
+    case "unpaid":
+    case "canceled":
+      return "inline-flex items-center px-2 py-1 rounded-full bg-red-50 text-red-700 text-xs";
+    default:
+      return "inline-flex items-center px-2 py-1 rounded-full bg-gray-50 text-gray-700 text-xs";
+  }
+}
+
+function shouldOfferPause(reason: string) {
+  return (
+    reason === "too_expensive" ||
+    reason === "not_ready" ||
+    reason === "not_investing" ||
+    reason === "low_inventory" ||
+    reason === "no_fit"
+  );
+}
+
+function formatPauseDate(value?: string | null) {
+  if (!value) return null;
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return null;
+
+  return d.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+function canStillOfferPause(row: BillingRow | null) {
+  if (!row) return false;
+  return (row.pauseCount ?? 0) < 1;
 }
 
 export default function BillingClient() {
@@ -142,12 +251,15 @@ export default function BillingClient() {
   const [selectedSubscriptionId, setSelectedSubscriptionId] = useState<
     string | null
   >(null);
+  const [selectedRow, setSelectedRow] = useState<BillingRow | null>(null);
   const [cancelReason, setCancelReason] = useState("");
   const [cancelFeedback, setCancelFeedback] = useState("");
   const [cancelLoading, setCancelLoading] = useState(false);
+  const [pauseLoading, setPauseLoading] = useState(false);
   const [continueLoadingId, setContinueLoadingId] = useState<string | null>(
     null,
   );
+  const [resumeLoadingId, setResumeLoadingId] = useState<string | null>(null);
 
   useEffect(() => {
     void refreshRows();
@@ -167,9 +279,19 @@ export default function BillingClient() {
     }
   }
 
+  function resetCancelState() {
+    setSelectedSubscriptionId(null);
+    setSelectedRow(null);
+    setCancelReason("");
+    setCancelFeedback("");
+    setCancelLoading(false);
+    setPauseLoading(false);
+  }
+
   function openCancelModal(row: BillingRow) {
     if (!row.stripeSubscriptionId) return;
     setSelectedSubscriptionId(row.stripeSubscriptionId);
+    setSelectedRow(row);
     setCancelReason("");
     setCancelFeedback("");
     setCancelModalOpen(true);
@@ -209,16 +331,57 @@ export default function BillingClient() {
       }
 
       setCancelModalOpen(false);
-      setSelectedSubscriptionId(null);
-      setCancelReason("");
-      setCancelFeedback("");
-
+      resetCancelState();
       await refreshRows();
     } catch (error) {
       console.error(error);
       alert("Something went wrong canceling your subscription.");
     } finally {
       setCancelLoading(false);
+    }
+  }
+
+  async function submitPause() {
+    if (!selectedSubscriptionId) {
+      alert("No subscription selected.");
+      return;
+    }
+
+    if (!cancelReason) {
+      alert("Please select a reason before pausing.");
+      return;
+    }
+
+    try {
+      setPauseLoading(true);
+
+      const res = await fetch("/api/billing/pause", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          subscriptionId: selectedSubscriptionId,
+          reason: cancelReason,
+          feedback: cancelFeedback,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        alert(data.error || "Failed to pause subscription.");
+        return;
+      }
+
+      setCancelModalOpen(false);
+      resetCancelState();
+      await refreshRows();
+    } catch (error) {
+      console.error(error);
+      alert("Something went wrong pausing your subscription.");
+    } finally {
+      setPauseLoading(false);
     }
   }
 
@@ -247,6 +410,39 @@ export default function BillingClient() {
       alert("Something went wrong continuing your subscription.");
     } finally {
       setContinueLoadingId(null);
+    }
+  }
+
+  async function resumePausedSubscription(subscriptionId: string) {
+    try {
+      setResumeLoadingId(subscriptionId);
+
+      const res = await fetch("/api/billing/resume", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ subscriptionId }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        alert(data.error || "Failed to resume subscription.");
+        return;
+      }
+
+      if (data?.url) {
+        window.location.href = data.url;
+        return;
+      }
+
+      await refreshRows();
+    } catch (error) {
+      console.error(error);
+      alert("Something went wrong resuming your subscription.");
+    } finally {
+      setResumeLoadingId(null);
     }
   }
 
@@ -283,24 +479,236 @@ export default function BillingClient() {
       : investorReasonOptions;
   }, [userType]);
 
-  const showPauseMessage =
-    cancelReason === "too_expensive" ||
-    cancelReason === "not_ready" ||
-    cancelReason === "not_investing" ||
-    cancelReason === "no_fit";
+  const rowsBySubscriptionId = useMemo(() => {
+    const map = new Map<string, BillingRow>();
+    for (const row of rows) {
+      if (row.stripeSubscriptionId) {
+        map.set(row.stripeSubscriptionId, row);
+      }
+    }
+    return map;
+  }, [rows]);
 
+  const selectedRowHasDependentBoost = useMemo(() => {
+    if (!selectedRow?.stripeSubscriptionId || !selectedRow.listingId) {
+      return false;
+    }
+
+    return rows.some(
+      (row) =>
+        row.type === "boost" &&
+        row.parentListingSubscriptionId === selectedRow.stripeSubscriptionId,
+    );
+  }, [rows, selectedRow]);
+
+  const selectedRowCanPause =
+    !!selectedRow?.isPauseEligible &&
+    selectedRow?.type === "platform" &&
+    canStillOfferPause(selectedRow);
+
+  const offerPause = selectedRowCanPause && shouldOfferPause(cancelReason);
   const showSuccessMessage = cancelReason === "sold_business";
+
+  const pausedRows = useMemo(
+    () => rows.filter((row) => deriveRowUiState(row) === "paused"),
+    [rows],
+  );
+
+  const scheduledPauseRows = useMemo(
+    () => rows.filter((row) => deriveRowUiState(row) === "pause_scheduled"),
+    [rows],
+  );
+
+  const pausedBannerMode = useMemo(() => {
+    if (pausedRows.length > 0) return "paused" as const;
+    if (scheduledPauseRows.length > 0) return "pause_scheduled" as const;
+    return null;
+  }, [pausedRows.length, scheduledPauseRows.length]);
+
+  const pausedBannerCount = useMemo(() => {
+    if (pausedRows.length > 0) return pausedRows.length;
+    if (scheduledPauseRows.length > 0) return scheduledPauseRows.length;
+    return 0;
+  }, [pausedRows.length, scheduledPauseRows.length]);
+
+  function renderActions(row: BillingRow, mobile = false) {
+    const uiState = deriveRowUiState(row);
+
+    const primaryBtn = mobile
+      ? "w-full px-3 py-2 rounded-full bg-[var(--color-primary)] text-white text-sm hover:bg-[var(--color-primary-hover)] transition disabled:opacity-60"
+      : "px-3 py-1 rounded-full bg-[var(--color-primary)] text-white text-xs hover:bg-[var(--color-primary-hover)] transition disabled:opacity-60";
+
+    const borderBtn = mobile
+      ? "w-full px-3 py-2 rounded-full border text-sm hover:bg-gray-50 transition"
+      : "px-3 py-1 rounded-full border text-xs hover:bg-gray-50 transition";
+
+    const dangerBtn = mobile
+      ? "w-full px-3 py-2 rounded-full bg-red-500 text-white text-sm hover:bg-red-600 transition"
+      : "px-3 py-1 rounded-full bg-red-500 text-white text-xs hover:bg-red-600 transition";
+
+    if (!row.stripeSubscriptionId) {
+      return <span className="text-xs text-gray-400">—</span>;
+    }
+
+    const parentRow = row.parentListingSubscriptionId
+      ? rowsBySubscriptionId.get(row.parentListingSubscriptionId)
+      : null;
+    const parentUiState = parentRow ? deriveRowUiState(parentRow) : null;
+    const parentPauseLike =
+      parentUiState === "pause_scheduled" || parentUiState === "paused";
+
+    if (row.type === "boost" && parentPauseLike) {
+      return (
+        <div className={mobile ? "flex flex-col gap-2" : "space-x-2"}>
+          <div className="text-xs text-sky-700">
+            This boost follows the main listing subscription and will pause with it.
+          </div>
+          <button onClick={openPortal} className={borderBtn}>
+            Manage
+          </button>
+        </div>
+      );
+    }
+
+    if (uiState === "pause_scheduled") {
+      return (
+        <>
+          <button
+            onClick={() =>
+              resumePausedSubscription(row.stripeSubscriptionId as string)
+            }
+            disabled={resumeLoadingId === row.stripeSubscriptionId}
+            className={primaryBtn}
+          >
+            {resumeLoadingId === row.stripeSubscriptionId
+              ? "Keeping Active..."
+              : "Keep Active"}
+          </button>
+
+          <button
+            onClick={() =>
+              manageSubscription(row.stripeSubscriptionId as string, "update")
+            }
+            className={borderBtn}
+          >
+            Manage
+          </button>
+        </>
+      );
+    }
+
+    if (uiState === "paused") {
+      return (
+        <>
+          <button
+            onClick={() =>
+              resumePausedSubscription(row.stripeSubscriptionId as string)
+            }
+            disabled={resumeLoadingId === row.stripeSubscriptionId}
+            className={primaryBtn}
+          >
+            {resumeLoadingId === row.stripeSubscriptionId
+              ? "Resuming..."
+              : "Resume Subscription"}
+          </button>
+
+          <button onClick={openPortal} className={borderBtn}>
+            Manage
+          </button>
+        </>
+      );
+    }
+
+    if (uiState === "canceling") {
+      return (
+        <>
+          <button
+            onClick={() =>
+              continueSubscription(row.stripeSubscriptionId as string)
+            }
+            disabled={continueLoadingId === row.stripeSubscriptionId}
+            className={primaryBtn}
+          >
+            {continueLoadingId === row.stripeSubscriptionId
+              ? "Continuing..."
+              : "Continue Subscription"}
+          </button>
+
+          <button
+            onClick={() =>
+              manageSubscription(row.stripeSubscriptionId as string, "update")
+            }
+            className={borderBtn}
+          >
+            Manage
+          </button>
+        </>
+      );
+    }
+
+    if (
+      uiState === "active" ||
+      uiState === "trialing" ||
+      uiState === "past_due"
+    ) {
+      return (
+        <>
+          <button
+            onClick={() =>
+              manageSubscription(row.stripeSubscriptionId as string, "update")
+            }
+            className={borderBtn}
+          >
+            Update
+          </button>
+
+          <button onClick={() => openCancelModal(row)} className={dangerBtn}>
+            Cancel
+          </button>
+        </>
+      );
+    }
+
+    if (
+      uiState === "canceled" ||
+      uiState === "unpaid" ||
+      uiState === "incomplete_expired"
+    ) {
+      return (
+        <button onClick={openPortal} className={borderBtn}>
+          Renew / Manage
+        </button>
+      );
+    }
+
+    return (
+      <button onClick={openPortal} className={borderBtn}>
+        Manage
+      </button>
+    );
+  }
 
   return (
     <>
       <div className="w-full lg:max-w-[1140px] mx-auto py-10 px-5 lg:px-2">
         <h1 className="mb-4">Manage Subscription</h1>
-        <p className="text-sm text-gray-600 mb-6">
+        <p className="text-sm text-gray-600 mb-2">
           Use the customer portal to update payment methods, view invoices, or
-          cancel plans.
+          manage plans.
+        </p>
+        <p className="text-xs text-gray-500 mb-6">
+          If you need a temporary break, start with cancel and we’ll show pause
+          options when they’re available.
         </p>
 
         <div className="bg-white border rounded-xl p-4">
+          {pausedBannerMode && (
+            <PausedBillingBanner
+              mode={pausedBannerMode}
+              count={pausedBannerCount}
+            />
+          )}
+
           {loading ? (
             <p className="text-sm text-gray-500">Loading subscriptions…</p>
           ) : rows.length === 0 ? (
@@ -309,7 +717,6 @@ export default function BillingClient() {
             </p>
           ) : (
             <>
-              {/* Desktop table */}
               <div className="hidden md:block">
                 <table className="w-full text-sm">
                   <thead>
@@ -324,38 +731,14 @@ export default function BillingClient() {
                   </thead>
                   <tbody>
                     {rows.map((r, i) => {
-                      const status = r.status ?? null;
-                      const isCanceling =
-                        status === "active" && r.cancelAtPeriodEnd === true;
-                      const isActive =
-                        (status === "active" ||
-                          status === "trialing" ||
-                          status === "past_due") &&
-                        !isCanceling;
-                      const isCanceled =
-                        status === "canceled" ||
-                        status === "unpaid" ||
-                        status === "paused";
-
-                      let statusClass =
-                        "inline-flex items-center px-2 py-1 rounded-full bg-gray-50 text-gray-700 text-xs";
-
-                      if (status === "active" && !isCanceling) {
-                        statusClass =
-                          "inline-flex items-center px-2 py-1 rounded-full bg-green-50 text-green-700 text-xs";
-                      } else if (isCanceling) {
-                        statusClass =
-                          "inline-flex items-center px-2 py-1 rounded-full bg-amber-50 text-amber-700 text-xs";
-                      } else if (status === "canceled") {
-                        statusClass =
-                          "inline-flex items-center px-2 py-1 rounded-full bg-red-50 text-red-700 text-xs";
-                      } else if (status === "past_due" || status === "unpaid") {
-                        statusClass =
-                          "inline-flex items-center px-2 py-1 rounded-full bg-red-50 text-red-700 text-xs";
-                      } else if (status === "trialing") {
-                        statusClass =
-                          "inline-flex items-center px-2 py-1 rounded-full bg-blue-50 text-blue-700 text-xs";
-                      }
+                      const statusClass = getStatusClass(r);
+                      const uiState = deriveRowUiState(r);
+                      const pauseEndLabel =
+                        uiState === "pause_scheduled"
+                          ? formatPauseDate(r.pauseStartsAt)
+                          : uiState === "paused"
+                            ? formatPauseDate(r.pauseEndsAt)
+                            : null;
 
                       return (
                         <tr key={i} className="border-t align-middle">
@@ -385,82 +768,29 @@ export default function BillingClient() {
                           </td>
 
                           <td className="py-2">
-                            <span className={statusClass}>
-                              {formatStatus(status, r.cancelAtPeriodEnd)}
-                            </span>
+                            <div className="flex flex-col items-start gap-1">
+                              <span className={statusClass}>
+                                {formatDisplayStatus(r)}
+                              </span>
+
+                              {uiState === "pause_scheduled" && pauseEndLabel && (
+                                <span className="text-xs text-sky-700">
+                                  Starts {pauseEndLabel}
+                                </span>
+                              )}
+
+                              {uiState === "paused" && pauseEndLabel && (
+                                <span className="text-xs text-sky-700">
+                                  Until {pauseEndLabel}
+                                </span>
+                              )}
+                            </div>
                           </td>
 
                           <td className="py-2">{r.renews ?? "—"}</td>
 
                           <td className="py-2 text-right space-x-2">
-                            {!r.stripeSubscriptionId ? (
-                              <span className="text-xs text-gray-400">—</span>
-                            ) : isCanceling ? (
-                              <>
-                                <button
-                                  onClick={() =>
-                                    continueSubscription(
-                                      r.stripeSubscriptionId as string,
-                                    )
-                                  }
-                                  disabled={
-                                    continueLoadingId === r.stripeSubscriptionId
-                                  }
-                                  className="px-3 py-1 rounded-full bg-[var(--color-primary)] text-white text-xs hover:bg-[var(--color-primary-hover)] transition disabled:opacity-60"
-                                >
-                                  {continueLoadingId === r.stripeSubscriptionId
-                                    ? "Continuing..."
-                                    : "Continue Subscription"}
-                                </button>
-
-                                <button
-                                  onClick={() =>
-                                    manageSubscription(
-                                      r.stripeSubscriptionId as string,
-                                      "update",
-                                    )
-                                  }
-                                  className="px-3 py-1 rounded-full border text-xs hover:bg-gray-50 transition"
-                                >
-                                  Manage
-                                </button>
-                              </>
-                            ) : isActive ? (
-                              <>
-                                <button
-                                  onClick={() =>
-                                    manageSubscription(
-                                      r.stripeSubscriptionId as string,
-                                      "update",
-                                    )
-                                  }
-                                  className="px-3 py-1 rounded-full border text-xs hover:bg-gray-50 transition"
-                                >
-                                  Update
-                                </button>
-
-                                <button
-                                  onClick={() => openCancelModal(r)}
-                                  className="px-3 py-1 rounded-full bg-red-500 text-white text-xs hover:bg-red-600 transition"
-                                >
-                                  Cancel
-                                </button>
-                              </>
-                            ) : isCanceled ? (
-                              <button
-                                onClick={openPortal}
-                                className="px-3 py-1 rounded-full border text-xs hover:bg-gray-50 transition"
-                              >
-                                Renew / Manage
-                              </button>
-                            ) : (
-                              <button
-                                onClick={openPortal}
-                                className="px-3 py-1 rounded-full border text-xs hover:bg-gray-50 transition"
-                              >
-                                Manage
-                              </button>
-                            )}
+                            {renderActions(r, false)}
                           </td>
                         </tr>
                       );
@@ -469,41 +799,16 @@ export default function BillingClient() {
                 </table>
               </div>
 
-              {/* Mobile cards */}
               <div className="space-y-3 md:hidden">
                 {rows.map((r, i) => {
-                  const status = r.status ?? null;
-                  const isCanceling =
-                    status === "active" && r.cancelAtPeriodEnd === true;
-                  const isActive =
-                    (status === "active" ||
-                      status === "trialing" ||
-                      status === "past_due") &&
-                    !isCanceling;
-                  const isCanceled =
-                    status === "canceled" ||
-                    status === "unpaid" ||
-                    status === "paused";
-
-                  let statusClass =
-                    "inline-flex items-center px-2 py-1 rounded-full bg-gray-50 text-gray-700 text-xs";
-
-                  if (status === "active" && !isCanceling) {
-                    statusClass =
-                      "inline-flex items-center px-2 py-1 rounded-full bg-green-50 text-green-700 text-xs";
-                  } else if (isCanceling) {
-                    statusClass =
-                      "inline-flex items-center px-2 py-1 rounded-full bg-amber-50 text-amber-700 text-xs";
-                  } else if (status === "canceled") {
-                    statusClass =
-                      "inline-flex items-center px-2 py-1 rounded-full bg-red-50 text-red-700 text-xs";
-                  } else if (status === "past_due" || status === "unpaid") {
-                    statusClass =
-                      "inline-flex items-center px-2 py-1 rounded-full bg-red-50 text-red-700 text-xs";
-                  } else if (status === "trialing") {
-                    statusClass =
-                      "inline-flex items-center px-2 py-1 rounded-full bg-blue-50 text-blue-700 text-xs";
-                  }
+                  const statusClass = getStatusClass(r);
+                  const uiState = deriveRowUiState(r);
+                  const pauseEndLabel =
+                    uiState === "pause_scheduled"
+                      ? formatPauseDate(r.pauseStartsAt)
+                      : uiState === "paused"
+                        ? formatPauseDate(r.pauseEndsAt)
+                        : null;
 
                   return (
                     <div
@@ -523,9 +828,17 @@ export default function BillingClient() {
                         </div>
 
                         <span className={statusClass}>
-                          {formatStatus(status, r.cancelAtPeriodEnd)}
+                          {formatDisplayStatus(r)}
                         </span>
                       </div>
+
+                      {pauseEndLabel && (
+                        <div className="mt-2 text-xs text-sky-700">
+                          {uiState === "pause_scheduled"
+                            ? `Pause starts ${pauseEndLabel}`
+                            : `Paused until ${pauseEndLabel}`}
+                        </div>
+                      )}
 
                       <div className="mt-4 space-y-2 text-sm">
                         <div className="flex items-start justify-between gap-3">
@@ -557,74 +870,7 @@ export default function BillingClient() {
                       </div>
 
                       <div className="mt-4 flex flex-col gap-2">
-                        {!r.stripeSubscriptionId ? (
-                          <span className="text-xs text-gray-400">—</span>
-                        ) : isCanceling ? (
-                          <>
-                            <button
-                              onClick={() =>
-                                continueSubscription(
-                                  r.stripeSubscriptionId as string,
-                                )
-                              }
-                              disabled={
-                                continueLoadingId === r.stripeSubscriptionId
-                              }
-                              className="w-full px-3 py-2 rounded-full bg-[var(--color-primary)] text-white text-sm hover:bg-[var(--color-primary-hover)] transition disabled:opacity-60"
-                            >
-                              {continueLoadingId === r.stripeSubscriptionId
-                                ? "Continuing..."
-                                : "Continue Subscription"}
-                            </button>
-
-                            <button
-                              onClick={() =>
-                                manageSubscription(
-                                  r.stripeSubscriptionId as string,
-                                  "update",
-                                )
-                              }
-                              className="w-full px-3 py-2 rounded-full border text-sm hover:bg-gray-50 transition"
-                            >
-                              Manage
-                            </button>
-                          </>
-                        ) : isActive ? (
-                          <>
-                            <button
-                              onClick={() =>
-                                manageSubscription(
-                                  r.stripeSubscriptionId as string,
-                                  "update",
-                                )
-                              }
-                              className="w-full px-3 py-2 rounded-full border text-sm hover:bg-gray-50 transition"
-                            >
-                              Update
-                            </button>
-
-                            <button
-                              onClick={() => openCancelModal(r)}
-                              className="w-full px-3 py-2 rounded-full bg-red-500 text-white text-sm hover:bg-red-600 transition"
-                            >
-                              Cancel
-                            </button>
-                          </>
-                        ) : isCanceled ? (
-                          <button
-                            onClick={openPortal}
-                            className="w-full px-3 py-2 rounded-full border text-sm hover:bg-gray-50 transition"
-                          >
-                            Renew / Manage
-                          </button>
-                        ) : (
-                          <button
-                            onClick={openPortal}
-                            className="w-full px-3 py-2 rounded-full border text-sm hover:bg-gray-50 transition"
-                          >
-                            Manage
-                          </button>
-                        )}
+                        {renderActions(r, true)}
                       </div>
                     </div>
                   );
@@ -642,7 +888,13 @@ export default function BillingClient() {
         </div>
       </div>
 
-      <Dialog open={cancelModalOpen} onOpenChange={setCancelModalOpen}>
+      <Dialog
+        open={cancelModalOpen}
+        onOpenChange={(open) => {
+          setCancelModalOpen(open);
+          if (!open) resetCancelState();
+        }}
+      >
         <DialogContent className="max-w-xl w-[calc(100%-1rem)] sm:w-full max-h-[90vh] overflow-hidden rounded-2xl border border-gray-200 p-0 shadow-2xl">
           <DialogHeader className="shrink-0 border-b border-gray-100 px-4 pt-5 pb-4 sm:px-6 sm:pt-6">
             <DialogTitle className="text-lg sm:text-xl font-semibold text-gray-900">
@@ -721,15 +973,34 @@ export default function BillingClient() {
                 </div>
               )}
 
-              {showPauseMessage && (
-                <div className="rounded-xl border border-sky-200 bg-sky-50 px-4 py-3">
+              {offerPause && (
+                <div className="rounded-xl border border-sky-200 bg-sky-50 px-4 py-4">
                   <div className="text-sm font-semibold text-sky-900">
-                    Need a break instead?
+                    Not ready to cancel?
                   </div>
                   <div className="mt-1 text-sm leading-relaxed text-sky-800">
-                    Pause options are coming soon. For now, you can still cancel
-                    and keep access through the end of your current billing
-                    period.
+                    You can pause this subscription and come back anytime. If
+                    this is temporary, pausing keeps the path back simpler than
+                    canceling.
+                  </div>
+
+                  {selectedRowHasDependentBoost && (
+                    <div className="mt-3 rounded-lg border border-sky-200 bg-white/70 px-3 py-2 text-xs leading-relaxed text-sky-900">
+                      This listing also has a Boosted Listing add-on. If you
+                      pause the main listing subscription, the boost will pause
+                      with it. When you come back, you can decide whether you
+                      want to restore the boost too.
+                    </div>
+                  )}
+
+                  <div className="mt-4">
+                    <Button
+                      onClick={submitPause}
+                      disabled={pauseLoading}
+                      className="rounded-full bg-sky-600 hover:bg-sky-700"
+                    >
+                      {pauseLoading ? "Pausing..." : "Pause Instead"}
+                    </Button>
                   </div>
                 </div>
               )}
@@ -765,7 +1036,10 @@ export default function BillingClient() {
             <div className="flex w-full flex-col-reverse gap-2 sm:w-auto sm:flex-row">
               <Button
                 variant="outline"
-                onClick={() => setCancelModalOpen(false)}
+                onClick={() => {
+                  setCancelModalOpen(false);
+                  resetCancelState();
+                }}
                 className="rounded-full"
               >
                 Keep Membership

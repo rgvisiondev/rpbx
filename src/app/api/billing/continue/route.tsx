@@ -4,6 +4,16 @@ import { createClientRSC } from "../../../../../utils/supabase/server";
 
 export const runtime = "nodejs";
 
+type ContinueSubscriptionRecord = {
+  id: string;
+  user_id: string;
+  cancel_at_period_end: boolean | null;
+  pause_status: string | null;
+  purpose_sub: string | null;
+  listing_id: string | null;
+  cancellation_type: string | null;
+};
+
 export async function POST(req: Request) {
   try {
     const supabase = await createClientRSC();
@@ -38,9 +48,17 @@ export async function POST(req: Request) {
 
     const { data: subscription, error: subError } = await admin
       .from("subscriptions")
-      .select("id, user_id, cancel_at_period_end")
+      .select(`
+        id,
+        user_id,
+        cancel_at_period_end,
+        pause_status,
+        purpose_sub,
+        listing_id,
+        cancellation_type
+      `)
       .eq("id", subscriptionId)
-      .single();
+      .single<ContinueSubscriptionRecord>();
 
     if (subError || !subscription) {
       return Response.json(
@@ -53,6 +71,24 @@ export async function POST(req: Request) {
       return Response.json(
         { error: "You do not have access to this subscription." },
         { status: 403 },
+      );
+    }
+
+    // Continue should remain cancellation-only.
+    if (
+      subscription.pause_status === "scheduled" ||
+      subscription.pause_status === "active"
+    ) {
+      return Response.json(
+        { error: "Use resume for paused subscriptions." },
+        { status: 400 },
+      );
+    }
+
+    if (subscription.cancel_at_period_end !== true) {
+      return Response.json(
+        { error: "This subscription is not scheduled to cancel." },
+        { status: 400 },
       );
     }
 

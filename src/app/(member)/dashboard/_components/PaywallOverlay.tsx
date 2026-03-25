@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import Button from "@/app/components/Button";
 import type { EntitlementStatus } from "@/lib/entitlements";
 
+const BILLING_PATH = "/dashboard/billing";
+
 export default function PaywallOverlay({
   status,
 }: {
@@ -14,27 +16,21 @@ export default function PaywallOverlay({
   const router = useRouter();
   const [loading, setLoading] = React.useState(false);
 
-  async function openBillingPortal() {
-    setLoading(true);
-    try {
-      const res = await fetch("/api/billing/portal", { method: "POST" });
-      const data = await res.json();
-      if (data?.url) window.location.href = data.url;
-    } finally {
-      setLoading(false);
-    }
-  }
-
   async function primaryAction() {
     if (loading) return;
 
-    if (status === "paused") {
-      await openBillingPortal();
-      return;
-    }
-
     setLoading(true);
-    router.push("/pricing?from=dashboard");
+
+    try {
+      if (status === "paused") {
+        router.push(`${BILLING_PATH}?from=paused`);
+        return;
+      }
+
+      router.push("/pricing?from=dashboard");
+    } finally {
+      setLoading(false);
+    }
   }
 
   const ui = (() => {
@@ -42,11 +38,12 @@ export default function PaywallOverlay({
       case "paused":
         return {
           title: "Your membership is paused",
-          body: "To regain access, resume your membership or choose a new plan.",
-          primary: "Resume membership",
+          body: "Resume your subscription from billing to regain access to RioPlex Business Exchange.",
+          primary: "Go to Billing",
           secondary: "View plans",
           secondaryHref: "/pricing?from=paused",
         };
+
       case "canceled":
       case "incomplete_expired":
         return {
@@ -56,6 +53,7 @@ export default function PaywallOverlay({
           secondary: null,
           secondaryHref: null,
         };
+
       case "none":
       default:
         return {
@@ -72,11 +70,11 @@ export default function PaywallOverlay({
     <div className="fixed inset-0 z-50 grid place-items-center">
       <div className="fixed inset-0 bg-black/40" />
 
-      <div className="relative z-10 w-full max-w-md rounded-2xl bg-white p-6 shadow-xl text-center">
+      <div className="relative z-10 w-full max-w-md rounded-2xl bg-white p-6 text-center shadow-xl">
         <h2 className="text-xl font-semibold">{ui.title}</h2>
         <p className="mt-2 text-sm text-neutral-600">{ui.body}</p>
 
-        <div className="mt-5 space-y-2 w-full">
+        <div className="mt-5 w-full space-y-2">
           <Button onClick={primaryAction} disabled={loading} className="w-full">
             {loading ? "One moment…" : ui.primary}
           </Button>
@@ -95,14 +93,14 @@ export default function PaywallOverlay({
             </button>
           )}
 
-          <span className="flex flex-row mx-auto justify-center items-center gap-1">
+          <span className="mx-auto flex flex-row items-center justify-center gap-1">
             <p className="mt-1 text-center small text-grey">
               You can cancel anytime.
             </p>
             <form action="/signout" method="post">
               <button
                 type="submit"
-                className="small text-grey cursor-pointer hover:underline"
+                className="small cursor-pointer text-grey hover:underline"
               >
                 Log Out
               </button>

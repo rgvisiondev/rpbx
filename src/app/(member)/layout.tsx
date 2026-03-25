@@ -4,8 +4,7 @@ export const revalidate = 0;
 import { redirect } from "next/navigation";
 import { createClientRSC } from "@/../utils/supabase/server";
 import { requireEntitlementOrNull } from "@/lib/serverGuard";
-import PaywallOverlay from "./dashboard/_components/PaywallOverlay";
-import { IdleLogout } from "@/components/IdleLogout";
+import MemberGateShell from "./MemberGateShell";
 
 export default async function MemberLayout({
   children,
@@ -29,15 +28,8 @@ export default async function MemberLayout({
   const blocked = gate.block === "paywall";
 
   return (
-    <div className="relative">
-      {blocked && <PaywallOverlay status={gate.status} />}
-      <div
-        className={blocked ? "pointer-events-none select-none blur-sm" : ""}
-        aria-hidden={blocked}
-      >
-        <IdleLogout />
-        {children}
-      </div>
-    </div>
+    <MemberGateShell blocked={blocked} status={gate.status}>
+      {children}
+    </MemberGateShell>
   );
 }

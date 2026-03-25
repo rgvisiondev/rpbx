@@ -552,8 +552,18 @@ export type Database = {
           first_payment_failed_at: string | null
           id: string
           last_dunning_email_sent_at: string | null
+          last_pause_resumed_at: string | null
+          last_pause_started_at: string | null
           listing_id: string | null
           metadata: Json | null
+          pause_count: number | null
+          pause_email_sent_at: string | null
+          pause_ends_at: string | null
+          pause_feedback: string | null
+          pause_reason: string | null
+          pause_scope: string | null
+          pause_starts_at: string | null
+          pause_status: string | null
           paused_until: string | null
           payment_recovered_email_sent_at: string | null
           price_currency: string | null
@@ -569,10 +579,12 @@ export type Database = {
           product_name: string | null
           purpose_sub: string | null
           quantity: number | null
+          resume_email_sent_at: string | null
           status: Database["public"]["Enums"]["subscription_status"] | null
           trial_end: string | null
           trial_start: string | null
           user_id: string
+          winback_email_sent_at: string | null
         }
         Insert: {
           billing_issue_open?: boolean | null
@@ -593,8 +605,18 @@ export type Database = {
           first_payment_failed_at?: string | null
           id: string
           last_dunning_email_sent_at?: string | null
+          last_pause_resumed_at?: string | null
+          last_pause_started_at?: string | null
           listing_id?: string | null
           metadata?: Json | null
+          pause_count?: number | null
+          pause_email_sent_at?: string | null
+          pause_ends_at?: string | null
+          pause_feedback?: string | null
+          pause_reason?: string | null
+          pause_scope?: string | null
+          pause_starts_at?: string | null
+          pause_status?: string | null
           paused_until?: string | null
           payment_recovered_email_sent_at?: string | null
           price_currency?: string | null
@@ -610,10 +632,12 @@ export type Database = {
           product_name?: string | null
           purpose_sub?: string | null
           quantity?: number | null
+          resume_email_sent_at?: string | null
           status?: Database["public"]["Enums"]["subscription_status"] | null
           trial_end?: string | null
           trial_start?: string | null
           user_id: string
+          winback_email_sent_at?: string | null
         }
         Update: {
           billing_issue_open?: boolean | null
@@ -634,8 +658,18 @@ export type Database = {
           first_payment_failed_at?: string | null
           id?: string
           last_dunning_email_sent_at?: string | null
+          last_pause_resumed_at?: string | null
+          last_pause_started_at?: string | null
           listing_id?: string | null
           metadata?: Json | null
+          pause_count?: number | null
+          pause_email_sent_at?: string | null
+          pause_ends_at?: string | null
+          pause_feedback?: string | null
+          pause_reason?: string | null
+          pause_scope?: string | null
+          pause_starts_at?: string | null
+          pause_status?: string | null
           paused_until?: string | null
           payment_recovered_email_sent_at?: string | null
           price_currency?: string | null
@@ -651,10 +685,12 @@ export type Database = {
           product_name?: string | null
           purpose_sub?: string | null
           quantity?: number | null
+          resume_email_sent_at?: string | null
           status?: Database["public"]["Enums"]["subscription_status"] | null
           trial_end?: string | null
           trial_start?: string | null
           user_id?: string
+          winback_email_sent_at?: string | null
         }
         Relationships: []
       }
