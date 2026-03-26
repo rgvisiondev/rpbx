@@ -1,4 +1,3 @@
-// app/api/billing/rows/route.ts
 import { NextResponse } from "next/server";
 import { createClientRSC } from "@/../utils/supabase/server";
 
@@ -27,6 +26,12 @@ interface SubscriptionRow {
   paused_until?: string | null;
   pause_count?: number | null;
   last_pause_started_at?: string | null;
+
+  // Boost restore fields
+  paused_boost_restore_pending?: boolean | null;
+  paused_boost_subscription_id?: string | null;
+  paused_boost_restore_dismissed_at?: string | null;
+  paused_boost_restore_completed_at?: string | null;
 }
 
 interface PromotionRow {
@@ -62,7 +67,26 @@ interface BillingRow {
   lastPauseStartedAt?: string | null;
   isPauseEligible?: boolean;
   parentListingSubscriptionId?: string | null;
+
+  // Boost restore prompt fields
+  pausedBoostRestorePending?: boolean | null;
+  pausedBoostSubscriptionId?: string | null;
+  pausedBoostRestoreDismissedAt?: string | null;
+  pausedBoostRestoreCompletedAt?: string | null;
 }
+
+type MainLifecycleState =
+  | "active"
+  | "trialing"
+  | "past_due"
+  | "unpaid"
+  | "canceling"
+  | "pause_scheduled"
+  | "paused"
+  | "canceled"
+  | "incomplete"
+  | "incomplete_expired"
+  | "unknown";
 
 function formatDate(dateString: string | null): string | null {
   if (!dateString) return null;
@@ -107,6 +131,177 @@ function getEffectivePauseEnd(sub: SubscriptionRow): string | null {
   return sub.pause_ends_at ?? sub.paused_until ?? null;
 }
 
+function deriveMainLifecycleState(sub: SubscriptionRow): MainLifecycleState {
+  if (sub.pause_status === "scheduled") return "pause_scheduled";
+  if (sub.pause_status === "active" || sub.status === "paused") return "paused";
+  if (sub.status === "active" && sub.cancel_at_period_end) return "canceling";
+
+  switch (sub.status) {
+    case "active":
+      return "active";
+    case "trialing":
+      return "trialing";
+    case "past_due":
+      return "past_due";
+    case "unpaid":
+      return "unpaid";
+    case "canceled":
+      return "canceled";
+    case "incomplete":
+      return "incomplete";
+    case "incomplete_expired":
+      return "incomplete_expired";
+    default:
+      return "unknown";
+  }
+}
+
+function getVisibilityRank(sub: SubscriptionRow): number {
+  const state = deriveMainLifecycleState(sub);
+
+  switch (state) {
+    case "active":
+      return 100;
+    case "trialing":
+      return 95;
+    case "past_due":
+      return 90;
+    case "unpaid":
+      return 85;
+    case "canceling":
+      return 80;
+    case "pause_scheduled":
+      return 70;
+    case "paused":
+      return 60;
+    case "canceled":
+      return 40;
+    case "incomplete":
+      return 20;
+    case "incomplete_expired":
+      return 10;
+    default:
+      return 0;
+  }
+}
+
+function getLogicalMainContextKey(sub: SubscriptionRow): string {
+  const listingId = getListingIdForSubscription(sub);
+  if (listingId) return `listing:${listingId}`;
+  if (sub.purpose_sub) return `purpose:${sub.purpose_sub}`;
+  if (sub.product_name) return `product:${sub.product_name}`;
+  return `subscription:${sub.id}`;
+}
+
+function getTimestampValue(value?: string | null): number {
+  if (!value) return 0;
+  const t = new Date(value).getTime();
+  return Number.isNaN(t) ? 0 : t;
+}
+
+function chooseVisibleMainSubscriptions(subs: SubscriptionRow[]): SubscriptionRow[] {
+  const byContext = new Map<string, SubscriptionRow>();
+
+  for (const sub of subs) {
+    const key = getLogicalMainContextKey(sub);
+    const existing = byContext.get(key);
+
+    if (!existing) {
+      byContext.set(key, sub);
+      continue;
+    }
+
+    const nextRank = getVisibilityRank(sub);
+    const existingRank = getVisibilityRank(existing);
+
+    if (nextRank > existingRank) {
+      byContext.set(key, sub);
+      continue;
+    }
+
+    if (nextRank < existingRank) {
+      continue;
+    }
+
+    const nextTime = Math.max(
+      getTimestampValue(sub.current_period_end),
+      getTimestampValue(sub.pause_starts_at),
+      getTimestampValue(sub.last_pause_started_at),
+    );
+
+    const existingTime = Math.max(
+      getTimestampValue(existing.current_period_end),
+      getTimestampValue(existing.pause_starts_at),
+      getTimestampValue(existing.last_pause_started_at),
+    );
+
+    if (nextTime >= existingTime) {
+      byContext.set(key, sub);
+    }
+  }
+
+  return Array.from(byContext.values());
+}
+
+function getBoostVisibilityRank(boost: PromotionRow): number {
+  if (boost.status === "active" && boost.cancel_at_period_end) return 80;
+
+  switch (boost.status) {
+    case "active":
+      return 100;
+    case "trialing":
+      return 95;
+    case "past_due":
+      return 90;
+    case "unpaid":
+      return 85;
+    case "paused":
+      return 60;
+    case "canceled":
+      return 40;
+    case "incomplete":
+      return 20;
+    case "incomplete_expired":
+      return 10;
+    default:
+      return 0;
+  }
+}
+
+function chooseVisibleBoosts(boosts: PromotionRow[]): PromotionRow[] {
+  const byListing = new Map<string, PromotionRow>();
+
+  for (const boost of boosts) {
+    const existing = byListing.get(boost.listing_id);
+
+    if (!existing) {
+      byListing.set(boost.listing_id, boost);
+      continue;
+    }
+
+    const nextRank = getBoostVisibilityRank(boost);
+    const existingRank = getBoostVisibilityRank(existing);
+
+    if (nextRank > existingRank) {
+      byListing.set(boost.listing_id, boost);
+      continue;
+    }
+
+    if (nextRank < existingRank) {
+      continue;
+    }
+
+    const nextTime = getTimestampValue(boost.current_period_end);
+    const existingTime = getTimestampValue(existing.current_period_end);
+
+    if (nextTime >= existingTime) {
+      byListing.set(boost.listing_id, boost);
+    }
+  }
+
+  return Array.from(byListing.values());
+}
+
 export async function GET() {
   const supabase = await createClientRSC();
   const {
@@ -145,7 +340,11 @@ export async function GET() {
             pause_ends_at,
             paused_until,
             pause_count,
-            last_pause_started_at
+            last_pause_started_at,
+            paused_boost_restore_pending,
+            paused_boost_subscription_id,
+            paused_boost_restore_dismissed_at,
+            paused_boost_restore_completed_at
           `,
         )
         .eq("user_id", user.id)
@@ -166,14 +365,13 @@ export async function GET() {
 
   const allSubs = subs ?? [];
 
+  const allMainSubs = allSubs.filter((sub) => !isBoostSubscription(sub));
+  const visibleMainSubs = chooseVisibleMainSubscriptions(allMainSubs);
+
   const listingSubs: SubscriptionRow[] = [];
   const platformSubs: SubscriptionRow[] = [];
 
-  for (const sub of allSubs) {
-    if (isBoostSubscription(sub)) {
-      continue;
-    }
-
+  for (const sub of visibleMainSubs) {
     const listingId = getListingIdForSubscription(sub);
     if (listingId) {
       listingSubs.push(sub);
@@ -231,6 +429,13 @@ export async function GET() {
       lastPauseStartedAt: sub.last_pause_started_at ?? null,
       isPauseEligible: isPauseEligible(sub),
       parentListingSubscriptionId: null,
+
+      pausedBoostRestorePending: sub.paused_boost_restore_pending ?? false,
+      pausedBoostSubscriptionId: sub.paused_boost_subscription_id ?? null,
+      pausedBoostRestoreDismissedAt:
+        sub.paused_boost_restore_dismissed_at ?? null,
+      pausedBoostRestoreCompletedAt:
+        sub.paused_boost_restore_completed_at ?? null,
     });
   }
 
@@ -262,7 +467,26 @@ export async function GET() {
       lastPauseStartedAt: sub.last_pause_started_at ?? null,
       isPauseEligible: isPauseEligible(sub),
       parentListingSubscriptionId: sub.id,
+
+      pausedBoostRestorePending: sub.paused_boost_restore_pending ?? false,
+      pausedBoostSubscriptionId: sub.paused_boost_subscription_id ?? null,
+      pausedBoostRestoreDismissedAt:
+        sub.paused_boost_restore_dismissed_at ?? null,
+      pausedBoostRestoreCompletedAt:
+        sub.paused_boost_restore_completed_at ?? null,
     });
+  }
+
+  // Build hidden boost ids from visible main subscriptions that still need restore UX
+  const hiddenBoostSubscriptionIds = new Set<string>();
+  for (const sub of visibleMainSubs) {
+    if (
+      sub.paused_boost_restore_pending &&
+      sub.paused_boost_subscription_id &&
+      !sub.paused_boost_restore_completed_at
+    ) {
+      hiddenBoostSubscriptionIds.add(sub.paused_boost_subscription_id);
+    }
   }
 
   // 3) Boosted listing subscriptions
@@ -276,8 +500,14 @@ export async function GET() {
   if (boostsError) {
     console.error("Error loading boosts:", boostsError);
   } else {
+    const filteredBoosts = (boosts ?? []).filter(
+      (boost) => !hiddenBoostSubscriptionIds.has(boost.stripe_subscription_id),
+    );
+
+    const visibleBoosts = chooseVisibleBoosts(filteredBoosts);
+
     const boostListingIds = Array.from(
-      new Set((boosts ?? []).map((boost) => boost.listing_id)),
+      new Set(visibleBoosts.map((boost) => boost.listing_id)),
     );
 
     if (boostListingIds.length > 0) {
@@ -289,7 +519,10 @@ export async function GET() {
         .returns<ListingRow[]>();
 
       if (boostListingsError) {
-        console.error("Error loading boost listing ownership:", boostListingsError);
+        console.error(
+          "Error loading boost listing ownership:",
+          boostListingsError,
+        );
       } else {
         const byId = new Map(
           (listings ?? []).map((listing) => [
@@ -298,7 +531,7 @@ export async function GET() {
           ]),
         );
 
-        for (const boost of boosts ?? []) {
+        for (const boost of visibleBoosts) {
           if (!byId.has(boost.listing_id)) continue;
 
           rows.push({
@@ -319,6 +552,11 @@ export async function GET() {
             isPauseEligible: false,
             parentListingSubscriptionId:
               listingSubscriptionIdByListingId.get(boost.listing_id) ?? null,
+
+            pausedBoostRestorePending: false,
+            pausedBoostSubscriptionId: null,
+            pausedBoostRestoreDismissedAt: null,
+            pausedBoostRestoreCompletedAt: null,
           });
         }
       }

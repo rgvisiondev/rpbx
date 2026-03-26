@@ -556,14 +556,21 @@ export type Database = {
           last_pause_started_at: string | null
           listing_id: string | null
           metadata: Json | null
+          pause_activated_email_sent_at: string | null
           pause_count: number | null
           pause_email_sent_at: string | null
           pause_ends_at: string | null
           pause_feedback: string | null
           pause_reason: string | null
+          pause_resumed_email_sent_at: string | null
+          pause_scheduled_email_sent_at: string | null
           pause_scope: string | null
           pause_starts_at: string | null
           pause_status: string | null
+          paused_boost_restore_completed_at: string | null
+          paused_boost_restore_dismissed_at: string | null
+          paused_boost_restore_pending: boolean | null
+          paused_boost_subscription_id: string | null
           paused_until: string | null
           payment_recovered_email_sent_at: string | null
           price_currency: string | null
@@ -609,14 +616,21 @@ export type Database = {
           last_pause_started_at?: string | null
           listing_id?: string | null
           metadata?: Json | null
+          pause_activated_email_sent_at?: string | null
           pause_count?: number | null
           pause_email_sent_at?: string | null
           pause_ends_at?: string | null
           pause_feedback?: string | null
           pause_reason?: string | null
+          pause_resumed_email_sent_at?: string | null
+          pause_scheduled_email_sent_at?: string | null
           pause_scope?: string | null
           pause_starts_at?: string | null
           pause_status?: string | null
+          paused_boost_restore_completed_at?: string | null
+          paused_boost_restore_dismissed_at?: string | null
+          paused_boost_restore_pending?: boolean | null
+          paused_boost_subscription_id?: string | null
           paused_until?: string | null
           payment_recovered_email_sent_at?: string | null
           price_currency?: string | null
@@ -662,14 +676,21 @@ export type Database = {
           last_pause_started_at?: string | null
           listing_id?: string | null
           metadata?: Json | null
+          pause_activated_email_sent_at?: string | null
           pause_count?: number | null
           pause_email_sent_at?: string | null
           pause_ends_at?: string | null
           pause_feedback?: string | null
           pause_reason?: string | null
+          pause_resumed_email_sent_at?: string | null
+          pause_scheduled_email_sent_at?: string | null
           pause_scope?: string | null
           pause_starts_at?: string | null
           pause_status?: string | null
+          paused_boost_restore_completed_at?: string | null
+          paused_boost_restore_dismissed_at?: string | null
+          paused_boost_restore_pending?: boolean | null
+          paused_boost_subscription_id?: string | null
           paused_until?: string | null
           payment_recovered_email_sent_at?: string | null
           price_currency?: string | null

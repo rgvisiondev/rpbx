@@ -1,3 +1,6 @@
+import { PauseScheduledEmail } from "../../../../../emails/PauseScheduledEmail";
+import { getEmailFrom, getResendClient } from "@/lib/resend";
+import { siteUrl } from "@/lib/siteUrl";
 import { getStripe } from "@/lib/stripe";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { createClientRSC } from "../../../../../utils/supabase/server";
@@ -23,6 +26,9 @@ type SubscriptionRecord = {
   pause_count?: number | null;
   last_pause_started_at?: string | null;
   last_pause_resumed_at?: string | null;
+  pause_scheduled_email_sent_at?: string | null;
+  pause_activated_email_sent_at?: string | null;
+  pause_resumed_email_sent_at?: string | null;
 };
 
 type PromotionRecord = {
@@ -32,6 +38,16 @@ type PromotionRecord = {
   cancel_at_period_end: boolean | null;
 };
 
+type ProfileRecord = {
+  first_name?: string | null;
+  display_name?: string | null;
+  user_type?: string | null;
+};
+
+type ListingRecord = {
+  title?: string | null;
+};
+
 function isPauseEligibleStatus(status: string | null) {
   return (
     status === "active" ||
@@ -39,6 +55,30 @@ function isPauseEligibleStatus(status: string | null) {
     status === "past_due" ||
     status === "unpaid"
   );
+}
+
+function formatDateLabel(value?: string | null) {
+  if (!value) return null;
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+
+  return new Intl.DateTimeFormat("en-US", {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  }).format(date);
+}
+
+function getBestName(profile?: ProfileRecord | null, email?: string | null) {
+  const firstName = profile?.first_name?.trim();
+  if (firstName) return firstName;
+
+  const displayName = profile?.display_name?.trim();
+  if (displayName) return displayName;
+
+  const emailPrefix = email?.split("@")[0]?.trim();
+  return emailPrefix || undefined;
 }
 
 export async function POST(req: Request) {
@@ -77,7 +117,8 @@ export async function POST(req: Request) {
 
     const { data: subscription, error: subError } = await admin
       .from("subscriptions")
-      .select(`
+      .select(
+        `
         id,
         user_id,
         status,
@@ -89,8 +130,12 @@ export async function POST(req: Request) {
         pause_scope,
         pause_count,
         last_pause_started_at,
-        last_pause_resumed_at
-      `)
+        last_pause_resumed_at,
+        pause_scheduled_email_sent_at,
+        pause_activated_email_sent_at,
+        pause_resumed_email_sent_at
+      `,
+      )
       .eq("id", subscriptionId)
       .single<SubscriptionRecord>();
 
@@ -149,15 +194,26 @@ export async function POST(req: Request) {
       );
     }
 
-    // Simple v1 anti-abuse rule: one completed pause per subscription
-    if ((subscription.pause_count ?? 0) >= 1) {
-      return Response.json(
-        {
-          error:
-            "This subscription has already used its available pause. Please contact support if you need help.",
-        },
-        { status: 400 },
-      );
+    // Anti-abuse rule: allow another pause only after 12 months
+    const pauseCount = subscription.pause_count ?? 0;
+    const lastPauseStartedAt = subscription.last_pause_started_at
+      ? new Date(subscription.last_pause_started_at)
+      : null;
+
+    if (pauseCount >= 1 && lastPauseStartedAt) {
+      const now = new Date();
+      const nextEligibleAt = new Date(lastPauseStartedAt);
+      nextEligibleAt.setFullYear(nextEligibleAt.getFullYear() + 1);
+
+      if (now < nextEligibleAt) {
+        return Response.json(
+          {
+            error:
+              "This membership already used a pause recently. You can pause it again 12 months after the last pause began.",
+          },
+          { status: 400 },
+        );
+      }
     }
 
     if (!subscription.current_period_end) {
@@ -186,8 +242,9 @@ export async function POST(req: Request) {
         pause_ends_at: null,
         pause_reason: reason,
         pause_feedback: feedback,
-        pause_email_sent_at: null,
-        resume_email_sent_at: null,
+        pause_scheduled_email_sent_at: null,
+        pause_activated_email_sent_at: null,
+        pause_resumed_email_sent_at: null,
 
         // App/access lifecycle
         cancel_at_period_end: true,
@@ -208,7 +265,6 @@ export async function POST(req: Request) {
       );
     }
 
-    // If this is a listing-tied subscription, schedule any dependent boosts too
     const boostResults: Array<{
       stripeSubscriptionId: string;
       updatedInStripe: boolean;
@@ -217,12 +273,14 @@ export async function POST(req: Request) {
     if (subscription.listing_id) {
       const { data: promotions, error: promotionsError } = await admin
         .from("listing_promotions")
-        .select(`
+        .select(
+          `
           stripe_subscription_id,
           listing_id,
           status,
           cancel_at_period_end
-        `)
+        `,
+        )
         .eq("listing_id", subscription.listing_id)
         .returns<PromotionRecord[]>();
 
@@ -266,8 +324,9 @@ export async function POST(req: Request) {
               pause_ends_at: null,
               pause_reason: "parent_listing_paused",
               pause_feedback: null,
-              pause_email_sent_at: null,
-              resume_email_sent_at: null,
+              pause_scheduled_email_sent_at: null,
+              pause_activated_email_sent_at: null,
+              pause_resumed_email_sent_at: null,
 
               cancel_at_period_end: true,
 
@@ -299,6 +358,65 @@ export async function POST(req: Request) {
             );
           }
         }
+      }
+    }
+
+    // Send the parent confirmation email only after all pause scheduling work succeeds.
+    // Do not fail the pause flow if email delivery fails.
+    if (!subscription.pause_scheduled_email_sent_at) {
+      try {
+        const resend = getResendClient();
+
+        if (resend) {
+          const [{ data: profile }, { data: listing }] = await Promise.all([
+            admin
+              .from("profiles")
+              .select("first_name, display_name, user_type")
+              .eq("id", user.id)
+              .maybeSingle<ProfileRecord>(),
+            subscription.listing_id
+              ? admin
+                  .from("business_listings")
+                  .select("title")
+                  .eq("id", subscription.listing_id)
+                  .maybeSingle<ListingRecord>()
+              : Promise.resolve({ data: null, error: null }),
+          ]);
+
+          const name = getBestName(profile ?? null, user.email ?? null);
+          const billingUrl = `${siteUrl()}/dashboard/billing`;
+          const effectiveDateLabel = formatDateLabel(pauseStartsAt);
+          const hasDependentBoost = boostResults.length > 0;
+
+          await resend.emails.send({
+            from: getEmailFrom(),
+            to: user.email!,
+            subject: "Your membership pause is scheduled",
+            react: PauseScheduledEmail({
+              billingUrl,
+              name,
+              userType: profile?.user_type ?? null,
+              listingTitle: listing?.title ?? null,
+              effectiveDateLabel,
+              hasDependentBoost,
+            }),
+            headers: {
+              "X-Entity-Ref-ID": `pause-scheduled-${subscriptionId}`,
+            },
+          });
+
+          await admin
+            .from("subscriptions")
+            .update({
+              pause_scheduled_email_sent_at: new Date().toISOString(),
+            })
+            .eq("id", subscriptionId);
+        }
+      } catch (emailError) {
+        console.error(
+          `Pause scheduled email failed for subscription ${subscriptionId}:`,
+          emailError,
+        );
       }
     }
 

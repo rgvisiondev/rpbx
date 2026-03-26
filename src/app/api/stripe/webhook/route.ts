@@ -9,6 +9,8 @@ import SubscriptionConfirmationEmail from "../../../../../emails/SubscriptionCon
 import BoostedListingEmail from "../../../../../emails/BoostedListingEmail";
 import { PaymentRecoveredEmail } from "../../../../../emails/PaymentRecoveredEmail";
 import { SubscriptionCanceledForNonpaymentEmail } from "../../../../../emails/SubscriptionCanceledForNonpaymentEmail";
+import { PauseActivatedEmail } from "../../../../../emails/PauseActivatedEmail";
+import { ResumeConfirmationEmail } from "../../../../../emails/ResumeConfirmationEmail";
 import { getStripe, getWebhookSecret } from "@/lib/stripe";
 import { getEmailFrom, getResendClient } from "@/lib/resend";
 import { getBizEquityUrl, getCalendlyUrl } from "@/lib/envUrls";
@@ -18,15 +20,48 @@ import {
   upsertSubscription,
   ensureListingForSubscription,
 } from "@/lib/billing/subscriptionSync";
-
 import { syncMailerLiteGroups } from "@/lib/mailerlite/mailerlite";
-
 import { getUserIdForStripeCustomer } from "@/lib/billing/churn";
 import { PaymentFailedEmail } from "../../../../../emails/PaymentFailedEmail";
-
 import { siteUrl } from "@/lib/siteUrl";
 
 const fromEmail = getEmailFrom();
+
+type ProfileLookup = {
+  first_name?: string | null;
+  display_name?: string | null;
+  user_type?: string | null;
+};
+
+type ListingLookup = {
+  title?: string | null;
+};
+
+type PauseLifecycleRow = {
+  billing_issue_open?: boolean | null;
+  dunning_canceled_email_sent_at?: string | null;
+  cancellation_type?: string | null;
+  cancellation_reason?: string | null;
+  pause_status?: string | null;
+  pause_starts_at?: string | null;
+  pause_ends_at?: string | null;
+  pause_reason?: string | null;
+  listing_id?: string | null;
+  purpose_sub?: string | null;
+  cancellation_feedback?: string | null;
+  cancellation_feedback_submitted?: boolean | null;
+  cancellation_requested_at?: string | null;
+  winback_email_sent_at?: string | null;
+  dunning_stage?: string | null;
+  last_dunning_email_sent_at?: string | null;
+  pause_count?: number | null;
+  last_pause_started_at?: string | null;
+  pause_activated_email_sent_at?: string | null;
+};
+
+function getBaseUrl() {
+  return typeof siteUrl === "function" ? siteUrl() : siteUrl;
+}
 
 async function getCustomerDisplayName({
   supabase,
@@ -39,7 +74,6 @@ async function getCustomerDisplayName({
   stripeCustomer?: { name?: string | null } | null;
   fallbackEmail?: string | null;
 }) {
-  // 1) profiles table
   if (userId) {
     const { data: prof } = await supabase
       .from("profiles")
@@ -51,26 +85,60 @@ async function getCustomerDisplayName({
     if (fromProfile) return fromProfile;
   }
 
-  // 2) Stripe customer name
   const fromStripe = (stripeCustomer?.name ?? "").trim();
   if (fromStripe) return fromStripe;
 
-  // 3) email prefix
   const email = (fallbackEmail ?? "").trim();
   const prefix = email.split("@")[0] ?? "";
   if (prefix) return prefix.charAt(0).toUpperCase() + prefix.slice(1);
 
-  return ""; // caller can decide "Hi," vs "Hi {name},"
+  return "";
 }
 
-// -----------------------------
-// MailerLite helper (ONLY for sub-created/updated sync email extraction)
-// -----------------------------
+async function getProfileForUser(admin: any, userId?: string | null) {
+  if (!userId) return null;
+
+  const { data } = await admin
+    .from("profiles")
+    .select("first_name, display_name, user_type")
+    .eq("id", userId)
+    .maybeSingle();
+
+  return (data as ProfileLookup | null) ?? null;
+}
+
+async function getListingTitle(admin: any, listingId?: string | null) {
+  if (!listingId) return null;
+
+  const { data } = await admin
+    .from("business_listings")
+    .select("title")
+    .eq("id", listingId)
+    .maybeSingle();
+
+  return (data as ListingLookup | null)?.title ?? null;
+}
+
+function getBestNameFromProfile(
+  profile?: ProfileLookup | null,
+  email?: string | null,
+) {
+  const firstName = profile?.first_name?.trim();
+  if (firstName) return firstName;
+
+  const displayName = profile?.display_name?.trim();
+  if (displayName) return displayName;
+
+  const emailPrefix = email?.split("@")[0]?.trim();
+  return emailPrefix
+    ? emailPrefix.charAt(0).toUpperCase() + emailPrefix.slice(1)
+    : "";
+}
+
 async function getEmailForSubscription(
   stripe: Stripe,
   sub: Stripe.Subscription,
 ): Promise<string | null> {
-  // Prefer expanded customer email if present and not deleted
   if (
     typeof sub.customer === "object" &&
     sub.customer &&
@@ -96,7 +164,6 @@ async function getEmailForSubscription(
   }
 }
 
-// Normalize Stripe event types
 function norm(evtType: string) {
   if (evtType === "invoice_payment.paid") return "invoice.payment_succeeded";
   if (evtType === "invoice_payment.failed") return "invoice.payment_failed";
@@ -110,19 +177,21 @@ function resolveBaseRole(
   subMeta: Record<string, unknown> | null | undefined,
 ): BaseRole {
   if (!price) return null;
+
   const byMeta = String(price.metadata?.user_type ?? "").toLowerCase();
   if (byMeta === "business") return "business";
   if (byMeta === "investor") return "investor";
+
   const hinted = String(subMeta?.["user_type_intended"] ?? "").toLowerCase();
   if (hinted === "business") return "business";
   if (hinted === "investor") return "investor";
+
   const lk = String(price.lookup_key ?? "").toLowerCase();
   if (lk.startsWith("business_")) return "business";
   if (lk.startsWith("investor_")) return "investor";
+
   return null;
 }
-
-// Helper functions
 
 function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
@@ -136,6 +205,7 @@ function getString(obj: unknown, key: string): string | null {
 
 function extractSubscriptionIdFromInvoice(inv: Stripe.Invoice): string | null {
   const obj = inv as unknown as Record<string, unknown>;
+
   if ("subscription" in obj) {
     const raw = obj["subscription"];
     if (typeof raw === "string") return raw;
@@ -144,15 +214,18 @@ function extractSubscriptionIdFromInvoice(inv: Stripe.Invoice): string | null {
       if (id) return id;
     }
   }
+
   const parent = isObject(obj["parent"])
     ? (obj["parent"] as Record<string, unknown>)
     : null;
+
   if (parent) {
     const details = isObject(parent["subscription_details"])
       ? (parent["subscription_details"] as Record<string, unknown>)
       : null;
+
     if (details && "subscription" in details) {
-      const raw = (details as Record<string, unknown>)["subscription"];
+      const raw = details["subscription"];
       if (typeof raw === "string") return raw;
       if (isObject(raw)) {
         const id = getString(raw, "id");
@@ -160,10 +233,10 @@ function extractSubscriptionIdFromInvoice(inv: Stripe.Invoice): string | null {
       }
     }
   }
+
   return null;
 }
 
-// Type for listing_evaluations insert
 type ListingEvaluationInsert = {
   listing_id: string;
   status: string;
@@ -197,6 +270,7 @@ export async function POST(req: NextRequest) {
   try {
     const admin = getAdmin();
     const resend = getResendClient();
+    const baseUrl = getBaseUrl();
 
     if (type === "checkout.session.completed") {
       const sess = event.data.object as Stripe.Checkout.Session;
@@ -204,6 +278,7 @@ export async function POST(req: NextRequest) {
       const userId = (sess.metadata?.["supabase_user_id"] ?? null) as
         | string
         | null;
+
       const customerId =
         typeof sess.customer === "string"
           ? (sess.customer as string)
@@ -213,6 +288,7 @@ export async function POST(req: NextRequest) {
         const { error } = await admin
           .from("customers")
           .upsert({ id: userId, stripe_customer_id: customerId });
+
         if (error) console.error("customers upsert error:", error);
       }
 
@@ -221,19 +297,162 @@ export async function POST(req: NextRequest) {
           typeof sess.subscription === "string"
             ? (sess.subscription as string)
             : (sess.subscription as Stripe.Subscription).id;
+
         const sub = (await stripe.subscriptions.retrieve(subId, {
           expand: ["items.data.price.product", "customer"],
         })) as Stripe.Subscription;
 
         await upsertSubscription(admin, sub);
 
-        // Send subscription confirmation email for initial subscriptions
+        const isResumeFromPause =
+          String(sess.metadata?.["resume_from_pause"] ?? "").toLowerCase() ===
+          "true";
+
+        const resumedFromSubscriptionId =
+          (sess.metadata?.["resumed_from_subscription_id"] as
+            | string
+            | undefined) ?? null;
+
+        if (isResumeFromPause) {
+          try {
+            let hadDependentBoost = false;
+            let pausedBoostSubscriptionId: string | null = null;
+            let previousPauseCount = 0;
+            let previousLastPauseStartedAt: string | null = null;
+
+            if (resumedFromSubscriptionId) {
+              const { data: oldPausedRow } = await admin
+                .from("subscriptions")
+                .select("listing_id, pause_count, last_pause_started_at")
+                .eq("id", resumedFromSubscriptionId)
+                .maybeSingle();
+
+              previousPauseCount = oldPausedRow?.pause_count ?? 0;
+              previousLastPauseStartedAt =
+                oldPausedRow?.last_pause_started_at ?? null;
+
+              if (oldPausedRow?.listing_id) {
+                const { data: linkedPromo } = await admin
+                  .from("subscriptions")
+                  .select("id")
+                  .eq("listing_id", oldPausedRow.listing_id)
+                  .eq("purpose_sub", "listing_promo")
+                  .limit(1);
+
+                if (Array.isArray(linkedPromo) && linkedPromo.length > 0) {
+                  hadDependentBoost = true;
+                  pausedBoostSubscriptionId = linkedPromo[0]?.id ?? null;
+                }
+              }
+            }
+
+            const resumedAt = new Date().toISOString();
+
+            // Persist restore state + carry pause history onto the new resumed row
+            await admin
+              .from("subscriptions")
+              .update({
+                pause_count: previousPauseCount,
+                last_pause_started_at: previousLastPauseStartedAt,
+                last_pause_resumed_at: resumedAt,
+
+                paused_boost_restore_pending: hadDependentBoost,
+                paused_boost_subscription_id: pausedBoostSubscriptionId,
+                paused_boost_restore_dismissed_at: null,
+                paused_boost_restore_completed_at: null,
+              })
+              .eq("id", sub.id);
+
+            // Mark the historical paused row as resumed
+            if (resumedFromSubscriptionId) {
+              await admin
+                .from("subscriptions")
+                .update({
+                  last_pause_resumed_at: resumedAt,
+                })
+                .eq("id", resumedFromSubscriptionId);
+            }
+
+            if (resend) {
+              const toEmail =
+                (sess.customer_details?.email as string | null) ||
+                (sess.customer_email as string | null) ||
+                (await getEmailForSubscription(stripe, sub)) ||
+                null;
+
+              if (toEmail) {
+                const { data: newSubRow } = await admin
+                  .from("subscriptions")
+                  .select("pause_resumed_email_sent_at")
+                  .eq("id", sub.id)
+                  .maybeSingle();
+
+                if (!newSubRow?.pause_resumed_email_sent_at) {
+                  const profile = await getProfileForUser(admin, userId);
+                  const listingTitle = await getListingTitle(
+                    admin,
+                    String(sess.metadata?.["listing_id"] ?? "") || null,
+                  );
+                  const mainItem = sub.items?.data?.[0];
+                  const price = mainItem?.price;
+                  const userType =
+                    profile?.user_type ??
+                    resolveBaseRole(price, sub.metadata) ??
+                    null;
+
+                  const name =
+                    getBestNameFromProfile(profile, toEmail) ||
+                    (await getCustomerDisplayName({
+                      supabase: admin,
+                      userId,
+                      stripeCustomer:
+                        typeof sub.customer === "object" &&
+                        sub.customer &&
+                        !("deleted" in sub.customer)
+                          ? { name: sub.customer.name ?? null }
+                          : null,
+                      fallbackEmail: toEmail,
+                    }));
+
+                  const idemKey = `pause-resume-confirm:${sess.id}`;
+
+                  await resend.emails.send(
+                    {
+                      from: fromEmail,
+                      to: toEmail,
+                      subject: "Welcome back — your membership is active again",
+                      react: ResumeConfirmationEmail({
+                        name,
+                        userType,
+                        listingTitle,
+                        hasDependentBoost: hadDependentBoost,
+                        billingUrl: `${baseUrl}/dashboard/billing`,
+                        dashboardUrl: `${baseUrl}/dashboard`,
+                      }),
+                    },
+                    { idempotencyKey: idemKey },
+                  );
+
+                  await admin
+                    .from("subscriptions")
+                    .update({
+                      pause_resumed_email_sent_at: new Date().toISOString(),
+                    })
+                    .eq("id", sub.id);
+                }
+              }
+            }
+          } catch (e) {
+            console.error("Error handling resume-from-pause flow:", e);
+          }
+        }
+
         try {
           const uid = (sess.metadata?.["supabase_user_id"] ?? null) as
             | string
             | null;
+
           if (uid) {
-            // Check if user already had other subscriptions (excluding this one)
             const { data: otherSubs } = await admin
               .from("subscriptions")
               .select("id")
@@ -243,6 +462,7 @@ export async function POST(req: NextRequest) {
 
             const hadPrevious =
               Array.isArray(otherSubs) && otherSubs.length > 0;
+
             if (!hadPrevious) {
               let toEmail: string | null =
                 (sess.customer_details?.email as string | null) ||
@@ -269,8 +489,9 @@ export async function POST(req: NextRequest) {
               }
 
               if (toEmail) {
-                const dashboardUrl = `${siteUrl()}/dashboard`;
+                const dashboardUrl = `${baseUrl}/dashboard`;
                 const idemKey = `sub-confirm:${sess.id}`;
+
                 await resend.emails.send(
                   {
                     from: fromEmail,
@@ -281,14 +502,12 @@ export async function POST(req: NextRequest) {
                   { idempotencyKey: idemKey },
                 );
 
-                // for new subscribers, also subscribe to newsletter
                 const membership = resolveBaseRole(
                   sub.items?.data?.[0]?.price,
                   sub.metadata,
                 );
 
                 if (membership) {
-                  // ✅ MailerLite sync (place #1) — wrapped so it never breaks webhook
                   try {
                     await syncMailerLiteGroups(
                       toEmail,
@@ -325,6 +544,7 @@ export async function POST(req: NextRequest) {
         const uid = (sess.metadata?.["supabase_user_id"] ?? null) as
           | string
           | null;
+
         if (!uid) {
           console.error("Missing supabase_user_id on listing_plan session");
           return new Response("ok", { status: 200 });
@@ -339,12 +559,12 @@ export async function POST(req: NextRequest) {
         return new Response("ok", { status: 200 });
       }
 
-      // Boosted Listing
       if (purpose === "listing_promo" && sess.subscription && listingId) {
         const subId =
           typeof sess.subscription === "string"
             ? (sess.subscription as string)
             : (sess.subscription as Stripe.Subscription).id;
+
         const sub = (await stripe.subscriptions.retrieve(subId, {
           expand: ["items.data.price", "customer"],
         })) as Stripe.Subscription;
@@ -364,8 +584,28 @@ export async function POST(req: NextRequest) {
             },
             { onConflict: "stripe_subscription_id" },
           );
-        if (promoErr)
+
+        if (promoErr) {
           console.error("listing_promotions upsert error:", promoErr);
+        }
+
+        const isRestoreFromPausedBoost =
+          String(meta["restore_from_paused_boost"] ?? "").toLowerCase() ===
+          "true";
+        const parentSubscriptionId = String(
+          meta["parent_subscription_id"] ?? "",
+        );
+
+        if (isRestoreFromPausedBoost && parentSubscriptionId) {
+          await admin
+            .from("subscriptions")
+            .update({
+              paused_boost_restore_pending: false,
+              paused_boost_restore_dismissed_at: null,
+              paused_boost_restore_completed_at: new Date().toISOString(),
+            })
+            .eq("id", parentSubscriptionId);
+        }
 
         let toEmail: string | null =
           (sess.customer_details?.email as string | null) ||
@@ -378,11 +618,13 @@ export async function POST(req: NextRequest) {
             .select("contact_email")
             .eq("id", listingId)
             .maybeSingle();
+
           toEmail = listingRow?.contact_email ?? null;
         }
 
         if (toEmail) {
           const idemKey = `promo-email:${sess.id}`;
+
           await resend.emails.send(
             {
               from: fromEmail,
@@ -399,7 +641,6 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      // Business Evaluation
       if (purpose === "evaluation" && listingId) {
         const piId =
           typeof sess.payment_intent === "string"
@@ -413,7 +654,6 @@ export async function POST(req: NextRequest) {
           ...(piId && { stripe_payment_intent_id: piId }),
         };
 
-        // Use a generic query builder approach
         const { error: evalErr } = await admin
           .from("listing_evaluations" as never)
           .upsert(
@@ -421,8 +661,9 @@ export async function POST(req: NextRequest) {
             { onConflict: "listing_id" } as never,
           );
 
-        if (evalErr)
+        if (evalErr) {
           console.error("listing_evaluations upsert error:", evalErr);
+        }
 
         let toEmail: string | null =
           (sess.customer_details?.email as string | null) ||
@@ -442,6 +683,7 @@ export async function POST(req: NextRequest) {
           const evaluationLink = getBizEquityUrl();
           const calendlyLink = getCalendlyUrl();
           const idemKey = `eval-email:${piId ?? sess.id}`;
+
           await resend.emails.send(
             {
               from: fromEmail,
@@ -482,8 +724,8 @@ export async function POST(req: NextRequest) {
 
         const evaluationLink = getBizEquityUrl();
         const calendlyLink = getCalendlyUrl();
-
         const idemKey = `public-eval-email:${piId ?? sess.id}`;
+
         await resend.emails.send(
           {
             from: fromEmail,
@@ -511,39 +753,33 @@ export async function POST(req: NextRequest) {
       return new Response("ok", { status: 200 });
     }
 
-    // Handle created / updated subscription events with expanded data
     if (
       type === "customer.subscription.created" ||
       type === "customer.subscription.updated"
     ) {
       const subObj = event.data.object as Stripe.Subscription;
+
       const sub = (await stripe.subscriptions.retrieve(subObj.id, {
         expand: ["items.data.price.product", "customer"],
       })) as Stripe.Subscription;
 
       await upsertSubscription(admin, sub);
 
-      // ✅ Declare ONCE
       const mainItem = sub.items?.data?.[0];
       const price = mainItem?.price;
 
-      // -----------------------------
-      // 1) AWARD LISTING (entitlement)
-      // -----------------------------
       const role = resolveBaseRole(price, sub.metadata);
       const grantsListing =
         String(price?.metadata?.grants_listing ?? "").toLowerCase() === "true";
 
       const isActive = sub.status === "active" || sub.status === "trialing";
 
-      // --- Resolve uid robustly ---
       const stripeCustomerId =
         typeof sub.customer === "string" ? sub.customer : sub.customer?.id;
 
       let uid: string | null =
         (sub.metadata?.supabase_user_id as string | undefined) ?? null;
 
-      // If not present on sub.metadata, try customers mapping
       if (!uid && stripeCustomerId) {
         const { data: mapRow, error: mapErr } = await admin
           .from("customers")
@@ -551,12 +787,13 @@ export async function POST(req: NextRequest) {
           .eq("stripe_customer_id", stripeCustomerId)
           .maybeSingle();
 
-        if (mapErr)
+        if (mapErr) {
           console.error("[award listing] customers map lookup error", mapErr);
+        }
+
         uid = mapRow?.id ?? null;
       }
 
-      // If still missing, last resort: retrieve customer and check metadata
       if (!uid && stripeCustomerId) {
         try {
           const cust = await stripe.customers.retrieve(stripeCustomerId);
@@ -574,13 +811,14 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      // If we found uid + customerId, ensure customers table is synced (prevents future misses)
       if (uid && stripeCustomerId) {
         const { error: upErr } = await admin
           .from("customers")
           .upsert({ id: uid, stripe_customer_id: stripeCustomerId });
-        if (upErr)
+
+        if (upErr) {
           console.error("[award listing] customers upsert error", upErr);
+        }
       }
 
       console.log("[award listing] resolved uid:", {
@@ -609,6 +847,7 @@ export async function POST(req: NextRequest) {
             sub,
             uid,
           );
+
           console.log("[award listing] ensureListingForSubscription result:", {
             subId: sub.id,
             uid,
@@ -618,8 +857,9 @@ export async function POST(req: NextRequest) {
       }
 
       if ((sub.metadata?.purpose ?? "") === "listing_promo") {
-        const mainItem = sub.items?.data?.[0];
-        const { endISO: currentPeriodEnd } = extractPeriodISO(sub, mainItem);
+        const promoItem = sub.items?.data?.[0];
+        const { endISO: currentPeriodEnd } = extractPeriodISO(sub, promoItem);
+
         const { error: promoUpdErr } = await admin
           .from("listing_promotions")
           .update({
@@ -628,11 +868,12 @@ export async function POST(req: NextRequest) {
             cancel_at_period_end: sub.cancel_at_period_end ?? false,
           })
           .eq("stripe_subscription_id", sub.id);
-        if (promoUpdErr)
+
+        if (promoUpdErr) {
           console.error("listing_promotions update error:", promoUpdErr);
+        }
       }
 
-      // ✅ MailerLite sync (place #2) — wrapped so it never breaks webhook
       if (role) {
         try {
           const email = await getEmailForSubscription(stripe, sub);
@@ -650,14 +891,13 @@ export async function POST(req: NextRequest) {
       return new Response("ok", { status: 200 });
     }
 
-    // Handle deleted subscription events without retrieving from Stripe
     if (type === "customer.subscription.deleted") {
       const sub = event.data.object as Stripe.Subscription;
 
-      // Check if cancellation was due to billing issues
-      const { data: subRow } = await admin
+      const deletedLookup = await admin
         .from("subscriptions")
-        .select(`
+        .select(
+          `
           billing_issue_open, 
           dunning_canceled_email_sent_at, 
           cancellation_type, 
@@ -675,10 +915,14 @@ export async function POST(req: NextRequest) {
           dunning_stage,
           last_dunning_email_sent_at,
           pause_count,
-          last_pause_started_at
-          `)
+          last_pause_started_at,
+          pause_activated_email_sent_at
+        `,
+        )
         .eq("id", sub.id)
         .maybeSingle();
+
+      const subRow = (deletedLookup.data as PauseLifecycleRow | null) ?? null;
 
       if (
         subRow?.billing_issue_open &&
@@ -722,13 +966,14 @@ export async function POST(req: NextRequest) {
               subject: "Your membership has been canceled",
               react: SubscriptionCanceledForNonpaymentEmail({
                 name,
-                pricingUrl: `${siteUrl()}/pricing`,
-                billingUrl: `${siteUrl()}/dashboard/billing`,
+                pricingUrl: `${baseUrl}/pricing`,
+                billingUrl: `${baseUrl}/dashboard/billing`,
               }),
             },
             { idempotencyKey: idemKey },
           );
         }
+
         await admin
           .from("subscriptions")
           .update({
@@ -740,12 +985,13 @@ export async function POST(req: NextRequest) {
           .eq("id", sub.id);
       }
 
-      // This will mark status = 'canceled', set ended_at, cancel_at, etc.
       await upsertSubscription(admin, sub);
 
-      // A scheduled pause reaching Stripe period-end should become an active pause,
-      // not voluntary churn and not dunning cancellation.
-      if (subRow?.pause_status === "scheduled" && !subRow?.billing_issue_open && subRow?.cancellation_type !== "dunning") {
+      if (
+        subRow?.pause_status === "scheduled" &&
+        !subRow.billing_issue_open &&
+        subRow.cancellation_type !== "dunning"
+      ) {
         const nowIso = new Date().toISOString();
 
         await admin
@@ -754,8 +1000,6 @@ export async function POST(req: NextRequest) {
             pause_status: "active",
             pause_starts_at: subRow.pause_starts_at ?? nowIso,
             pause_ends_at: subRow.pause_ends_at ?? null,
-
-            // This is a pause NOT a churn
             cancel_at_period_end: false,
             cancellation_type: null,
             cancellation_reason: null,
@@ -765,15 +1009,12 @@ export async function POST(req: NextRequest) {
             winback_email_sent_at: null,
             pause_count: (subRow.pause_count ?? 0) + 1,
             last_pause_started_at: subRow.pause_starts_at ?? nowIso,
-
-            // clean up any dunning remnants just in case
             billing_issue_open: false,
             dunning_stage: "none",
             last_dunning_email_sent_at: null,
           })
           .eq("id", sub.id);
 
-        // Keep dependent boost rows aligned too
         if (subRow.listing_id) {
           await admin
             .from("subscriptions")
@@ -802,12 +1043,104 @@ export async function POST(req: NextRequest) {
             .eq("listing_id", subRow.listing_id);
         }
 
-        return new Response("ok", {status: 200 });
+        if (!subRow.pause_activated_email_sent_at && resend) {
+          try {
+            const toEmail = await getEmailForSubscription(stripe, sub);
+
+            if (toEmail) {
+              const customerId =
+                typeof sub.customer === "string"
+                  ? sub.customer
+                  : sub.customer?.id;
+
+              let uid: string | null =
+                (sub.metadata?.supabase_user_id as string | undefined) ?? null;
+
+              if (!uid && customerId) {
+                uid = await getUserIdForStripeCustomer(
+                  admin,
+                  stripe,
+                  customerId,
+                );
+              }
+
+              const profile = await getProfileForUser(admin, uid);
+              const listingTitle = await getListingTitle(
+                admin,
+                subRow.listing_id,
+              );
+
+              const mainItem = sub.items?.data?.[0];
+              const price = mainItem?.price;
+              const userType =
+                profile?.user_type ??
+                resolveBaseRole(price, sub.metadata) ??
+                null;
+
+              let hasDependentBoost = false;
+
+              if (subRow.listing_id) {
+                const { data: linkedPromo } = await admin
+                  .from("subscriptions")
+                  .select("id")
+                  .eq("listing_id", subRow.listing_id)
+                  .eq("purpose_sub", "listing_promo")
+                  .limit(1);
+
+                hasDependentBoost =
+                  Array.isArray(linkedPromo) && linkedPromo.length > 0;
+              }
+
+              const name =
+                getBestNameFromProfile(profile, toEmail) ||
+                (await getCustomerDisplayName({
+                  supabase: admin,
+                  userId: uid,
+                  stripeCustomer:
+                    typeof sub.customer === "object" &&
+                    sub.customer &&
+                    !("deleted" in sub.customer)
+                      ? { name: sub.customer.name ?? null }
+                      : null,
+                  fallbackEmail: toEmail,
+                }));
+
+              const idemKey = `pause-activated:${sub.id}`;
+
+              await resend.emails.send(
+                {
+                  from: fromEmail,
+                  to: toEmail,
+                  subject: "Your membership is now paused",
+                  react: PauseActivatedEmail({
+                    name,
+                    userType,
+                    listingTitle,
+                    hasDependentBoost,
+                    billingUrl: `${baseUrl}/dashboard/billing`,
+                  }),
+                },
+                { idempotencyKey: idemKey },
+              );
+
+              await admin
+                .from("subscriptions")
+                .update({
+                  pause_activated_email_sent_at: new Date().toISOString(),
+                })
+                .eq("id", sub.id);
+            }
+          } catch (e) {
+            console.error("Error sending pause activated email:", e);
+          }
+        }
+
+        return new Response("ok", { status: 200 });
       }
 
-      // If this was a promo sub, keep listing_promotions in sync too
       if ((sub.metadata?.purpose ?? "") === "listing_promo") {
         const { endISO: currentPeriodEnd } = extractPeriodISO(sub);
+
         const { error: promoUpdErr } = await admin
           .from("listing_promotions")
           .update({
@@ -816,8 +1149,10 @@ export async function POST(req: NextRequest) {
             cancel_at_period_end: sub.cancel_at_period_end ?? false,
           })
           .eq("stripe_subscription_id", sub.id);
-        if (promoUpdErr)
+
+        if (promoUpdErr) {
           console.error("listing_promotions update error:", promoUpdErr);
+        }
       }
 
       return new Response("ok", { status: 200 });
@@ -830,11 +1165,14 @@ export async function POST(req: NextRequest) {
     ) {
       const inv = event.data.object as Stripe.Invoice;
       const subId = extractSubscriptionIdFromInvoice(inv);
+
       if (subId) {
         const sub = (await stripe.subscriptions.retrieve(subId, {
           expand: ["items.data.price.product", "customer"],
         })) as Stripe.Subscription;
+
         await upsertSubscription(admin, sub);
+
         if (type === "invoice.payment_succeeded" || type === "invoice.paid") {
           const { data: subRow } = await admin
             .from("subscriptions")
@@ -890,8 +1228,8 @@ export async function POST(req: NextRequest) {
                   subject: "Your payment was successful",
                   react: PaymentRecoveredEmail({
                     name,
-                    dashboardUrl: `${siteUrl()}/dashboard`,
-                    billingUrl: `${siteUrl()}/dashboard/billing`,
+                    dashboardUrl: `${baseUrl}/dashboard`,
+                    billingUrl: `${baseUrl}/dashboard/billing`,
                   }),
                 },
                 { idempotencyKey: idemKey },
@@ -903,7 +1241,7 @@ export async function POST(req: NextRequest) {
               .update({
                 billing_issue_open: false,
                 payment_recovered_email_sent_at:
-                  subRow?.payment_recovered_email_sent_at ??
+                  subRow.payment_recovered_email_sent_at ??
                   new Date().toISOString(),
                 dunning_stage: "none",
                 last_dunning_email_sent_at: null,
@@ -912,7 +1250,6 @@ export async function POST(req: NextRequest) {
           }
         }
 
-        // failed payment email
         if (type === "invoice.payment_failed") {
           const { data: existingSub } = await admin
             .from("subscriptions")
@@ -935,7 +1272,6 @@ export async function POST(req: NextRequest) {
             (await getEmailForSubscription(stripe, sub)) ||
             null;
 
-          // Fetch Stripe customer (for name fallback)
           const customerId =
             typeof inv.customer === "string" ? inv.customer : inv.customer?.id;
 
@@ -943,7 +1279,6 @@ export async function POST(req: NextRequest) {
             ? await stripe.customers.retrieve(customerId)
             : null;
 
-          // Resolve supabase user id (best effort)
           let uid: string | null =
             (sub.metadata?.supabase_user_id as string | undefined) ?? null;
 
@@ -965,7 +1300,7 @@ export async function POST(req: NextRequest) {
 
           if (toEmail) {
             const idemKey = `dunning-1:${inv.id}`;
-            const updateBillingUrl = `${siteUrl()}/dashboard/billing`;
+            const updateBillingUrl = `${baseUrl}/dashboard/billing`;
 
             await resend.emails.send(
               {
@@ -984,6 +1319,7 @@ export async function POST(req: NextRequest) {
       } else {
         console.warn("Invoice had no resolvable subscription id");
       }
+
       return new Response("ok", { status: 200 });
     }
 

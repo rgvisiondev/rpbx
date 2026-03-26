@@ -67,3 +67,26 @@ add column pause_scope text default 'subscription',
 add column pause_count integer default 0,
 add column last_pause_started_at timestamp,
 add column last_pause_resumed_at timestamp;
+
+/*
+Phase 5 V2 of dunning flow update:
+Tracks pause lifecycle emails separately so we can:
+- send scheduled pause confirmation once
+- send pause activation confirmation once
+- send resume confirmation once
+*/
+alter table subscriptions
+add column pause_scheduled_email_sent_at timestamp,
+add column pause_activated_email_sent_at timestamp,
+add column pause_resumed_email_sent_at timestamp;
+
+/*
+Phase 5 V3 of dunning flow update:
+Tracks whether a resumed membership has a paused boosted listing
+that can be restored after the main membership comes back.
+*/
+alter table subscriptions
+add column paused_boost_restore_pending boolean default false,
+add column paused_boost_subscription_id text,
+add column paused_boost_restore_dismissed_at timestamp,
+add column paused_boost_restore_completed_at timestamp;

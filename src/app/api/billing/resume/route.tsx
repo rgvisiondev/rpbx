@@ -41,9 +41,17 @@ type PromotionRecord = {
 function buildCheckoutMetadata(sub: SubscriptionRecord, userId: string) {
   const metadata: Record<string, string> = {
     supabase_user_id: userId,
+    resume_from_pause: "true",
+    resumed_from_subscription_id: sub.id,
   };
 
-  if (sub.listing_id) metadata.listing_id = sub.listing_id;
+  if (sub.listing_id) {
+    metadata.listing_id = sub.listing_id;
+  }
+
+  if (sub.purpose_sub) {
+    metadata.purpose_sub = sub.purpose_sub;
+  }
 
   if (sub.purpose_sub === "listing_promo") {
     metadata.purpose = "listing_promo";
@@ -86,7 +94,7 @@ export async function POST(req: Request) {
       );
     }
 
-    const { data: subscription, error: subError } = await admin
+    const subResult = await admin
       .from("subscriptions")
       .select(`
         id,
@@ -107,7 +115,10 @@ export async function POST(req: Request) {
         metadata
       `)
       .eq("id", subscriptionId)
-      .single<SubscriptionRecord>();
+      .single();
+
+    const subscription = (subResult.data as SubscriptionRecord | null) ?? null;
+    const subError = subResult.error;
 
     if (subError || !subscription) {
       return Response.json(
@@ -144,13 +155,14 @@ export async function POST(req: Request) {
     }
 
     let hadDependentBoost = false;
+
     if (subscription.listing_id) {
-      const { data: boosts } = await admin
+      const boostResult = await admin
         .from("listing_promotions")
         .select("stripe_subscription_id, listing_id, status")
-        .eq("listing_id", subscription.listing_id)
-        .returns<PromotionRecord[]>();
+        .eq("listing_id", subscription.listing_id);
 
+      const boosts = (boostResult.data as PromotionRecord[] | null) ?? [];
       hadDependentBoost = Array.isArray(boosts) && boosts.length > 0;
     }
 
@@ -171,8 +183,9 @@ export async function POST(req: Request) {
           pause_ends_at: null,
           pause_reason: null,
           pause_feedback: null,
-          pause_email_sent_at: null,
-          resume_email_sent_at: null,
+          pause_scheduled_email_sent_at: null,
+          pause_activated_email_sent_at: null,
+          pause_resumed_email_sent_at: null,
           paused_until: null,
           last_pause_resumed_at: resumedAt,
         })
@@ -185,13 +198,15 @@ export async function POST(req: Request) {
       }
 
       if (subscription.listing_id) {
-        const { data: boostSubs } = await admin
+        const boostSubResult = await admin
           .from("subscriptions")
           .select("id")
           .eq("listing_id", subscription.listing_id)
           .eq("purpose_sub", "listing_promo");
 
-        const boostIds = (boostSubs ?? []).map((row) => row.id);
+        const boostIds = (boostSubResult.data ?? []).map(
+          (row: { id: string }) => row.id,
+        );
 
         for (const boostId of boostIds) {
           try {
@@ -216,8 +231,9 @@ export async function POST(req: Request) {
               pause_ends_at: null,
               pause_reason: null,
               pause_feedback: null,
-              pause_email_sent_at: null,
-              resume_email_sent_at: null,
+              pause_scheduled_email_sent_at: null,
+              pause_activated_email_sent_at: null,
+              pause_resumed_email_sent_at: null,
               paused_until: null,
             })
             .in("id", boostIds);
@@ -249,11 +265,14 @@ export async function POST(req: Request) {
       );
     }
 
-    const { data: customerMap, error: customerMapError } = await admin
+    const customerMapResult = await admin
       .from("customers")
       .select("stripe_customer_id")
       .eq("id", user.id)
-      .maybeSingle<CustomerRecord>();
+      .maybeSingle();
+
+    const customerMap = (customerMapResult.data as CustomerRecord | null) ?? null;
+    const customerMapError = customerMapResult.error;
 
     if (customerMapError) {
       throw new Error(
@@ -262,13 +281,14 @@ export async function POST(req: Request) {
     }
 
     const metadata = buildCheckoutMetadata(subscription, user.id);
+    const baseUrl = typeof siteUrl === "function" ? siteUrl() : siteUrl;
 
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
       customer: customerMap?.stripe_customer_id ?? undefined,
       client_reference_id: user.id,
-      success_url: `${siteUrl()}/dashboard/billing?resume=success`,
-      cancel_url: `${siteUrl()}/dashboard/billing?resume=canceled`,
+      success_url: `${baseUrl}/dashboard/billing?resume=success`,
+      cancel_url: `${baseUrl}/dashboard/billing?resume=canceled`,
       line_items: [
         {
           price: subscription.price_id,
