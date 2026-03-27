@@ -212,44 +212,41 @@ export default function AboutPage() {
                     </span>
                   </button>
                 </DialogTrigger>
-                <DialogContent className="w-[calc(100%-1rem)] sm:w-full max-w-3xl max-h-[90vh] overflow-hidden rounded-2xl border border-gray-200 p-0">
-                  <DialogHeader className="shrink-0 border-b border-gray-100 px-4 pt-5 pb-4 sm:px-6 sm:pt-6">
-                    <DialogTitle className="pr-8 text-left text-lg font-semibold leading-snug text-gray-900 sm:text-xl">
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>
                       RioPlex Business Exchange – Advisor & Platform Disclaimer
                     </DialogTitle>
-                    <DialogDescription className="mt-2 text-left text-sm leading-relaxed text-gray-600">
+                    <DialogDescription>
                       Independent Advisors & Fiduciary Disclosure
                     </DialogDescription>
                   </DialogHeader>
-
-                  <div className="min-h-0 flex-1 overflow-y-auto px-4 py-5 sm:px-6">
-                    <div className="prose prose-sm max-w-none text-gray-700">
-                      <p className="mb-4 leading-relaxed">
-                        RioPlex Business Exchange (“RioPlex”) is a technology
-                        and education platform designed to connect business
-                        owners, buyers, and trusted professional advisors. All
-                        professionals featured on or affiliated with RioPlex
-                        participate as independent, third-party advisors and are
-                        not employees, agents, or representatives of RioPlex.
-                        Each advisor acts independently and, where applicable,
-                        in a fiduciary capacity, owing duties solely to their
-                        individual clients. Advisors are required to act in
-                        their clients’ best interests and do not provide advice
-                        on behalf of RioPlex. RioPlex does not provide legal,
-                        financial, tax, or investment advice and does not
-                        endorse or guarantee the services, outcomes, or
-                        recommendations of any advisor or user on the platform.
-                        Engagement with any advisor is at the sole discretion of
-                        the user and governed by a separate agreement between
-                        the advisor and the client. Participation in RioPlex
-                        does not create a partnership, joint venture, agency, or
-                        employment relationship between RioPlex and any advisor
-                        or user. Users are encouraged to conduct their own due
-                        diligence and consult appropriate licensed professionals
-                        before making business, legal, financial, or investment
-                        decisions.
-                      </p>
-                    </div>
+                  <div className="no-scrollbar -mx-4 max-h-[50vh] overflow-y-auto px-4">
+                    <p className="mb-4 leading-normal">
+                      RioPlex Business Exchange (“RioPlex”) is a technology and
+                      education platform designed to connect business owners,
+                      buyers, and trusted professional advisors. All
+                      professionals featured on or affiliated with RioPlex
+                      participate as independent, third-party advisors and are
+                      not employees, agents, or representatives of RioPlex. Each
+                      advisor acts independently and, where applicable, in a
+                      fiduciary capacity, owing duties solely to their
+                      individual clients. Advisors are required to act in their
+                      clients’ best interests and do not provide advice on
+                      behalf of RioPlex. RioPlex does not provide legal,
+                      financial, tax, or investment advice and does not endorse
+                      or guarantee the services, outcomes, or recommendations of
+                      any advisor or user on the platform. Engagement with any
+                      advisor is at the sole discretion of the user and governed
+                      by a separate agreement between the advisor and the
+                      client. Participation in RioPlex does not create a
+                      partnership, joint venture, agency, or employment
+                      relationship between RioPlex and any advisor or user.
+                      Users are encouraged to conduct their own due diligence
+                      and consult appropriate licensed professionals before
+                      making business, legal, financial, or investment
+                      decisions.
+                    </p>
                   </div>
                 </DialogContent>
               </Dialog>

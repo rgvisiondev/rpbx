@@ -33,8 +33,6 @@ import Image from "next/image";
 import { experts } from "@/lib/advisors/advisors";
 import { Mail } from "lucide-react";
 
-import BillingStatusBanner from "./_components/BillingStatusBanner";
-
 export const metadata: Metadata = {
   title: "Dashboard | RioPlex Business Exchange",
   description: "Connecting Local Business Owners With Investors",
@@ -50,8 +48,6 @@ export default async function Dashboard() {
     // Layout will show the overlay + blur or redirect; render nothing here.
     return null;
   }
-
-  const { needsBillingFix, status } = gate;
 
   // From here down, user is entitled & verified.
   const userType: "business" | "investor" =
@@ -142,9 +138,6 @@ export default async function Dashboard() {
       {/* Header / Hero */}
       <div className="flex flex-col bg-[url('/images/backgrounds/white-bg.png')] bg-repeat bg-top">
         <NavGate />
-        <div className="w-full lg:max-w-[1140px] mx-auto px-5 lg:px-2 pt-4">
-          <BillingStatusBanner show={needsBillingFix} status={status} />
-        </div>
         <div className="flex flex-col w-full lg:max-w-[1140px] mx-auto py-10 px-5 lg:px-2 pb-40 md:pb-52">
           <h1 className="mb-4">Welcome back, {displayName}</h1>
           <p className="text-sm text-gray-600 mb-6">

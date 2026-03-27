@@ -3,33 +3,41 @@ export const revalidate = 0;
 
 import { redirect } from "next/navigation";
 import { createClientRSC } from "@/../utils/supabase/server";
-import { requireEntitlementOrNull } from "@/lib/serverGuard";
-import MemberGateShell from "./MemberGateShell";
+import { getEntitlement } from "@/lib/entitlements";
+import PaywallOverlay from "./dashboard/_components/PaywallOverlay";
+import { IdleLogout } from "@/components/IdleLogout";
 
 export default async function MemberLayout({
   children,
-}: {
-  children: React.ReactNode;
-}) {
+}: { children: React.ReactNode }) {
   const supabase = await createClientRSC();
 
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
+  // Not logged in? Send to login before anything else.
   if (!user) redirect("/login");
 
-  const gate = await requireEntitlementOrNull();
+  // Email not verified yet? nudge first.
+  const { entitled, unverified } = await getEntitlement();
+  if (unverified) redirect("/auth/verify-email");
 
-  if (gate.block === "unverified") {
-    redirect("/auth/verify-email");
-  }
+  // OPTIONAL: choose between hard gate vs soft overlay.
+  // Hard gate example (send to pricing if not entitled):
+  // if (!entitled) redirect("/pricing?from=member");
 
-  const blocked = gate.block === "paywall";
-
+  // Soft gate (your current pattern): show overlay + blur content.
   return (
-    <MemberGateShell blocked={blocked} status={gate.status}>
-      {children}
-    </MemberGateShell>
+    <div className="relative">
+      {!entitled && <PaywallOverlay />}
+      <div
+        className={!entitled ? "pointer-events-none select-none blur-sm" : ""}
+        aria-hidden={!entitled}
+      >
+        <IdleLogout />
+        {children}
+      </div>
+    </div>
   );
 }
