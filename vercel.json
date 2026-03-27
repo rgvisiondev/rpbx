@@ -1,0 +1,16 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/dunning",
+      "schedule": "0 9 * * *"
+    },
+    {
+      "path": "/api/cron/winback",
+      "schedule": "30 9 * * *"
+    },
+    {
+      "path": "/api/cron/pause-auto-resume",
+      "schedule": "30 13 * * *"
+    }
+  ]
+}
