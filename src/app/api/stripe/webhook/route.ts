@@ -26,6 +26,9 @@ import { PaymentFailedEmail } from "../../../../../emails/PaymentFailedEmail";
 import { siteUrl } from "@/lib/siteUrl";
 
 const fromEmail = getEmailFrom();
+const PAUSE_DURATION_DAYS = 30;
+
+type AdminClient = ReturnType<typeof getAdmin>;
 
 type ProfileLookup = {
   first_name?: string | null;
@@ -63,13 +66,19 @@ function getBaseUrl() {
   return typeof siteUrl === "function" ? siteUrl() : siteUrl;
 }
 
+function addDaysIso(startIso: string, days: number) {
+  const date = new Date(startIso);
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString();
+}
+
 async function getCustomerDisplayName({
   supabase,
   userId,
   stripeCustomer,
   fallbackEmail,
 }: {
-  supabase: any;
+  supabase: AdminClient;
   userId?: string | null;
   stripeCustomer?: { name?: string | null } | null;
   fallbackEmail?: string | null;
@@ -95,7 +104,7 @@ async function getCustomerDisplayName({
   return "";
 }
 
-async function getProfileForUser(admin: any, userId?: string | null) {
+async function getProfileForUser(admin: AdminClient, userId?: string | null) {
   if (!userId) return null;
 
   const { data } = await admin
@@ -107,7 +116,7 @@ async function getProfileForUser(admin: any, userId?: string | null) {
   return (data as ProfileLookup | null) ?? null;
 }
 
-async function getListingTitle(admin: any, listingId?: string | null) {
+async function getListingTitle(admin: AdminClient, listingId?: string | null) {
   if (!listingId) return null;
 
   const { data } = await admin
@@ -162,6 +171,175 @@ async function getEmailForSubscription(
     console.error("[MailerLite] Failed to retrieve customer for email", e);
     return null;
   }
+}
+
+async function getPausedBoostSubscriptionIdForListing(
+  admin: AdminClient,
+  listingId?: string | null,
+) {
+  if (!listingId) return null;
+
+  const { data } = await admin
+    .from("subscriptions")
+    .select("id, pause_status, status, created")
+    .eq("listing_id", listingId)
+    .eq("purpose_sub", "listing_promo")
+    .order("created", { ascending: false });
+
+  const rows = Array.isArray(data) ? data : [];
+
+  const preferred =
+    rows.find((row) => row.pause_status === "active") ??
+    rows.find((row) => row.pause_status === "scheduled") ??
+    rows.find((row) => row.status === "canceled") ??
+    rows[0];
+
+  return preferred?.id ?? null;
+}
+
+async function finalizeResumeFromPause({
+  admin,
+  stripe,
+  resend,
+  sub,
+  userId,
+  resumedFromSubscriptionId,
+  eventRef,
+  listingIdHint,
+  baseUrl,
+}: {
+  admin: AdminClient;
+  stripe: Stripe;
+  resend: ReturnType<typeof getResendClient>;
+  sub: Stripe.Subscription;
+  userId?: string | null;
+  resumedFromSubscriptionId?: string | null;
+  eventRef: string;
+  listingIdHint?: string | null;
+  baseUrl: string;
+}) {
+  if (!resumedFromSubscriptionId) return;
+
+  const { data: existingNewRow } = await admin
+    .from("subscriptions")
+    .select(
+      `
+      id,
+      pause_resumed_email_sent_at,
+      last_pause_resumed_at
+    `,
+    )
+    .eq("id", sub.id)
+    .maybeSingle();
+
+  const { data: oldPausedRow } = await admin
+    .from("subscriptions")
+    .select(
+      `
+      id,
+      listing_id,
+      pause_count,
+      last_pause_started_at,
+      last_pause_resumed_at
+    `,
+    )
+    .eq("id", resumedFromSubscriptionId)
+    .maybeSingle();
+
+  if (!oldPausedRow) return;
+
+  const listingId = oldPausedRow.listing_id ?? listingIdHint ?? null;
+  const pausedBoostSubscriptionId = await getPausedBoostSubscriptionIdForListing(
+    admin,
+    listingId,
+  );
+  const hadDependentBoost = !!pausedBoostSubscriptionId;
+  const resumedAt =
+    existingNewRow?.last_pause_resumed_at ?? new Date().toISOString();
+
+  if (!existingNewRow?.last_pause_resumed_at) {
+    await admin
+      .from("subscriptions")
+      .update({
+        pause_count: oldPausedRow.pause_count ?? 0,
+        last_pause_started_at: oldPausedRow.last_pause_started_at ?? null,
+        last_pause_resumed_at: resumedAt,
+
+        pause_status: null,
+        pause_starts_at: null,
+        pause_ends_at: null,
+        pause_reason: null,
+        pause_feedback: null,
+
+        paused_boost_restore_pending: hadDependentBoost,
+        paused_boost_subscription_id: pausedBoostSubscriptionId,
+        paused_boost_restore_dismissed_at: null,
+        paused_boost_restore_completed_at: null,
+      })
+      .eq("id", sub.id);
+  }
+
+  if (!oldPausedRow.last_pause_resumed_at) {
+    await admin
+      .from("subscriptions")
+      .update({
+        pause_status: null,
+        paused_until: null,
+        last_pause_resumed_at: resumedAt,
+      })
+      .eq("id", resumedFromSubscriptionId);
+  }
+
+  if (!resend || existingNewRow?.pause_resumed_email_sent_at) return;
+
+  const toEmail = (await getEmailForSubscription(stripe, sub)) || null;
+  if (!toEmail) return;
+
+  const profile = await getProfileForUser(admin, userId);
+  const listingTitle = await getListingTitle(admin, listingId);
+
+  const mainItem = sub.items?.data?.[0];
+  const price = mainItem?.price;
+  const userType =
+    profile?.user_type ?? resolveBaseRole(price, sub.metadata) ?? null;
+
+  const name =
+    getBestNameFromProfile(profile, toEmail) ||
+    (await getCustomerDisplayName({
+      supabase: admin,
+      userId,
+      stripeCustomer:
+        typeof sub.customer === "object" &&
+        sub.customer &&
+        !("deleted" in sub.customer)
+          ? { name: sub.customer.name ?? null }
+          : null,
+      fallbackEmail: toEmail,
+    }));
+
+  await resend.emails.send(
+    {
+      from: fromEmail,
+      to: toEmail,
+      subject: "Welcome back — your membership is active again",
+      react: ResumeConfirmationEmail({
+        name,
+        userType,
+        listingTitle,
+        hasDependentBoost: hadDependentBoost,
+        billingUrl: `${baseUrl}/dashboard/billing`,
+        dashboardUrl: `${baseUrl}/dashboard`,
+      }),
+    },
+    { idempotencyKey: `pause-resume-confirm:${eventRef}` },
+  );
+
+  await admin
+    .from("subscriptions")
+    .update({
+      pause_resumed_email_sent_at: new Date().toISOString(),
+    })
+    .eq("id", sub.id);
 }
 
 function norm(evtType: string) {
@@ -308,140 +486,28 @@ export async function POST(req: NextRequest) {
           String(sess.metadata?.["resume_from_pause"] ?? "").toLowerCase() ===
           "true";
 
+        const isAutoResumeFromPause =
+          String(sess.metadata?.["auto_resume_from_pause"] ?? "").toLowerCase() ===
+          "true";
+
         const resumedFromSubscriptionId =
           (sess.metadata?.["resumed_from_subscription_id"] as
             | string
             | undefined) ?? null;
 
-        if (isResumeFromPause) {
+        if (isResumeFromPause || isAutoResumeFromPause) {
           try {
-            let hadDependentBoost = false;
-            let pausedBoostSubscriptionId: string | null = null;
-            let previousPauseCount = 0;
-            let previousLastPauseStartedAt: string | null = null;
-
-            if (resumedFromSubscriptionId) {
-              const { data: oldPausedRow } = await admin
-                .from("subscriptions")
-                .select("listing_id, pause_count, last_pause_started_at")
-                .eq("id", resumedFromSubscriptionId)
-                .maybeSingle();
-
-              previousPauseCount = oldPausedRow?.pause_count ?? 0;
-              previousLastPauseStartedAt =
-                oldPausedRow?.last_pause_started_at ?? null;
-
-              if (oldPausedRow?.listing_id) {
-                const { data: linkedPromo } = await admin
-                  .from("subscriptions")
-                  .select("id")
-                  .eq("listing_id", oldPausedRow.listing_id)
-                  .eq("purpose_sub", "listing_promo")
-                  .limit(1);
-
-                if (Array.isArray(linkedPromo) && linkedPromo.length > 0) {
-                  hadDependentBoost = true;
-                  pausedBoostSubscriptionId = linkedPromo[0]?.id ?? null;
-                }
-              }
-            }
-
-            const resumedAt = new Date().toISOString();
-
-            // Persist restore state + carry pause history onto the new resumed row
-            await admin
-              .from("subscriptions")
-              .update({
-                pause_count: previousPauseCount,
-                last_pause_started_at: previousLastPauseStartedAt,
-                last_pause_resumed_at: resumedAt,
-
-                paused_boost_restore_pending: hadDependentBoost,
-                paused_boost_subscription_id: pausedBoostSubscriptionId,
-                paused_boost_restore_dismissed_at: null,
-                paused_boost_restore_completed_at: null,
-              })
-              .eq("id", sub.id);
-
-            // Mark the historical paused row as resumed
-            if (resumedFromSubscriptionId) {
-              await admin
-                .from("subscriptions")
-                .update({
-                  last_pause_resumed_at: resumedAt,
-                })
-                .eq("id", resumedFromSubscriptionId);
-            }
-
-            if (resend) {
-              const toEmail =
-                (sess.customer_details?.email as string | null) ||
-                (sess.customer_email as string | null) ||
-                (await getEmailForSubscription(stripe, sub)) ||
-                null;
-
-              if (toEmail) {
-                const { data: newSubRow } = await admin
-                  .from("subscriptions")
-                  .select("pause_resumed_email_sent_at")
-                  .eq("id", sub.id)
-                  .maybeSingle();
-
-                if (!newSubRow?.pause_resumed_email_sent_at) {
-                  const profile = await getProfileForUser(admin, userId);
-                  const listingTitle = await getListingTitle(
-                    admin,
-                    String(sess.metadata?.["listing_id"] ?? "") || null,
-                  );
-                  const mainItem = sub.items?.data?.[0];
-                  const price = mainItem?.price;
-                  const userType =
-                    profile?.user_type ??
-                    resolveBaseRole(price, sub.metadata) ??
-                    null;
-
-                  const name =
-                    getBestNameFromProfile(profile, toEmail) ||
-                    (await getCustomerDisplayName({
-                      supabase: admin,
-                      userId,
-                      stripeCustomer:
-                        typeof sub.customer === "object" &&
-                        sub.customer &&
-                        !("deleted" in sub.customer)
-                          ? { name: sub.customer.name ?? null }
-                          : null,
-                      fallbackEmail: toEmail,
-                    }));
-
-                  const idemKey = `pause-resume-confirm:${sess.id}`;
-
-                  await resend.emails.send(
-                    {
-                      from: fromEmail,
-                      to: toEmail,
-                      subject: "Welcome back — your membership is active again",
-                      react: ResumeConfirmationEmail({
-                        name,
-                        userType,
-                        listingTitle,
-                        hasDependentBoost: hadDependentBoost,
-                        billingUrl: `${baseUrl}/dashboard/billing`,
-                        dashboardUrl: `${baseUrl}/dashboard`,
-                      }),
-                    },
-                    { idempotencyKey: idemKey },
-                  );
-
-                  await admin
-                    .from("subscriptions")
-                    .update({
-                      pause_resumed_email_sent_at: new Date().toISOString(),
-                    })
-                    .eq("id", sub.id);
-                }
-              }
-            }
+            await finalizeResumeFromPause({
+              admin,
+              stripe,
+              resend,
+              sub,
+              userId,
+              resumedFromSubscriptionId,
+              eventRef: sess.id,
+              listingIdHint: String(sess.metadata?.["listing_id"] ?? "") || null,
+              baseUrl,
+            });
           } catch (e) {
             console.error("Error handling resume-from-pause flow:", e);
           }
@@ -765,6 +831,52 @@ export async function POST(req: NextRequest) {
 
       await upsertSubscription(admin, sub);
 
+      const isAutoResumeFromPause =
+        String(sub.metadata?.["auto_resume_from_pause"] ?? "").toLowerCase() ===
+        "true";
+
+      const isResumeFromPause =
+        String(sub.metadata?.["resume_from_pause"] ?? "").toLowerCase() ===
+        "true";
+
+      const resumedFromSubscriptionId =
+        (sub.metadata?.["resumed_from_subscription_id"] as string | undefined) ??
+        null;
+
+      if (
+        (type === "customer.subscription.created" ||
+          type === "customer.subscription.updated") &&
+        (isAutoResumeFromPause || isResumeFromPause) &&
+        resumedFromSubscriptionId
+      ) {
+        try {
+          let uid: string | null =
+            (sub.metadata?.supabase_user_id as string | undefined) ?? null;
+
+          const stripeCustomerId =
+            typeof sub.customer === "string" ? sub.customer : sub.customer?.id;
+
+          if (!uid && stripeCustomerId) {
+            uid = await getUserIdForStripeCustomer(admin, stripe, stripeCustomerId);
+          }
+
+          await finalizeResumeFromPause({
+            admin,
+            stripe,
+            resend,
+            sub,
+            userId: uid,
+            resumedFromSubscriptionId,
+            eventRef: sub.id,
+            listingIdHint:
+              (sub.metadata?.["listing_id"] as string | undefined) ?? null,
+            baseUrl,
+          });
+        } catch (e) {
+          console.error("Error finalizing auto-resume lifecycle:", e);
+        }
+      }
+
       const mainItem = sub.items?.data?.[0];
       const price = mainItem?.price;
 
@@ -993,13 +1105,16 @@ export async function POST(req: NextRequest) {
         subRow.cancellation_type !== "dunning"
       ) {
         const nowIso = new Date().toISOString();
+        const effectivePauseStart = subRow.pause_starts_at ?? nowIso;
+        const effectivePauseEnd =
+          subRow.pause_ends_at ?? addDaysIso(effectivePauseStart, PAUSE_DURATION_DAYS);
 
         await admin
           .from("subscriptions")
           .update({
             pause_status: "active",
-            pause_starts_at: subRow.pause_starts_at ?? nowIso,
-            pause_ends_at: subRow.pause_ends_at ?? null,
+            pause_starts_at: effectivePauseStart,
+            pause_ends_at: effectivePauseEnd,
             cancel_at_period_end: false,
             cancellation_type: null,
             cancellation_reason: null,
@@ -1008,10 +1123,11 @@ export async function POST(req: NextRequest) {
             cancellation_requested_at: null,
             winback_email_sent_at: null,
             pause_count: (subRow.pause_count ?? 0) + 1,
-            last_pause_started_at: subRow.pause_starts_at ?? nowIso,
+            last_pause_started_at: effectivePauseStart,
             billing_issue_open: false,
             dunning_stage: "none",
             last_dunning_email_sent_at: null,
+            paused_until: effectivePauseEnd,
           })
           .eq("id", sub.id);
 
@@ -1020,8 +1136,8 @@ export async function POST(req: NextRequest) {
             .from("subscriptions")
             .update({
               pause_status: "active",
-              pause_starts_at: subRow.pause_starts_at ?? nowIso,
-              pause_ends_at: null,
+              pause_starts_at: effectivePauseStart,
+              pause_ends_at: effectivePauseEnd,
               cancellation_type: null,
               cancellation_reason: null,
               cancellation_feedback: null,
@@ -1029,7 +1145,8 @@ export async function POST(req: NextRequest) {
               cancellation_requested_at: null,
               winback_email_sent_at: null,
               cancel_at_period_end: false,
-              last_pause_started_at: subRow.pause_starts_at ?? nowIso,
+              last_pause_started_at: effectivePauseStart,
+              paused_until: effectivePauseEnd,
             })
             .eq("listing_id", subRow.listing_id)
             .eq("purpose_sub", "listing_promo");
@@ -1043,7 +1160,8 @@ export async function POST(req: NextRequest) {
             .eq("listing_id", subRow.listing_id);
         }
 
-        if (!subRow.pause_activated_email_sent_at && resend) {
+        const isBoostPause = subRow?.purpose_sub === "listing_promo";
+        if (!isBoostPause && !subRow.pause_activated_email_sent_at && resend) {
           try {
             const toEmail = await getEmailForSubscription(stripe, sub);
 

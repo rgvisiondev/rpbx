@@ -759,8 +759,8 @@ export default function BillingClient() {
       return (
         <div className={mobile ? "flex flex-col gap-2" : "space-x-2"}>
           <div className="text-xs text-sky-700">
-            This add-on follows the main listing subscription and will pause with
-            it.
+            This add-on follows the main listing subscription and will pause
+            with it.
           </div>
           <button onClick={openPortal} className={borderBtn}>
             Manage
@@ -939,7 +939,9 @@ export default function BillingClient() {
                     <tr className="text-left">
                       <th className="py-2">Type</th>
                       <th className="py-2">Label</th>
-                      <th className="py-2">Listing</th>
+                      {userType === "business" && (
+                        <th className="py-2">Listing</th>
+                      )}
                       <th className="py-2">Status</th>
                       <th className="py-2">Renews</th>
                       <th className="py-2 text-right">Actions</th>
@@ -971,8 +973,14 @@ export default function BillingClient() {
                             r.type === "boost" ? "bg-gray-50/70" : "",
                           ].join(" ")}
                         >
-                          <td className={r.type === "boost" ? "py-2 pl-6" : "py-2"}>
-                            {r.type === "platform" ? "Platform" : "Boost Add-on"}
+                          <td
+                            className={
+                              r.type === "boost" ? "py-2 pl-6" : "py-2"
+                            }
+                          >
+                            {r.type === "platform"
+                              ? "Platform"
+                              : "Boost Add-on"}
                           </td>
 
                           <td className="py-2">
@@ -986,32 +994,37 @@ export default function BillingClient() {
                             </div>
                           </td>
 
-                          <td className="py-2">
-                            {r.listingTitle ? (
-                              r.listingId ? (
-                                <Link
-                                  href={`/business-listing/${r.listingId}`}
-                                  className="text-[var(--color-primary)] underline underline-offset-2"
-                                >
-                                  {r.listingTitle}
-                                </Link>
+                          {userType === "business" && (
+                            <td className="py-2">
+                              {r.listingTitle ? (
+                                r.listingId ? (
+                                  <Link
+                                    href={`/business-listing/${r.listingId}`}
+                                    className="text-[var(--color-primary)] underline underline-offset-2"
+                                  >
+                                    {r.listingTitle}
+                                  </Link>
+                                ) : (
+                                  r.listingTitle
+                                )
                               ) : (
-                                r.listingTitle
-                              )
-                            ) : (
-                              "—"
-                            )}
-                          </td>
+                                "—"
+                              )}
+                            </td>
+                          )}
 
                           <td className="py-2">
                             <div className="flex flex-col items-start gap-1">
-                              <span className={statusClass}>{displayStatus}</span>
+                              <span className={statusClass}>
+                                {displayStatus}
+                              </span>
 
-                              {uiState === "pause_scheduled" && pauseEndLabel && (
-                                <span className="text-xs text-sky-700">
-                                  Starts {pauseEndLabel}
-                                </span>
-                              )}
+                              {uiState === "pause_scheduled" &&
+                                pauseEndLabel && (
+                                  <span className="text-xs text-sky-700">
+                                    Starts {pauseEndLabel}
+                                  </span>
+                                )}
 
                               {uiState === "paused" && pauseEndLabel && (
                                 <span className="text-xs text-sky-700">
@@ -1064,7 +1077,9 @@ export default function BillingClient() {
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
                           <div className="text-xs font-medium uppercase tracking-wide text-gray-500">
-                            {r.type === "platform" ? "Platform" : "Boost Add-on"}
+                            {r.type === "platform"
+                              ? "Platform"
+                              : "Boost Add-on"}
                           </div>
                           <div className="mt-1 break-words text-sm font-semibold text-gray-900">
                             {r.label}
@@ -1088,25 +1103,27 @@ export default function BillingClient() {
                       )}
 
                       <div className="mt-4 space-y-2 text-sm">
-                        <div className="flex items-start justify-between gap-3">
-                          <span className="text-gray-500">Listing</span>
-                          <div className="text-right text-gray-900">
-                            {r.listingTitle ? (
-                              r.listingId ? (
-                                <Link
-                                  href={`/business-listing/${r.listingId}`}
-                                  className="text-[var(--color-primary)] underline underline-offset-2"
-                                >
-                                  {r.listingTitle}
-                                </Link>
+                        {userType === "business" && (
+                          <div className="flex items-start justify-between gap-3">
+                            <span className="text-gray-500">Listing</span>
+                            <div className="text-right text-gray-900">
+                              {r.listingTitle ? (
+                                r.listingId ? (
+                                  <Link
+                                    href={`/business-listing/${r.listingId}`}
+                                    className="text-[var(--color-primary)] underline underline-offset-2"
+                                  >
+                                    {r.listingTitle}
+                                  </Link>
+                                ) : (
+                                  r.listingTitle
+                                )
                               ) : (
-                                r.listingTitle
-                              )
-                            ) : (
-                              "—"
-                            )}
+                                "—"
+                              )}
+                            </div>
                           </div>
-                        </div>
+                        )}
 
                         <div className="flex items-start justify-between gap-3">
                           <span className="text-gray-500">Renews</span>
@@ -1361,12 +1378,15 @@ export default function BillingClient() {
               className="rounded-full"
               onClick={() => {
                 if (boostRestoreRow?.stripeSubscriptionId) {
-                  void dismissBoostRestore(boostRestoreRow.stripeSubscriptionId);
+                  void dismissBoostRestore(
+                    boostRestoreRow.stripeSubscriptionId,
+                  );
                 }
               }}
               disabled={
                 !boostRestoreRow?.stripeSubscriptionId ||
-                dismissBoostLoadingId === boostRestoreRow.stripeSubscriptionId ||
+                dismissBoostLoadingId ===
+                  boostRestoreRow.stripeSubscriptionId ||
                 restoreBoostLoadingId === boostRestoreRow.stripeSubscriptionId
               }
             >
@@ -1385,7 +1405,8 @@ export default function BillingClient() {
               }}
               disabled={
                 !boostRestoreRow?.stripeSubscriptionId ||
-                restoreBoostLoadingId === boostRestoreRow.stripeSubscriptionId ||
+                restoreBoostLoadingId ===
+                  boostRestoreRow.stripeSubscriptionId ||
                 dismissBoostLoadingId === boostRestoreRow.stripeSubscriptionId
               }
             >

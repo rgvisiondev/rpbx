@@ -7,6 +7,8 @@ import { createClientRSC } from "../../../../../utils/supabase/server";
 
 export const runtime = "nodejs";
 
+const PAUSE_COOLDOWN_DAYS = 365;
+
 type PauseRequestBody = {
   subscriptionId?: string;
   reason?: string;
@@ -21,6 +23,7 @@ type SubscriptionRecord = {
   current_period_end: string | null;
   purpose_sub?: string | null;
   listing_id?: string | null;
+  product_name?: string | null;
   pause_status?: string | null;
   pause_scope?: string | null;
   pause_count?: number | null;
@@ -81,6 +84,42 @@ function getBestName(profile?: ProfileRecord | null, email?: string | null) {
   return emailPrefix || undefined;
 }
 
+function isWithinRollingWindow(
+  iso: string | null | undefined,
+  days: number,
+): boolean {
+  if (!iso) return false;
+
+  const value = new Date(iso);
+  if (Number.isNaN(value.getTime())) return false;
+
+  const cutoff = new Date();
+  cutoff.setUTCDate(cutoff.getUTCDate() - days);
+
+  return value >= cutoff;
+}
+
+function sameLogicalPauseContext(
+  candidate: Pick<
+    SubscriptionRecord,
+    "listing_id" | "purpose_sub" | "product_name"
+  >,
+  target: Pick<SubscriptionRecord, "listing_id" | "purpose_sub" | "product_name">,
+) {
+  if (target.listing_id) {
+    return candidate.listing_id === target.listing_id;
+  }
+
+  if (target.purpose_sub) {
+    return (
+      candidate.purpose_sub === target.purpose_sub &&
+      candidate.product_name === target.product_name
+    );
+  }
+
+  return candidate.product_name === target.product_name;
+}
+
 export async function POST(req: Request) {
   try {
     const supabase = await createClientRSC();
@@ -126,6 +165,7 @@ export async function POST(req: Request) {
         current_period_end,
         purpose_sub,
         listing_id,
+        product_name,
         pause_status,
         pause_scope,
         pause_count,
@@ -183,7 +223,6 @@ export async function POST(req: Request) {
       );
     }
 
-    // Keep cancel flow and pause flow separate
     if (subscription.cancel_at_period_end === true) {
       return Response.json(
         {
@@ -194,26 +233,47 @@ export async function POST(req: Request) {
       );
     }
 
-    // Anti-abuse rule: allow another pause only after 12 months
-    const pauseCount = subscription.pause_count ?? 0;
-    const lastPauseStartedAt = subscription.last_pause_started_at
-      ? new Date(subscription.last_pause_started_at)
-      : null;
+    const { data: userContextRows, error: contextRowsError } = await admin
+      .from("subscriptions")
+      .select(
+        `
+        id,
+        user_id,
+        listing_id,
+        purpose_sub,
+        product_name,
+        last_pause_started_at
+      `,
+      )
+      .eq("user_id", user.id)
+      .neq("purpose_sub", "listing_promo");
 
-    if (pauseCount >= 1 && lastPauseStartedAt) {
-      const now = new Date();
-      const nextEligibleAt = new Date(lastPauseStartedAt);
-      nextEligibleAt.setFullYear(nextEligibleAt.getFullYear() + 1);
+    if (contextRowsError) {
+      throw new Error(
+        `Failed loading subscription history for pause cooldown: ${contextRowsError.message}`,
+      );
+    }
 
-      if (now < nextEligibleAt) {
-        return Response.json(
-          {
-            error:
-              "This membership already used a pause recently. You can pause it again 12 months after the last pause began.",
-          },
-          { status: 400 },
-        );
-      }
+    const matchingRows = (userContextRows ?? []).filter((row) =>
+      sameLogicalPauseContext(
+        row as SubscriptionRecord,
+        subscription as SubscriptionRecord,
+      ),
+    );
+
+    const latestPauseStartedAt = matchingRows
+      .map((row) => row.last_pause_started_at)
+      .filter((value): value is string => Boolean(value))
+      .sort((a, b) => +new Date(b) - +new Date(a))[0];
+
+    if (isWithinRollingWindow(latestPauseStartedAt, PAUSE_COOLDOWN_DAYS)) {
+      return Response.json(
+        {
+          error:
+            "This membership already used a pause within the last 12 months. Please wait until that cooldown window has passed before pausing again.",
+        },
+        { status: 400 },
+      );
     }
 
     if (!subscription.current_period_end) {
@@ -235,7 +295,6 @@ export async function POST(req: Request) {
     const { error: mainUpdateError } = await admin
       .from("subscriptions")
       .update({
-        // Pause lifecycle
         pause_status: "scheduled",
         pause_scope: "subscription",
         pause_starts_at: pauseStartsAt,
@@ -246,10 +305,8 @@ export async function POST(req: Request) {
         pause_activated_email_sent_at: null,
         pause_resumed_email_sent_at: null,
 
-        // App/access lifecycle
         cancel_at_period_end: true,
 
-        // Prevent pause from looking like churn
         cancellation_type: null,
         cancellation_reason: null,
         cancellation_feedback: null,
@@ -361,8 +418,6 @@ export async function POST(req: Request) {
       }
     }
 
-    // Send the parent confirmation email only after all pause scheduling work succeeds.
-    // Do not fail the pause flow if email delivery fails.
     if (!subscription.pause_scheduled_email_sent_at) {
       try {
         const resend = getResendClient();

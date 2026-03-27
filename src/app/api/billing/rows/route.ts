@@ -3,6 +3,10 @@ import { createClientRSC } from "@/../utils/supabase/server";
 
 interface SubscriptionMetadata {
   listing_id?: string;
+  resumed_from_subscription_id?: string;
+  resume_from_pause?: string;
+  auto_resume_from_pause?: string;
+  plan_lookup?: string;
 }
 
 interface SubscriptionRow {
@@ -87,6 +91,32 @@ type MainLifecycleState =
   | "incomplete"
   | "incomplete_expired"
   | "unknown";
+
+function getResumedFromSubscriptionId(sub: SubscriptionRow): string | null {
+  const meta = sub.metadata;
+  if (
+    meta &&
+    typeof meta === "object" &&
+    typeof meta.resumed_from_subscription_id === "string"
+  ) {
+    return meta.resumed_from_subscription_id;
+  }
+
+  return null;
+}
+
+function getPlanLookupForSubscription(sub: SubscriptionRow): string | null {
+  const meta = sub.metadata;
+  if (
+    meta &&
+    typeof meta === "object" &&
+    typeof meta.plan_lookup === "string"
+  ) {
+    return meta.plan_lookup;
+  }
+
+  return null;
+}
 
 function formatDate(dateString: string | null): string | null {
   if (!dateString) return null;
@@ -188,8 +218,14 @@ function getVisibilityRank(sub: SubscriptionRow): number {
 function getLogicalMainContextKey(sub: SubscriptionRow): string {
   const listingId = getListingIdForSubscription(sub);
   if (listingId) return `listing:${listingId}`;
+
   if (sub.purpose_sub) return `purpose:${sub.purpose_sub}`;
+
+  const planLookup = getPlanLookupForSubscription(sub);
+  if (planLookup) return `plan:${planLookup}`;
+
   if (sub.product_name) return `product:${sub.product_name}`;
+
   return `subscription:${sub.id}`;
 }
 
@@ -200,9 +236,20 @@ function getTimestampValue(value?: string | null): number {
 }
 
 function chooseVisibleMainSubscriptions(subs: SubscriptionRow[]): SubscriptionRow[] {
-  const byContext = new Map<string, SubscriptionRow>();
+  const resumedPredecessorIds = new Set<string>();
 
   for (const sub of subs) {
+    const resumedFromId = getResumedFromSubscriptionId(sub);
+    if (resumedFromId) {
+      resumedPredecessorIds.add(resumedFromId);
+    }
+  }
+
+  const filteredSubs = subs.filter((sub) => !resumedPredecessorIds.has(sub.id));
+
+  const byContext = new Map<string, SubscriptionRow>();
+
+  for (const sub of filteredSubs) {
     const key = getLogicalMainContextKey(sub);
     const existing = byContext.get(key);
 
@@ -242,7 +289,6 @@ function chooseVisibleMainSubscriptions(subs: SubscriptionRow[]): SubscriptionRo
 
   return Array.from(byContext.values());
 }
-
 function getBoostVisibilityRank(boost: PromotionRow): number {
   if (boost.status === "active" && boost.cancel_at_period_end) return 80;
 

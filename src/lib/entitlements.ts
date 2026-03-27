@@ -43,18 +43,6 @@ function isPromoSubscription(sub: SubscriptionRow): boolean {
   return sub.purpose_sub === "listing_promo";
 }
 
-function isScheduledPause(sub: SubscriptionRow, nowMs: number): boolean {
-  if (sub.pause_status !== "scheduled") return false;
-
-  const startMs = toMs(sub.pause_starts_at);
-  if (startMs == null) {
-    // If no start is stored yet, treat "scheduled" as future/non-blocking
-    return true;
-  }
-
-  return startMs > nowMs;
-}
-
 function isActivePause(sub: SubscriptionRow, nowMs: number): boolean {
   // Explicit active pause wins
   if (sub.pause_status === "active") return true;
