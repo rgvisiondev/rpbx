@@ -1,5 +1,5 @@
 import { verifyTurnstileToken } from "@/lib/verifyTurnstile";
-import ContactInvestor from "@/emails/ContactInvestor";
+import ContactInvestor from "../../../../emails/ContactInvestor";
 import { render } from "@react-email/components";
 import { getEmailFrom, getResendClient } from "@/lib/resend";
 
