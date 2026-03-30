@@ -731,16 +731,16 @@ export default function BillingClient() {
     const uiState = getEffectiveRowUiState(row, rowsBySubscriptionId);
 
     const primaryBtn = mobile
-      ? "w-full px-3 py-2 rounded-full bg-[var(--color-primary)] text-white text-sm hover:bg-[var(--color-primary-hover)] transition disabled:opacity-60"
-      : "px-3 py-1 rounded-full bg-[var(--color-primary)] text-white text-xs hover:bg-[var(--color-primary-hover)] transition disabled:opacity-60";
+      ? "w-full px-3 py-2 rounded-full bg-[var(--color-primary)] text-white text-sm hover:cursor-pointer hover:bg-[var(--color-primary-hover)] transition disabled:opacity-60"
+      : "px-3 py-1 rounded-full bg-[var(--color-primary)] text-white text-xs hover:cursor-pointer hover:bg-[var(--color-primary-hover)] transition disabled:opacity-60";
 
     const borderBtn = mobile
-      ? "w-full px-3 py-2 rounded-full border text-sm hover:bg-gray-50 transition"
-      : "px-3 py-1 rounded-full border text-xs hover:bg-gray-50 transition";
+      ? "w-full px-3 py-2 rounded-full border text-sm hover:cursor-pointer hover:bg-gray-50 transition"
+      : "px-3 py-1 rounded-full border text-xs hover:cursor-pointer hover:bg-gray-50 transition";
 
     const dangerBtn = mobile
-      ? "w-full px-3 py-2 rounded-full bg-red-500 text-white text-sm hover:bg-red-600 transition"
-      : "px-3 py-1 rounded-full bg-red-500 text-white text-xs hover:bg-red-600 transition";
+      ? "w-full px-3 py-2 rounded-full bg-red-500 text-white text-sm hover:cursor-pointer hover:bg-red-600 transition"
+      : "px-3 py-1 rounded-full bg-red-500 text-white text-xs hover:cursor-pointer hover:bg-red-600 transition";
 
     if (!row.stripeSubscriptionId) {
       return <span className="text-xs text-gray-400">—</span>;
@@ -790,7 +790,7 @@ export default function BillingClient() {
             }
             className={borderBtn}
           >
-            Manage
+            Manage Payment
           </button>
         </>
       );
@@ -839,7 +839,7 @@ export default function BillingClient() {
             }
             className={borderBtn}
           >
-            Manage
+            Manage Payment
           </button>
         </>
       );
@@ -858,7 +858,7 @@ export default function BillingClient() {
             }
             className={borderBtn}
           >
-            Update
+            Manage Payment
           </button>
 
           <button onClick={() => openCancelModal(row)} className={dangerBtn}>
@@ -1189,7 +1189,7 @@ export default function BillingClient() {
                         type="button"
                         onClick={() => setCancelReason(option.value)}
                         className={[
-                          "w-full rounded-xl border p-4 text-left transition-all duration-200",
+                          "w-full rounded-xl border p-4 text-left transition-all duration-200 hover:cursor-pointer",
                           "focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:ring-offset-2",
                           isSelected
                             ? "border-[var(--color-primary)] bg-[#f4fbf8] shadow-sm"
@@ -1261,7 +1261,7 @@ export default function BillingClient() {
                     <Button
                       onClick={submitPause}
                       disabled={pauseLoading}
-                      className="rounded-full bg-sky-600 hover:bg-sky-700"
+                      className="rounded-full bg-sky-600 hover:cursor-pointer hover:bg-sky-700"
                     >
                       {pauseLoading ? "Pausing..." : "Pause Instead"}
                     </Button>
@@ -1309,23 +1309,21 @@ export default function BillingClient() {
               period ends.
             </div>
 
-            <div className="flex w-full flex-col-reverse gap-2 sm:w-auto sm:flex-row">
+            <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
               <Button
-                variant="outline"
                 onClick={() => {
                   setCancelModalOpen(false);
                   resetCancelState();
                 }}
-                className="rounded-full"
+                className="rounded-full bg-[var(--color-primary)] text-white hover:cursor-pointer hover:bg-[var(--color-primary-hover)]"
               >
                 Keep Membership
               </Button>
 
               <Button
-                variant="destructive"
                 onClick={submitCancellation}
                 disabled={cancelLoading || !cancelReason}
-                className="rounded-full"
+                className="rounded-full border border-gray-300 bg-gray-100 text-gray-700 hover:cursor-pointer hover:bg-gray-200 disabled:opacity-50"
               >
                 {cancelLoading ? "Confirming..." : "Confirm Cancellation"}
               </Button>
@@ -1375,7 +1373,7 @@ export default function BillingClient() {
           <DialogFooter className="border-t border-gray-100 px-4 py-4 sm:px-6">
             <Button
               variant="outline"
-              className="rounded-full"
+              className="rounded-full hover:cursor-pointer"
               onClick={() => {
                 if (boostRestoreRow?.stripeSubscriptionId) {
                   void dismissBoostRestore(
@@ -1396,7 +1394,7 @@ export default function BillingClient() {
             </Button>
 
             <Button
-              className="rounded-full"
+              className="rounded-full hover:cursor-pointer"
               style={{ backgroundColor: "#9ed3c3" }}
               onClick={() => {
                 if (boostRestoreRow?.stripeSubscriptionId) {
