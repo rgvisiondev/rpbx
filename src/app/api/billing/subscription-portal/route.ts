@@ -46,31 +46,45 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const customerId = await ensureCustomer(user);
-
-  const flowData =
-    action === "cancel"
-      ? {
-          type: "subscription_cancel" as const,
-          subscription_cancel: { subscription: subscriptionId },
-        }
-      : {
-          type: "subscription_update" as const,
-          subscription_update: { subscription: subscriptionId },
-        };
-
   try {
     const stripe = getStripe();
     if (!stripe) {
-      return Response.json(
+      return NextResponse.json(
         { error: "Stripe is not configured" },
         { status: 500 }
       );
     }
+
+    const customerId = await ensureCustomer(user);
+
+    const flow_data =
+      action === "cancel"
+        ? {
+            type: "subscription_cancel" as const,
+            subscription_cancel: {
+              subscription: subscriptionId,
+            },
+            after_completion: {
+              type: "redirect" as const,
+              redirect: {
+                return_url: `${ORIGIN}/dashboard/billing?cancel=success`,
+              },
+            },
+          }
+        : {
+            type: "payment_method_update" as const,
+            after_completion: {
+              type: "redirect" as const,
+              redirect: {
+                return_url: `${ORIGIN}/dashboard/billing?payment=updated`,
+              },
+            },
+          };
+
     const session = await stripe.billingPortal.sessions.create({
       customer: customerId,
       return_url: `${ORIGIN}/dashboard/billing`,
-      flow_data: flowData,
+      flow_data,
     });
 
     return NextResponse.json({ url: session.url });
