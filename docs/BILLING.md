@@ -15,6 +15,7 @@ Stripe is responsible for billing execution, while the application manages:
 
 ## Architecture
 
+
 ### Stripe Layer (Source of Truth)
 
 Stripe handles:
