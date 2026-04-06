@@ -47,7 +47,8 @@ export default async function Investor() {
               <h1 className="text-center leading-tight">
                 Discover Opportunities.
                 <br />
-                Invest in Businesses <br />That Matter.
+                Invest in Businesses <br />
+                That Matter.
               </h1>
 
               <p className="mt-4 mb-6 text-center text-base leading-relaxed text-gray-600 lg:text-lg">
@@ -97,6 +98,11 @@ export default async function Investor() {
                 <p className="leading-7 text-slate-600">{item.description}</p>
               </div>
             ))}
+          </div>
+          <div className="mt-10 flex items-center justify-center">
+            <Link href="/subscribe/investor_plan" className="sm:max-w-fit">
+              <Button className="w-full">Get Started</Button>
+            </Link>
           </div>
         </div>
       </section>
