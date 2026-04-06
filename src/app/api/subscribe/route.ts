@@ -8,6 +8,14 @@ import { verifyTurnstileToken } from "@/lib/verifyTurnstile";
 import { getStripe } from "@/lib/stripe";
 import { syncMailerLiteGroups } from "@/lib/mailerlite/mailerlite";
 
+function getAllowedTrialDaysFromLookup(
+  lookup: string,
+): number {
+  if (lookup === "business_monthly") return 30;
+
+  return 0;
+}
+
 function deriveUserTypeFromPrice(
   price: Stripe.Price,
 ): "investor" | "business" | "member" {
@@ -44,12 +52,6 @@ export async function POST(req: Request) {
     const email = String(form.get("email") ?? "");
     const password = String(form.get("password") ?? "");
     const turnstileToken = form.get("turnstile_token");
-
-    const trialDaysRaw = form.get("trial_days");
-    const trialDays =
-      typeof trialDaysRaw === "string" && /^\d+$/.test(trialDaysRaw)
-        ? parseInt(trialDaysRaw, 10)
-        : 0;
 
     if ((!lookup && !priceIdFromForm) || !email || !password) {
       return Response.redirect(
@@ -177,6 +179,8 @@ export async function POST(req: Request) {
       );
     }
 
+    const allowedTrialDays = getAllowedTrialDaysFromLookup(lookup);
+
     const intendedUserType = deriveUserTypeFromPrice(price);
 
     // 3) Ensure Stripe Customer
@@ -196,7 +200,7 @@ export async function POST(req: Request) {
       },
 
       subscription_data: {
-        trial_period_days: trialDays > 0 ? trialDays : undefined,
+        trial_period_days: allowedTrialDays > 0 ? allowedTrialDays : undefined,
         metadata: {
           supabase_user_id: userId,
           plan_lookup: lookup || "",

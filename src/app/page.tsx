@@ -3,12 +3,12 @@ import Navbar from "./components/Navbar";
 import Button from "./components/Button";
 import Modal from "./components/Modal";
 import AuthForm from "@/components/AuthForm";
-import { createClientRSC } from "@/../utils/supabase/server"
-import { redirect } from "next/navigation"
+import { createClientRSC } from "@/../utils/supabase/server";
+import { redirect } from "next/navigation";
 import PricingTable from "./components/pricing-table";
 import NewsletterSignup from "../components/ui/newsletter";
 import MyCarousel from "../components/ui/myCarousel";
-import HoverGif from '../components/HoverGif';
+import HoverGif from "../components/HoverGif";
 import HomeSlider from "@/components/sliders/homeslider";
 import Eval from "./components/popups/Eval";
 import Legal from "./components/popups/Legal";
@@ -16,18 +16,42 @@ import Cpa from "./components/popups/Cpa";
 import ValuateCta from "./components/valuate-cta";
 import CardCarousel from "./components/Card-carousel";
 import Marketing from "./components/popups/marketing";
+import dynamic from "next/dynamic";
 
-export const dynamic = "force-dynamic";
+const OnboardingPreview = dynamic(
+  () => import("./components/OnboardingPreview"),
+  {
+    loading: () => (
+      <div className="bg-[url('/images/backgrounds/white-bg.png')] bg-repeat bg-top py-16 px-4">
+        <div className="max-w-[1140px] mx-auto">
+          <div className="rounded-[28px] border border-slate-200 bg-white p-8 shadow-sm animate-pulse">
+            <div className="h-4 w-32 bg-slate-200 rounded mb-4" />
+            <div className="h-10 w-80 bg-slate-200 rounded mb-3" />
+            <div className="h-4 w-full bg-slate-200 rounded mb-2" />
+            <div className="h-4 w-5/6 bg-slate-200 rounded" />
+          </div>
+        </div>
+      </div>
+    ),
+  },
+);
 
 export default async function Home() {
   const supabase = await createClientRSC();
 
   // Use getSession instead of getUser for better performance
-  const { data: { user }, error } = await supabase.auth.getUser();
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser();
 
   // Only log non-authentication errors
-  if (error && error.message !== 'Auth session missing!' && error.status !== 400) {
-    console.error('Unexpected auth error:', error);
+  if (
+    error &&
+    error.message !== "Auth session missing!" &&
+    error.status !== 400
+  ) {
+    console.error("Unexpected auth error:", error);
   }
 
   // Redirect if user is authenticated
@@ -36,7 +60,6 @@ export default async function Home() {
   }
 
   const dark = false;
-
 
   return (
     <div>
@@ -50,34 +73,40 @@ export default async function Home() {
         <div className="flex flex-col lg:flex-row py-10 lg:py-0">
           <div className="flex-1 flex justify-center lg:justify-end items-center px-4 lg:p-[15px] order-2 lg:order-1">
             <div className="flex flex-col items-center w-full lg:w-[560px] max-w-lg">
-              <h1 className="text-center">Where Small Businesses Are Protected, Valued, and Grown</h1>
+              <h1 className="text-center">
+                Where Small Businesses Are Protected, Valued, and Grown
+              </h1>
               <AuthForm />
             </div>
           </div>
 
-          <div className="flex-1 lg:order-2 hidden lg:block bg-[url('/images/header/home-header.png')] bg-cover bg-left bg-no-repeat min-h-[450px]">
-          </div>
+          <div className="flex-1 lg:order-2 hidden lg:block bg-[url('/images/header/home-header.png')] bg-cover bg-left bg-no-repeat min-h-[450px]"></div>
         </div>
       </div>
 
-
       {/* Div 2: 1 div containing 3 div columns */}
 
-      <div className="bg-[url('/images/backgrounds/black-bg.png')] bg-cover bg-center bg-fixed lg:bg-fixed flex justify-center py-10 px-4 lg:px-0">
+      <div className="bg-[url('/images/backgrounds/black-bg.png')] bg-cover bg-center bg-fixed lg:bg-fixed">
+        <div className="flex justify-center py-10 px-4 lg:px-0">
         <PricingTable dark={dark} loggedIn={false} />
+        </div>
       </div>
 
+      <OnboardingPreview />
 
       {/* Div 3: 3 rows */}
       <div className="flex flex-col items-center bg-[url('/images/backgrounds/white-bg.png')] bg-repeat bg-top py-[15px] overflow-hidden">
-
-
         {/* Row 1 */}
         <div className="w-full px-4 lg:max-w-[1140px] lg:px-2 mx-auto flex flex-col lg:flex-row gap-y-6 lg:gap-y-0 lg:gap-x-[45px] py-10">
           <div className="flex justify-center lg:justify-end lg:w-2/5">
             <div className="flex flex-col  w-full">
-              <h2 className="text-center lg:text-start">Explore our Blog topics</h2>
-              <p className="text-center lg:text-left pt-1">RPBX is here to offer you valuable knowledge. We will help guide you in making your next steps.</p>
+              <h2 className="text-center lg:text-start">
+                Explore our Blog topics
+              </h2>
+              <p className="text-center lg:text-left pt-1">
+                RPBX is here to offer you valuable knowledge. We will help guide
+                you in making your next steps.
+              </p>
             </div>
           </div>
           <div className="flex justify-center lg:justify-start lg:w-3/5">
@@ -113,8 +142,6 @@ export default async function Home() {
           </div>
         </div>
 
-
-
         {/* Row 2 */}
         <div className="flex flex-col md:flex-row gap-y-6 md:gap-y-0 w-full pr-4">
           <HomeSlider />
@@ -132,19 +159,21 @@ export default async function Home() {
           </div>
           <div className="w-full md:w-1/2 lg:w-1/3 overflow-hidden xl:overflow-visible">
             <CardCarousel />
-            <p className="small text-grey text-center pt-2">Swipe left to explore</p>
+            <p className="small text-grey text-center pt-2">
+              Swipe left to explore
+            </p>
           </div>
         </div>
-
 
         {/* Row 3 */}
         <div className="w-full lg:max-w-[1140px] px-4 lg:px-0 flex flex-col items-center py-10">
           <h2>Business Solutions</h2>
-          <p className="text-center pt-1">Connect with Our Trusted Advisors for Tailored Business Solutions</p>
+          <p className="text-center pt-1">
+            Connect with Our Trusted Advisors for Tailored Business Solutions
+          </p>
 
           {/* four cols on desktop, two on tablet/mobile */}
           <div className="mt-4 lg:px-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10 lg:gap-0 w-full">
-
             {/* 1 */}
             <div className="flex flex-col items-center">
               <Modal
@@ -159,13 +188,9 @@ export default async function Home() {
                 }
               >
                 <Eval />
-
-
-
               </Modal>
               <h4 className="text-center mt-2">Business Valuation</h4>
             </div>
-
 
             {/* 2 */}
             <div className="flex flex-col items-center">
@@ -181,7 +206,6 @@ export default async function Home() {
                 }
               >
                 <Legal />
-
               </Modal>
               <h4 className="text-center mt-2">Legal Representation</h4>
             </div>
@@ -200,9 +224,10 @@ export default async function Home() {
                 }
               >
                 <Cpa />
-
               </Modal>
-              <h4 className="text-center mt-2">CPA &amp; Book Keeping Assistant</h4>
+              <h4 className="text-center mt-2">
+                CPA &amp; Book Keeping Assistant
+              </h4>
             </div>
 
             {/* 4 */}
@@ -219,11 +244,9 @@ export default async function Home() {
                 }
               >
                 <Marketing />
-
               </Modal>
               <h4 className="text-center mt-2">Media Amplification</h4>
             </div>
-
           </div>
         </div>
       </div>

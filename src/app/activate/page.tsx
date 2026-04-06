@@ -7,30 +7,25 @@ import { redirect } from "next/navigation";
 
 import { ActivateForm } from "./activateform";
 import ValuateCta from "../components/valuate-cta";
+import ActivateOnboardingPreview from "./ActivateOnboardingPreview";
+
 // Icons
-import { BadgeCheck } from "lucide-react";
-import { Network } from "lucide-react";
-import { Map } from "lucide-react";
-import { Goal } from "lucide-react";
-import CarouselBusiness from "@/components/ui/carouselbusiness";
-import CardCarousel from "../components/Card-carousel";
+import { BadgeCheck, Network, Map, Goal } from "lucide-react";
 
 export const metadata: Metadata = {
   title: "Start 30 Days Free | RioPlex Business Exchange",
   description:
-    "Connect with local investors and grow your business on RioPlex Business Exchange.",
+    "Start your 30-day free trial on RioPlex Business Exchange and connect with local investors through a guided business listing experience.",
 };
 
 export default async function Activate() {
   const supabase = await createClientRSC();
 
-  // Use getSession instead of getUser for better performance
   const {
     data: { session },
     error,
   } = await supabase.auth.getSession();
 
-  // Only log non-authentication errors
   if (
     error &&
     error.message !== "Auth session missing!" &&
@@ -39,7 +34,6 @@ export default async function Activate() {
     console.error("Unexpected auth error:", error);
   }
 
-  // Redirect if user is authenticated
   if (session?.user) {
     return redirect("/dashboard");
   }
@@ -47,89 +41,92 @@ export default async function Activate() {
   const points = [
     {
       icon: <Network color="#60BC9B" size={32} />,
-      title: "Direct Networking",
+      title: "Direct Access",
       description:
-        "Bypass gatekeepers, we give you direct access to decision-makers in your industry.",
+        "Get in front of investors without relying on cold outreach or scattered connections.",
     },
     {
       icon: <Map color="#60BC9B" size={32} />,
-      title: "Local Advantage",
+      title: "Local Investors",
       description:
-        "RPBX connects you with investors who understand the local market and support local growth.",
+        "Connect with investors who understand the Rio Grande Valley and the businesses growing here.",
     },
     {
       icon: <Goal color="#60BC9B" size={32} />,
-      title: "Targeted Exposure",
+      title: "Focused Exposure",
       description:
-        "Our platform focuses on investors who are actively looking for opportunities like yours.",
+        "Show your business to investors actively looking for opportunities like yours.",
     },
   ];
 
   return (
-    <div className="bg-white text-slate-800 antialiased min-h-screen flex flex-col font-sans">
-      {/* Custom Styles for this page only */}
+    <div className="flex min-h-screen flex-col bg-white font-sans text-slate-800 antialiased">
       <style>{`
         :root {
-            --color-primary: #60BC9B;
-            --color-primary-dark: #4da685;
+          --color-primary: #60BC9B;
+          --color-primary-dark: #4da685;
         }
-        
+
         .hero-bg {
-            background-image: linear-gradient(to bottom right, rgba(15, 23, 42, 0.9), rgba(30, 41, 59, 0.85)), url('/images/header/building2.png');
-            background-size: cover;
-            background-position: center;
-            background-attachment: fixed;
-            
+          background-image:
+            linear-gradient(to bottom right, rgba(15, 23, 42, 0.9), rgba(30, 41, 59, 0.85)),
+            url('/images/header/building2.png');
+          background-size: cover;
+          background-position: center;
+          background-attachment: fixed;
         }
       `}</style>
 
-      {/* Navigation - Transparent on dark bg */}
       <nav>
         <NavBarActivate />
       </nav>
 
-      {/* Hero Section with Form */}
-      <header className="relative hero-bg pt-32 pb-24 lg:pt-40 lg:pb-32 overflow-hidden">
-        <div className="max-w-[1140px] container mx-auto px-6 grid lg:grid-cols-2 gap-16 items-center pb-10">
-          {/* Hero Copy */}
-          <div className="w-full relative z-10">
-            <div className="hidden lg:inline-block px-3 py-1 mb-6 border border-[#60BC9B]/50 bg-[#60BC9B]/20 rounded-full text-[#60BC9B] text-sm font-bold tracking-wide uppercase shadow-sm">
-              START WITH 30 DAYS FOR FREE
-            </div>
-            <h1 className="activatepage text-4xl sm:text-5xl lg:text-6xl font-extrabold leading-tight mb-6 text-white">
-              Connect With Investors Today!
-            </h1>
-            <div className="text-slate-300 text-lg font-medium pb-8">
-              Get a professional business valuation at 50% off when you join
-              RPBX. Know exactly what your company is worth so you can sell,
-              raise capital, or scale with confidence.
+      <header className="hero-bg relative overflow-hidden pt-32 pb-24 lg:pt-40 lg:pb-32">
+        <div className="container mx-auto grid max-w-[1140px] items-center gap-14 px-6 pb-10 lg:grid-cols-2 lg:gap-16">
+          <div className="relative z-10 w-full">
+            <div className="inline-block rounded-full border border-[#60BC9B]/50 bg-[#60BC9B]/20 px-3 py-1 text-sm font-bold uppercase tracking-wide text-[#60BC9B] shadow-sm">
+              Start with 30 days free
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-4 sm:gap-8 text-slate-300 text-lg lg:text-sm  font-medium">
+            <h1 className="activatepage mt-6 text-4xl font-extrabold leading-tight text-white sm:text-5xl lg:text-6xl">
+              Start Your Business Listing Free for 30 Days
+            </h1>
+
+            <div className="pb-4 pt-6 text-lg font-medium text-slate-200">
+              Create your listing, get in front of local investors, and manage
+              everything through one guided dashboard built for business owners.
+            </div>
+
+            <div className="pb-8 text-base font-medium text-slate-300">
+              Members also receive <span className="font-semibold text-white">50% off</span> a professional business valuation.
+            </div>
+
+            <div className="flex flex-col gap-4 text-base font-medium text-slate-300 sm:flex-row sm:flex-wrap sm:gap-6 lg:text-sm">
               <div className="flex items-center gap-2">
-                <BadgeCheck /> Verified Partners
+                <BadgeCheck size={18} /> Guided setup
               </div>
               <div className="flex items-center gap-2">
-                <BadgeCheck /> Instant Access
+                <BadgeCheck size={18} /> Local investor access
               </div>
               <div className="flex items-center gap-2">
-                <BadgeCheck /> Secure Transactions
+                <BadgeCheck size={18} /> Secure account creation
               </div>
             </div>
           </div>
 
-          {/* Conversion Form */}
-          <div className="relative z-10 w-full mx-auto lg:ml-auto">
-            {/* Glow effect behind form */}
-            <div className="absolute -inset-1 bg-[#60BC9B] rounded-2xl blur opacity-20"></div>
+          <div className="relative z-10 mx-auto w-full lg:ml-auto">
+            <div className="absolute -inset-1 rounded-2xl bg-[#60BC9B] opacity-20 blur" />
 
-            <div className="relative bg-white rounded-2xl shadow-2xl overflow-hidden p-5 md:p-8">
-              <div className="text-center mb-8">
+            <div
+              id="activate-form"
+              className="relative overflow-hidden rounded-2xl bg-white p-5 shadow-2xl md:p-8"
+            >
+              <div className="mb-8 text-center">
                 <h2 className="text-2xl font-bold text-slate-900">
                   Start Your Free Trial
                 </h2>
-                <p className="text-slate-500 text-sm mt-2">
-                  30 days free access for Business Owners.
+                <p className="mt-2 text-sm text-slate-500">
+                  30 days free for Business Owner Legacy.
                 </p>
               </div>
 
@@ -138,9 +135,8 @@ export default async function Activate() {
           </div>
         </div>
 
-        {/* Bottom Curve Divider using CSS Mask to ensure seamless background pattern */}
         <div
-          className="absolute bottom-0 w-full h-[60px] md:h-[120px] z-10 leading-[0]"
+          className="absolute bottom-0 z-10 h-[60px] w-full leading-[0] md:h-[120px]"
           style={{
             backgroundImage: "url('/images/backgrounds/white-bg.png')",
             backgroundRepeat: "repeat",
@@ -154,116 +150,49 @@ export default async function Activate() {
             maskRepeat: "no-repeat",
             WebkitMaskRepeat: "no-repeat",
           }}
-        ></div>
+        />
       </header>
 
-      {/* Value Proposition */}
-      <section className="pb-20 bg-[url('/images/backgrounds/white-bg.png')] bg-repeat bg-top">
+      <main className="bg-[url('/images/backgrounds/white-bg.png')] bg-repeat bg-top">
+        <ActivateOnboardingPreview />
 
-        {/* Div 2: How It Works (MATCHES Business page layout exactly) */}
-        <div>
-          <div className="flex justify-center py-10">
-            <div className="flex flex-col lg:flex-row gap-y-4 lg:gap-y-0 lg:gap-x-10 w-full lg:max-w-[1140px] px-4 lg:px-2">
-              <div className="flex-1 flex flex-col">
-                <h2 className="text-black">How It Works</h2>
-
-                <div className="flex flex-col gap-6 mt-5">
-                  <div className="flex flex-row transition-transform duration-300 lg:hover:translate-x-2">
-                    <div className="flex items-center justify-center min-w-12 max-h-12 bg-[#61BD9C] rounded-full mr-4">
-                      <h4 className="text-white">1</h4>
-                    </div>
-                    <div className="flex flex-col">
-                      <h4 className="text-black">Create Your Account</h4>
-                      <p className="text-black pt-2">
-                        Sign up to activate your 30-day free trial and get instant
-                        access to the RPBX platform.
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-row transition-transform duration-300 lg:hover:translate-x-2">
-                    <div className="flex items-center justify-center min-w-12 max-h-12 bg-[#61BD9C] rounded-full mr-4">
-                      <h4 className="text-white">2</h4>
-                    </div>
-                    <div className="flex flex-col">
-                      <h4 className="text-black">Create Your Listing</h4>
-                      <p className="text-black pt-2">
-                        Add your business details with our easy-to-use listing
-                        builder and start connecting with investors.
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-row transition-transform duration-300 lg:hover:translate-x-2">
-                    <div className="flex items-center justify-center min-w-12 max-h-12 bg-[#61BD9C] rounded-full mr-4">
-                      <h4 className="text-white">3</h4>
-                    </div>
-                    <div className="flex flex-col">
-                      <h4 className="text-black">
-                        Review Your Interested Buyers
-                      </h4>
-                      <p className="text-black pt-2">
-                        Receive inquiries from investors and reach out to
-                        opportunities that align with your goals.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex flex-col items-center text-center w-full lg:w-1/2">
-                {/* Frosted/glass frame just around the slider */}
-                <div className="relative w-full rounded-3xl border border-white/10 bg-black/40 backdrop-blur-sm p-4 lg:p-5 shadow-2xl">
-                  {/* subtle glow ring */}
-                  <div className="pointer-events-none absolute -inset-1 rounded-3xl bg-[#60BC9B]/20 blur opacity-40" />
-                  <div className="relative rounded-2xl overflow-hidden">
-                    <CarouselBusiness variant="landing" />
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="max-w-[1140px] mx-auto flex flex-col md:flex-row items-center">
-            <div className="w-full md:w-1/2 lg:w-2/3">
-              <ValuateCta />
-            </div>
-            <div className="w-full md:w-1/2 lg:w-1/3 overflow-hidden xl:overflow-visible">
-              <CardCarousel />
-              <p className="small text-grey text-center pt-2">Swipe left to explore</p>
-            </div>
-          </div>
-
-          <div className="flex-col mx-auto w-full lg:max-w-[1140px] px-4 lg:px-2">
-            <div className="text-center mb-16 mx-auto mt-10">
-              <h2 className="text-3xl font-bold text-slate-900 mb-4 mt-2 lg:mt-0">
-                Your Gateway To Local Investors
+        <section className="px-4 pb-16 pt-4 sm:pb-20">
+          <div className="mx-auto max-w-[1140px]">
+            <div className="mx-auto mb-12 max-w-3xl text-center">
+              <h2 className="mt-2 text-3xl font-bold text-slate-900">
+                Your Gateway to Local Investors
               </h2>
-              <p className="text-slate-600">
+              <p className="mt-4 text-slate-600">
                 RPBX gives your business direct access, local credibility, and
-                targeted exposure to investors who are ready to engage.
+                focused exposure to investors who are ready to engage.
               </p>
             </div>
 
-            <div className="grid md:grid-cols-3 gap-10 -mt-10">
+            <div className="grid gap-6 md:grid-cols-3">
               {points.map((point, index) => (
                 <div
                   key={index}
-                  className="bg-slate-50 p-8 rounded-2xl text-center shadow-lg border-2 border-grey-500 transition-transform duration-300 hover:-translate-y-1 hover:shadow-xl"
+                  className="rounded-2xl border border-slate-200 bg-slate-50 p-8 text-center shadow-sm transition-transform duration-300 hover:-translate-y-1 hover:shadow-lg"
                 >
-                  <div className="w-14 h-14 bg-[#60BC9B]/20 rounded-xl shadow-sm flex items-center justify-center text-white text-2xl mb-6 mx-auto ">
+                  <div className="mx-auto mb-6 flex h-14 w-14 items-center justify-center rounded-xl bg-[#60BC9B]/20 shadow-sm">
                     {point.icon}
                   </div>
-                  <h4 className="large mb-3">{point.title}</h4>
-                  <p className="text-slate-500 leading-relaxed">
+                  <h4 className="mb-3 text-slate-900">{point.title}</h4>
+                  <p className="leading-relaxed text-slate-600">
                     {point.description}
                   </p>
                 </div>
               ))}
             </div>
           </div>
-        </div>
-      </section>
+        </section>
+
+        <section className="px-4 pb-16 sm:pb-20">
+          <div className="mx-auto max-w-[1140px]">
+            <ValuateCta />
+          </div>
+        </section>
+      </main>
     </div>
   );
 }
