@@ -7,6 +7,13 @@ import { getStripe } from "@/lib/stripe";
 
 export const revalidate = 300;
 
+function getAllowedTrialDays(lookup: string){
+  // safe hard rule
+  if (lookup === "business_monthly") return 30;
+
+  return 0;
+}
+
 function priceLabel(p: Stripe.Price) {
   const amt = p.unit_amount ?? 0;
   const money = new Intl.NumberFormat("en-US", {
@@ -67,11 +74,9 @@ export default async function SubscribePage({
   if (!product?.active) return notFound();
 
   const baseLabel = priceLabel(price);
-  const trialParam = readParam(q, "trial");
-  const trialDays =
-    trialParam && /^\d+$/.test(trialParam) ? parseInt(trialParam, 10) : 0;
+  const allowedTrialDays = getAllowedTrialDays(lookup);
   const displayPriceText =
-    trialDays > 0 ? `$0 for ${trialDays} days, then ${baseLabel}` : baseLabel;
+    allowedTrialDays > 0 ? `$0 for ${allowedTrialDays} days, then ${baseLabel}` : baseLabel;
 
   // Map known error codes/messages to friendly copy
   let friendlyError: string | null = null;
@@ -128,7 +133,7 @@ export default async function SubscribePage({
           </div>
         )}
 
-        <SubscribeForm lookup={lookup} />
+        <SubscribeForm lookup={lookup} trialDays={allowedTrialDays}/>
 
         <p className="mt-4 text-sm text-neutral-600">
           Already have an account?{" "}
