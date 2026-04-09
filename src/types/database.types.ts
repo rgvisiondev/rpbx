@@ -463,6 +463,84 @@ export type Database = {
           },
         ]
       }
+      match_digest_sends: {
+        Row: {
+          error_message: string | null
+          featured_entity_id: string | null
+          id: number
+          included_entity_ids: Json
+          match_count: number
+          provider_message_id: string | null
+          recipient_email: string
+          recipient_type: string
+          recipient_user_id: string
+          sent_at: string
+          status: string
+          subject: string
+        }
+        Insert: {
+          error_message?: string | null
+          featured_entity_id?: string | null
+          id?: number
+          included_entity_ids?: Json
+          match_count?: number
+          provider_message_id?: string | null
+          recipient_email: string
+          recipient_type: string
+          recipient_user_id: string
+          sent_at?: string
+          status: string
+          subject: string
+        }
+        Update: {
+          error_message?: string | null
+          featured_entity_id?: string | null
+          id?: number
+          included_entity_ids?: Json
+          match_count?: number
+          provider_message_id?: string | null
+          recipient_email?: string
+          recipient_type?: string
+          recipient_user_id?: string
+          sent_at?: string
+          status?: string
+          subject?: string
+        }
+        Relationships: []
+      }
+      match_digest_skips: {
+        Row: {
+          id: number
+          match_count: number
+          notes: string | null
+          reason: string
+          recipient_email: string | null
+          recipient_type: string
+          recipient_user_id: string
+          skipped_at: string
+        }
+        Insert: {
+          id?: number
+          match_count?: number
+          notes?: string | null
+          reason: string
+          recipient_email?: string | null
+          recipient_type: string
+          recipient_user_id: string
+          skipped_at?: string
+        }
+        Update: {
+          id?: number
+          match_count?: number
+          notes?: string | null
+          reason?: string
+          recipient_email?: string | null
+          recipient_type?: string
+          recipient_user_id?: string
+          skipped_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
