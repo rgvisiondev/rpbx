@@ -2,6 +2,14 @@
 
 export type MatchTier = "excellent" | "strong" | "weak";
 
+export type MatchExposure = {
+  firstSeenAt?: string | null;
+  lastSeenAt?: string | null;
+  lastEmailedAt?: string | null;
+  dismissedAt?: string | null;
+  contactedAt?: string | null;
+};
+
 export type DigestCandidate<T> = {
   entity: T;
   score: number;
@@ -17,6 +25,12 @@ export type DigestCandidate<T> = {
    * later this can come from exposure tracking
    */
   isPreviouslySeen?: boolean;
+
+  /**
+   * Phase 2:
+   * optional exposure state for freshness / fatigue control
+   */
+  exposure?: MatchExposure;
 
   /**
    * Optional identifier for future dedupe / tracking.
@@ -60,6 +74,12 @@ type Options<T> = {
   preferUnseen?: boolean;
 
   /**
+   * Optional cooldown window for re-emailing the same match.
+   * Phase 2 default: 7 days
+   */
+  reemailCooldownDays?: number;
+
+  /**
    * Optional custom dedupe logic.
    * If omitted, dedupeKey is used when present.
    */
@@ -71,12 +91,20 @@ const DEFAULTS = {
   excellentThreshold: 80,
   strongThreshold: 60,
   preferUnseen: true,
+  reemailCooldownDays: 7,
 };
 
 function toTimestamp(dateLike?: string | null): number {
   if (!dateLike) return 0;
   const ts = new Date(dateLike).getTime();
   return Number.isNaN(ts) ? 0 : ts;
+}
+
+function daysSince(dateLike?: string | null): number {
+  const ts = toTimestamp(dateLike);
+  if (!ts) return Number.POSITIVE_INFINITY;
+  const diffMs = Date.now() - ts;
+  return diffMs / (1000 * 60 * 60 * 24);
 }
 
 function dedupeCandidates<T>(
@@ -101,7 +129,6 @@ function dedupeCandidates<T>(
       continue;
     }
 
-    // Keep the better candidate
     const existingUpdated = toTimestamp(existing.updatedAt ?? existing.createdAt);
     const candidateUpdated = toTimestamp(candidate.updatedAt ?? candidate.createdAt);
 
@@ -117,35 +144,6 @@ function dedupeCandidates<T>(
   return [...seen.values(), ...noKey];
 }
 
-function rankCandidates<T>(
-  a: DigestCandidate<T>,
-  b: DigestCandidate<T>,
-  preferUnseen: boolean
-): number {
-  // 1) unseen first
-  if (preferUnseen) {
-    const aSeen = a.isPreviouslySeen === true ? 1 : 0;
-    const bSeen = b.isPreviouslySeen === true ? 1 : 0;
-    if (aSeen !== bSeen) return aSeen - bSeen;
-  }
-
-  // 2) higher tier first
-  const tierWeight = (tier: MatchTier) =>
-    tier === "excellent" ? 2 : tier === "strong" ? 1 : 0;
-
-  const tierDiff = tierWeight(b.tier) - tierWeight(a.tier);
-  if (tierDiff !== 0) return tierDiff;
-
-  // 3) higher score first
-  const scoreDiff = b.score - a.score;
-  if (scoreDiff !== 0) return scoreDiff;
-
-  // 4) more recently updated first
-  const aUpdated = toTimestamp(a.updatedAt ?? a.createdAt);
-  const bUpdated = toTimestamp(b.updatedAt ?? b.createdAt);
-  return bUpdated - aUpdated;
-}
-
 function qualifyCandidates<T>(
   candidates: DigestCandidate<T>[],
   strongThreshold: number,
@@ -154,6 +152,7 @@ function qualifyCandidates<T>(
   return candidates
     .map((candidate) => {
       let tier = candidate.tier;
+
       if (!tier || tier === "weak") {
         if (candidate.score >= excellentThreshold) tier = "excellent";
         else if (candidate.score >= strongThreshold) tier = "strong";
@@ -168,6 +167,80 @@ function qualifyCandidates<T>(
     .filter((candidate) => candidate.tier === "excellent" || candidate.tier === "strong");
 }
 
+function applyExposureRules<T>(
+  candidates: DigestCandidate<T>[],
+  reemailCooldownDays: number
+): DigestCandidate<T>[] {
+  return candidates.filter((candidate) => {
+    const exposure = candidate.exposure;
+
+    // Never re-show dismissed matches
+    if (exposure?.dismissedAt) return false;
+
+    // Optional future rule:
+    // skip already-contacted matches from digest resurfacing
+    if (exposure?.contactedAt) return false;
+
+    // Prevent repeating the same emailed match too frequently
+    if (exposure?.lastEmailedAt) {
+      const elapsedDays = daysSince(exposure.lastEmailedAt);
+      if (elapsedDays < reemailCooldownDays) return false;
+    }
+
+    return true;
+  });
+}
+
+function freshnessBoost<T>(candidate: DigestCandidate<T>): number {
+  const exposure = candidate.exposure;
+
+  // brand new match
+  if (!exposure?.lastSeenAt && !candidate.isPreviouslySeen) {
+    return 20;
+  }
+
+  // old-seen match can resurface later
+  const seenDays = daysSince(exposure?.lastSeenAt);
+
+  if (seenDays >= 21) return 10;
+  if (seenDays >= 14) return 7;
+  if (seenDays >= 7) return 4;
+
+  return 0;
+}
+
+function rankCandidates<T>(
+  a: DigestCandidate<T>,
+  b: DigestCandidate<T>,
+  preferUnseen: boolean
+): number {
+  if (preferUnseen) {
+    const aSeen = a.exposure?.lastSeenAt || a.isPreviouslySeen ? 1 : 0;
+    const bSeen = b.exposure?.lastSeenAt || b.isPreviouslySeen ? 1 : 0;
+
+    if (aSeen !== bSeen) return aSeen - bSeen;
+  }
+
+  const aAdjustedScore = a.score + freshnessBoost(a);
+  const bAdjustedScore = b.score + freshnessBoost(b);
+
+  const adjustedScoreDiff = bAdjustedScore - aAdjustedScore;
+  if (adjustedScoreDiff !== 0) return adjustedScoreDiff;
+
+  const tierWeight = (tier: MatchTier) =>
+    tier === "excellent" ? 2 : tier === "strong" ? 1 : 0;
+
+  const tierDiff = tierWeight(b.tier) - tierWeight(a.tier);
+  if (tierDiff !== 0) return tierDiff;
+
+  const scoreDiff = b.score - a.score;
+  if (scoreDiff !== 0) return scoreDiff;
+
+  const aUpdated = toTimestamp(a.updatedAt ?? a.createdAt);
+  const bUpdated = toTimestamp(b.updatedAt ?? b.createdAt);
+  return bUpdated - aUpdated;
+}
+
 export function selectDigestMatches<T>(
   input: DigestCandidate<T>[],
   options: Options<T> = {}
@@ -177,6 +250,7 @@ export function selectDigestMatches<T>(
     excellentThreshold = DEFAULTS.excellentThreshold,
     strongThreshold = DEFAULTS.strongThreshold,
     preferUnseen = DEFAULTS.preferUnseen,
+    reemailCooldownDays = DEFAULTS.reemailCooldownDays,
     dedupeBy,
   } = options;
 
@@ -190,10 +264,9 @@ export function selectDigestMatches<T>(
   }
 
   const qualified = qualifyCandidates(input, strongThreshold, excellentThreshold);
-  const deduped = dedupeCandidates(qualified, dedupeBy);
-
+  const exposureFiltered = applyExposureRules(qualified, reemailCooldownDays);
+  const deduped = dedupeCandidates(exposureFiltered, dedupeBy);
   const ranked = [...deduped].sort((a, b) => rankCandidates(a, b, preferUnseen));
-
   const selectedBase = ranked.slice(0, maxMatches);
 
   if (selectedBase.length === 0) {
@@ -201,11 +274,10 @@ export function selectDigestMatches<T>(
       shouldSend: false,
       featuredMatch: null,
       matches: [],
-      totalQualified: qualified.length,
+      totalQualified: exposureFiltered.length,
     };
   }
 
-  // Feature the first excellent match if present, otherwise feature the top ranked match
   let featuredIndex = selectedBase.findIndex((m) => m.tier === "excellent");
   if (featuredIndex === -1) featuredIndex = 0;
 
@@ -221,6 +293,6 @@ export function selectDigestMatches<T>(
     shouldSend: matches.length > 0,
     featuredMatch,
     matches,
-    totalQualified: qualified.length,
+    totalQualified: exposureFiltered.length,
   };
 }

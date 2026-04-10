@@ -80,34 +80,52 @@ No public policies on purpose.
 Service role bypasses RLS and can still insert/read.
 */
 
-/* 
+/*
 Phase 2 of Matching Emails update
 */
 
-create table public.match_exposures (
+create table if not exists public.match_exposures (
   id uuid primary key default gen_random_uuid(),
 
   recipient_user_id uuid not null,
-  recipient_type text not null check (recipient_type in ('investor', 'business_owner')),
+  recipient_type text not null
+    check (recipient_type in ('investor', 'business_owner')),
 
-  entity_type text not null check (entity_type in ('listing', 'investor')),
+  entity_type text not null
+    check (entity_type in ('listing', 'investor')),
   entity_id uuid not null,
 
-  matched_listing_id uuid, -- only for business owner context
+  matched_listing_id uuid null, -- only for business owner context
 
-  first_seen_at timestamptz,
-  last_seen_at timestamptz,
-  last_emailed_at timestamptz,
+  first_seen_at timestamptz null,
+  last_seen_at timestamptz null,
+  last_emailed_at timestamptz null,
 
-  dismissed_at timestamptz,
-  contacted_at timestamptz,
+  dismissed_at timestamptz null,
+  contacted_at timestamptz null,
 
-  created_at timestamptz default now(),
-  updated_at timestamptz default now()
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
 );
 
-create index idx_match_exposures_recipient
-on match_exposures (recipient_user_id, recipient_type);
+create index if not exists idx_match_exposures_recipient
+  on public.match_exposures (recipient_user_id, recipient_type);
 
-create index idx_match_exposures_entity
-on match_exposures (entity_type, entity_id);
+create index if not exists idx_match_exposures_entity
+  on public.match_exposures (entity_type, entity_id);
+
+create unique index if not exists uq_match_exposures_unique_match
+  on public.match_exposures (
+    recipient_user_id,
+    recipient_type,
+    entity_type,
+    entity_id,
+    coalesce(matched_listing_id, '00000000-0000-0000-0000-000000000000'::uuid)
+  );
+
+alter table public.match_exposures enable row level security;
+
+/*
+No public policies on purpose.
+Service role bypasses RLS and can still insert/read.
+*/

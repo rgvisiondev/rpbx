@@ -52,6 +52,19 @@ type ListingCandidate = Pick<
   | "updated_at"
 >;
 
+type MatchExposureRow = {
+  recipient_user_id: string;
+  recipient_type: "investor" | "business_owner";
+  entity_type: "listing" | "investor";
+  entity_id: string;
+  matched_listing_id: string | null;
+  first_seen_at: string | null;
+  last_seen_at: string | null;
+  last_emailed_at: string | null;
+  dismissed_at: string | null;
+  contacted_at: string | null;
+};
+
 export type InvestorDigestMatchEntity = {
   listing: ListingCandidate;
   teaser: string | null;
@@ -89,15 +102,59 @@ function formatLocation(
   county?: string | null,
   stateCode?: string | null
 ): string | null {
-  const parts = [city, county, stateCode].filter(Boolean);
-  return parts.length ? parts.join(", ") : null;
+  const cleanCity = city?.trim();
+  const cleanCounty = county?.trim();
+  const cleanState = stateCode?.trim();
+
+  if (cleanCity && cleanState) return `${cleanCity}, ${cleanState}`;
+  if (cleanCity) return cleanCity;
+
+  if (cleanCounty && cleanState) return `${cleanCounty} County, ${cleanState}`;
+  if (cleanCounty) return `${cleanCounty} County`;
+
+  if (cleanState) return cleanState;
+
+  return null;
 }
 
-function buildListingTeaser(description?: string | null): string | null {
-  if (!description) return null;
-  const cleaned = description.replace(/\s+/g, " ").trim();
-  if (cleaned.length <= 160) return cleaned;
-  return `${cleaned.slice(0, 157)}...`;
+function cleanText(value?: string | null): string {
+  return value?.replace(/\s+/g, " ").trim() ?? "";
+}
+
+function truncateText(value: string, max = 160): string {
+  if (value.length <= max) return value;
+  return `${value.slice(0, max - 3).trim()}...`;
+}
+
+function buildListingTeaser(listing: ListingCandidate): string | null {
+  const cleanedDescription = cleanText(listing.description);
+
+  if (cleanedDescription.length >= 40) {
+    return truncateText(cleanedDescription, 160);
+  }
+
+  const parts: string[] = [];
+
+  if (listing.industry) {
+    parts.push(`${listing.industry} business`);
+  } else {
+    parts.push("Business opportunity");
+  }
+
+  const location = formatLocation(listing.city, listing.county, listing.state_code);
+  if (location) {
+    parts.push(`located in ${location}`);
+  }
+
+  if (listing.annual_revenue_range) {
+    parts.push(`with revenue profile in the ${listing.annual_revenue_range} range`);
+  } else if (listing.ebitda_range) {
+    parts.push(`with EBITDA in the ${listing.ebitda_range} range`);
+  } else if (listing.cash_flow_range) {
+    parts.push(`with cash flow in the ${listing.cash_flow_range} range`);
+  }
+
+  return truncateText(`${parts.join(" ")}.`, 160);
 }
 
 function buildInvestorSubject(firstName?: string | null): string {
@@ -120,6 +177,7 @@ export async function buildInvestorDigest(
   }
 ): Promise<InvestorDigestPayload> {
   const appBaseUrl = options?.appBaseUrl ?? process.env.NEXT_PUBLIC_SITE_URL ?? "";
+  const reviewMatchesHref = `${appBaseUrl}/member/match-digest`;
 
   // 1) Load investor profile
   const { data: investor, error: investorErr } = await supabase
@@ -162,7 +220,7 @@ export async function buildInvestorDigest(
       headline: "New business matches on RioPlex",
       intro: "No eligible investor profile found.",
       primaryCtaLabel: "Review Matches",
-      primaryCtaHref: `${appBaseUrl}/member/matches`,
+      primaryCtaHref: reviewMatchesHref,
       featuredMatch: null,
       matches: [],
       totalQualified: 0,
@@ -173,7 +231,7 @@ export async function buildInvestorDigest(
     };
   }
 
-  // Phase 1 guardrails
+  // Phase 1/2 guardrails
   if (investor.is_hidden || investor.status !== "published") {
     return {
       shouldSend: false,
@@ -189,7 +247,7 @@ export async function buildInvestorDigest(
       headline: "New business matches on RioPlex",
       intro: "Investor profile is not eligible for match emails.",
       primaryCtaLabel: "Review Matches",
-      primaryCtaHref: `${appBaseUrl}/member/matches`,
+      primaryCtaHref: reviewMatchesHref,
       featuredMatch: null,
       matches: [],
       totalQualified: 0,
@@ -233,6 +291,42 @@ export async function buildInvestorDigest(
   if (listingsErr) throw listingsErr;
 
   const listings = (listingsRaw ?? []) as ListingCandidate[];
+  const listingIds = listings.map((listing) => listing.id).filter(Boolean);
+
+  // 3) Pull exposure history for this investor -> listing relationship
+  const exposureByListingId = new Map<string, MatchExposureRow>();
+
+  if (listingIds.length > 0) {
+    const { data: exposuresRaw, error: exposuresErr } = await (supabase as any)
+      .from("match_exposures")
+      .select(
+        `
+          recipient_user_id,
+          recipient_type,
+          entity_type,
+          entity_id,
+          matched_listing_id,
+          first_seen_at,
+          last_seen_at,
+          last_emailed_at,
+          dismissed_at,
+          contacted_at
+        `
+      )
+      .eq("recipient_user_id", investor.user_id)
+      .eq("recipient_type", "investor")
+      .eq("entity_type", "listing")
+      .in("entity_id", listingIds);
+
+    if (exposuresErr) throw exposuresErr;
+
+    const exposures = (exposuresRaw ?? []) as MatchExposureRow[];
+
+    for (const exposure of exposures) {
+      if (!exposure.entity_id) continue;
+      exposureByListingId.set(exposure.entity_id, exposure);
+    }
+  }
 
   const investorForScoring: InvestorForScoring = {
     user_id: investor.user_id,
@@ -246,16 +340,18 @@ export async function buildInvestorDigest(
     created_at: investor.created_at,
   };
 
-  // 3) Score candidates
+  // 4) Score candidates + attach exposure state
   const scoredCandidates = listings.map((listing) => {
     const matchMeta = scoreBusinessForInvestor(
       listing as ListingForScoring,
       investorForScoring
     );
 
+    const exposure = exposureByListingId.get(listing.id);
+
     const entity: InvestorDigestMatchEntity = {
       listing,
-      teaser: buildListingTeaser(listing.description),
+      teaser: buildListingTeaser(listing),
       displayLocation: formatLocation(listing.city, listing.county, listing.state_code),
     };
 
@@ -268,14 +364,24 @@ export async function buildInvestorDigest(
       createdAt: listing.created_at,
       updatedAt: listing.updated_at,
       dedupeKey: listing.id,
-      isPreviouslySeen: false, // Phase 2 will replace this with exposure logic
+      isPreviouslySeen: Boolean(exposure?.last_seen_at || exposure?.first_seen_at),
+      exposure: exposure
+        ? {
+            firstSeenAt: exposure.first_seen_at,
+            lastSeenAt: exposure.last_seen_at,
+            lastEmailedAt: exposure.last_emailed_at,
+            dismissedAt: exposure.dismissed_at,
+            contactedAt: exposure.contacted_at,
+          }
+        : undefined,
     };
   });
 
-  // 4) Select digest set
+  // 5) Select digest set using Phase 2 exposure-aware selector
   const digest = selectDigestMatches(scoredCandidates, {
     maxMatches: 3,
     preferUnseen: true,
+    reemailCooldownDays: 7,
   });
 
   return {
@@ -292,7 +398,7 @@ export async function buildInvestorDigest(
     headline: "New business matches on RioPlex",
     intro: buildInvestorIntro(investor.first_name),
     primaryCtaLabel: "Review Matches",
-    primaryCtaHref: `${appBaseUrl}/member/matches`,
+    primaryCtaHref: reviewMatchesHref,
     featuredMatch: digest.featuredMatch,
     matches: digest.matches,
     totalQualified: digest.totalQualified,

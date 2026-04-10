@@ -63,6 +63,19 @@ type InvestorCandidate = Pick<
   | "created_at"
 >;
 
+type MatchExposureRow = {
+  recipient_user_id: string;
+  recipient_type: "investor" | "business_owner";
+  entity_type: "listing" | "investor";
+  entity_id: string;
+  matched_listing_id: string | null;
+  first_seen_at: string | null;
+  last_seen_at: string | null;
+  last_emailed_at: string | null;
+  dismissed_at: string | null;
+  contacted_at: string | null;
+};
+
 export type BusinessOwnerDigestMatchEntity = {
   investor: InvestorCandidate;
   matchedListing: OwnerListing;
@@ -118,6 +131,15 @@ function formatLocation(
   return null;
 }
 
+function cleanText(value?: string | null): string {
+  return value?.replace(/\s+/g, " ").trim() ?? "";
+}
+
+function truncateText(value: string, max = 160): string {
+  if (value.length <= max) return value;
+  return `${value.slice(0, max - 3).trim()}...`;
+}
+
 function buildInvestorDisplayName(investor: InvestorCandidate): string {
   const fullName = [investor.first_name, investor.last_name].filter(Boolean).join(" ").trim();
   if (fullName) return fullName;
@@ -126,11 +148,13 @@ function buildInvestorDisplayName(investor: InvestorCandidate): string {
 }
 
 function buildInvestorTeaser(investor: InvestorCandidate): string | null {
-  if (investor.bio) {
-    const cleaned = investor.bio.replace(/\s+/g, " ").trim();
-    if (cleaned.length <= 160) return cleaned;
-    return `${cleaned.slice(0, 157)}...`;
+  const cleanedBio = cleanText(investor.bio);
+
+  if (cleanedBio.length >= 40) {
+    return truncateText(cleanedBio, 160);
   }
+
+  const parts: string[] = ["Active investor profile"];
 
   const industryLabel =
     investor.primary_industry ??
@@ -138,10 +162,20 @@ function buildInvestorTeaser(investor: InvestorCandidate): string | null {
     null;
 
   if (industryLabel) {
-    return `Active investor profile with interest in ${industryLabel.toLowerCase()} opportunities.`;
+    parts.push(`with interest in ${industryLabel.toLowerCase()} opportunities`);
   }
 
-  return "Active investor profile aligned with your listing criteria.";
+  if (investor.target_ebitda) {
+    parts.push(`targeting EBITDA in the ${investor.target_ebitda} range`);
+  } else if (investor.target_cash_flow) {
+    parts.push(`targeting cash flow in the ${investor.target_cash_flow} range`);
+  }
+
+  if (investor.has_paid_access) {
+    parts.push("with active paid access");
+  }
+
+  return truncateText(`${parts.join(" ")}.`, 160);
 }
 
 function buildBusinessOwnerSubject(firstName?: string | null): string {
@@ -156,6 +190,10 @@ function buildBusinessOwnerIntro(firstName?: string | null): string {
     : "We found investor profiles on RPBX that align with one or more of your active listings.";
 }
 
+function buildExposureKey(entityId: string, listingId: string): string {
+  return `${entityId}::${listingId}`;
+}
+
 export async function buildBusinessOwnerDigest(
   supabase: SupabaseClient<Database>,
   ownerUserId: string,
@@ -165,6 +203,7 @@ export async function buildBusinessOwnerDigest(
   }
 ): Promise<BusinessOwnerDigestPayload> {
   const appBaseUrl = options?.appBaseUrl ?? process.env.NEXT_PUBLIC_SITE_URL ?? "";
+  const reviewMatchesHref = `${appBaseUrl}/member/match-digest`;
 
   // 1) Load owner profile
   const { data: ownerProfile, error: ownerProfileErr } = await supabase
@@ -227,7 +266,7 @@ export async function buildBusinessOwnerDigest(
       headline: "New investor matches on RioPlex",
       intro: "No eligible active listings found.",
       primaryCtaLabel: "Review Matches",
-      primaryCtaHref: `${appBaseUrl}/member/matches`,
+      primaryCtaHref: reviewMatchesHref,
       featuredMatch: null,
       matches: [],
       totalQualified: 0,
@@ -277,13 +316,59 @@ export async function buildBusinessOwnerDigest(
       inv.is_hidden === false
   );
 
-  // 4) Build flattened listing x investor candidates
+  const investorIds = investors.map((inv) => inv.id).filter(Boolean);
+  const ownerListingIds = ownerListings.map((listing) => listing.id).filter(Boolean);
+
+  // 4) Pull exposure history for this business owner -> investor + listing relationship
+  const exposureByInvestorAndListing = new Map<string, MatchExposureRow>();
+
+  if (investorIds.length > 0 && ownerListingIds.length > 0) {
+    const { data: exposuresRaw, error: exposuresErr } = await (supabase as any)
+      .from("match_exposures")
+      .select(
+        `
+          recipient_user_id,
+          recipient_type,
+          entity_type,
+          entity_id,
+          matched_listing_id,
+          first_seen_at,
+          last_seen_at,
+          last_emailed_at,
+          dismissed_at,
+          contacted_at
+        `
+      )
+      .eq("recipient_user_id", ownerUserId)
+      .eq("recipient_type", "business_owner")
+      .eq("entity_type", "investor")
+      .in("entity_id", investorIds)
+      .in("matched_listing_id", ownerListingIds);
+
+    if (exposuresErr) throw exposuresErr;
+
+    const exposures = (exposuresRaw ?? []) as MatchExposureRow[];
+
+    for (const exposure of exposures) {
+      if (!exposure.entity_id || !exposure.matched_listing_id) continue;
+      exposureByInvestorAndListing.set(
+        buildExposureKey(exposure.entity_id, exposure.matched_listing_id),
+        exposure
+      );
+    }
+  }
+
+  // 5) Build flattened listing x investor candidates with exposure state attached
   const flattened = ownerListings.flatMap((listing) =>
     investors.map((investor) => {
       const matchMeta = scoreInvestorForBusiness(
         listing as ListingForInvestorScoring,
         investor as InvestorForBusinessScoring
       );
+      const investorId = investor.id ?? "";
+      const listingId = listing.id ?? "";
+
+      const exposure = investorId && listingId ? exposureByInvestorAndListing.get(buildExposureKey(investorId, listingId)) : undefined;
 
       const entity: BusinessOwnerDigestMatchEntity = {
         investor,
@@ -301,17 +386,27 @@ export async function buildBusinessOwnerDigest(
         reasonCodes: matchMeta.reasonCodes,
         createdAt: investor.created_at,
         updatedAt: investor.updated_at,
-        dedupeKey: investor.id ?? undefined, // dedupe same investor across multiple owner listings
-        contextKey: listing.id,
-        isPreviouslySeen: false,
+        dedupeKey: investor.id || undefined, // display dedupe: one investor max in digest
+        contextKey: listing.id, // preserve listing context that produced the match
+        isPreviouslySeen: Boolean(exposure?.last_seen_at || exposure?.first_seen_at),
+        exposure: exposure
+          ? {
+              firstSeenAt: exposure.first_seen_at,
+              lastSeenAt: exposure.last_seen_at,
+              lastEmailedAt: exposure.last_emailed_at,
+              dismissedAt: exposure.dismissed_at,
+              contactedAt: exposure.contacted_at,
+            }
+          : undefined,
       };
     })
   );
 
-  // 5) Select top digest matches
+  // 6) Select top digest matches
   const digest = selectDigestMatches(flattened, {
     maxMatches: 3,
     preferUnseen: true,
+    reemailCooldownDays: 7,
   });
 
   return {
@@ -328,7 +423,7 @@ export async function buildBusinessOwnerDigest(
     headline: "New investor matches on RioPlex",
     intro: buildBusinessOwnerIntro(ownerProfile?.first_name),
     primaryCtaLabel: "Review Matches",
-    primaryCtaHref: `${appBaseUrl}/member/matches`,
+    primaryCtaHref: reviewMatchesHref,
     featuredMatch: digest.featuredMatch,
     matches: digest.matches,
     totalQualified: digest.totalQualified,
