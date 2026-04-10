@@ -378,6 +378,7 @@ export type Database = {
       }
       listing_evaluations: {
         Row: {
+          access_type: string | null
           created_at: string
           id: number
           listing_id: string
@@ -386,6 +387,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          access_type?: string | null
           created_at?: string
           id?: number
           listing_id: string
@@ -394,6 +396,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          access_type?: string | null
           created_at?: string
           id?: number
           listing_id?: string
@@ -727,6 +730,45 @@ export type Database = {
         Update: {
           id?: string
           role?: string
+        }
+        Relationships: []
+      }
+      valuation_leads: {
+        Row: {
+          campaign: string
+          created_at: string
+          email: string
+          email_error: string | null
+          email_sent_at: string | null
+          full_name: string
+          id: number
+          resend_email_id: string | null
+          source_page: string
+          source_path: string | null
+        }
+        Insert: {
+          campaign?: string
+          created_at?: string
+          email: string
+          email_error?: string | null
+          email_sent_at?: string | null
+          full_name: string
+          id?: number
+          resend_email_id?: string | null
+          source_page?: string
+          source_path?: string | null
+        }
+        Update: {
+          campaign?: string
+          created_at?: string
+          email?: string
+          email_error?: string | null
+          email_sent_at?: string | null
+          full_name?: string
+          id?: number
+          resend_email_id?: string | null
+          source_page?: string
+          source_path?: string | null
         }
         Relationships: []
       }

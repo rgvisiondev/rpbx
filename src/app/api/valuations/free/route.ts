@@ -21,6 +21,7 @@ function isValidEmail(email: string) {
 
 async function verifyTurnstileToken(token: string, ip?: string | null) {
   const secret = process.env.TURNSTILE_SECRET_KEY;
+
   if (!secret) {
     throw new Error("Turnstile secret key is not configured.");
   }
@@ -28,6 +29,7 @@ async function verifyTurnstileToken(token: string, ip?: string | null) {
   const formData = new FormData();
   formData.append("secret", secret);
   formData.append("response", token);
+
   if (ip) {
     formData.append("remoteip", ip);
   }
@@ -55,47 +57,51 @@ export async function POST(request: Request) {
 
     if (!fullName) {
       return NextResponse.json(
-        { error: "Full name is required." },
+        { error: "Please enter your full name." },
         { status: 400 }
       );
     }
 
     if (!email || !isValidEmail(email)) {
       return NextResponse.json(
-        { error: "A valid email address is required." },
+        { error: "Please enter a valid email address." },
         { status: 400 }
       );
     }
 
     if (!turnstileToken) {
       return NextResponse.json(
-        { error: "Verification is required." },
-        { status: 400 }
-      );
-    }
-
-    const forwardedFor = request.headers.get("x-forwarded-for");
-    const remoteIp = forwardedFor?.split(",")[0]?.trim() ?? null;
-
-    const turnstileValid = await verifyTurnstileToken(turnstileToken, remoteIp);
-    if (!turnstileValid) {
-      return NextResponse.json(
-        { error: "Verification failed. Please try again." },
+        { error: "Please complete the verification step and try again." },
         { status: 400 }
       );
     }
 
     if (!BIZEQUITY_VALUATION_LINK) {
       return NextResponse.json(
-        { error: "BizEquity valuation link is not configured." },
+        { error: "The valuation link is not configured." },
         { status: 500 }
       );
     }
 
     if (!VALUATION_CALENDLY_LINK) {
       return NextResponse.json(
-        { error: "Calendly link is not configured." },
+        { error: "The consultation link is not configured." },
         { status: 500 }
+      );
+    }
+
+    const forwardedFor = request.headers.get("x-forwarded-for");
+    const remoteIp = forwardedFor?.split(",")[0]?.trim() ?? null;
+
+    const turnstileValid = await verifyTurnstileToken(
+      turnstileToken,
+      remoteIp
+    );
+
+    if (!turnstileValid) {
+      return NextResponse.json(
+        { error: "Verification failed. Please try again." },
+        { status: 400 }
       );
     }
 
@@ -104,71 +110,34 @@ export async function POST(request: Request) {
 
     if (!supabaseUrl || !supabaseServiceRoleKey) {
       return NextResponse.json(
-        { error: "Supabase server credentials are not configured." },
+        { error: "Server configuration is incomplete." },
         { status: 500 }
       );
     }
 
     const supabase = createClient(supabaseUrl, supabaseServiceRoleKey);
 
-    const { data: existingLead, error: existingLeadErr } = await supabase
+    const { data: savedLead, error: saveErr } = await supabase
       .from("valuation_leads")
-      .select("id, email")
-      .eq("email", email)
-      .maybeSingle();
-
-    if (existingLeadErr) {
-      console.error("Failed to check existing valuation lead:", existingLeadErr);
-      return NextResponse.json(
-        { error: "Failed to save valuation request." },
-        { status: 500 }
-      );
-    }
-
-    let leadId: number | null = null;
-
-    if (!existingLead) {
-      const { data: insertedLead, error: insertError } = await supabase
-        .from("valuation_leads")
-        .insert({
+      .upsert(
+        {
           full_name: fullName,
           email,
           source_page: sourcePage,
           source_path: request.headers.get("referer") || null,
           campaign: "free_valuation",
-        })
-        .select("id")
-        .single();
+        },
+        { onConflict: "email" }
+      )
+      .select("id")
+      .single();
 
-      if (insertError) {
-        console.error("Failed to insert valuation lead:", insertError);
-        return NextResponse.json(
-          { error: "Failed to save valuation request." },
-          { status: 500 }
-        );
-      }
-
-      leadId = insertedLead.id;
-    } else {
-      leadId = existingLead.id;
-
-      const { error: updateLeadErr } = await supabase
-        .from("valuation_leads")
-        .update({
-          full_name: fullName,
-          source_page: sourcePage,
-          source_path: request.headers.get("referer") || null,
-          campaign: "free_valuation",
-        })
-        .eq("id", existingLead.id);
-
-      if (updateLeadErr) {
-        console.error("Failed to update existing valuation lead:", updateLeadErr);
-        return NextResponse.json(
-          { error: "Failed to update valuation request." },
-          { status: 500 }
-        );
-      }
+    if (saveErr) {
+      console.error("Failed to save valuation lead:", saveErr);
+      return NextResponse.json(
+        { error: "We couldn’t start your valuation right now. Please try again." },
+        { status: 500 }
+      );
     }
 
     const resend = getResendClient();
@@ -188,41 +157,45 @@ export async function POST(request: Request) {
     if ("error" in emailResult && emailResult.error) {
       console.error("Failed to send valuation email:", emailResult.error);
 
-      if (leadId) {
-        await supabase
-          .from("valuation_leads")
-          .update({
-            email_error: emailResult.error.message || "Unknown resend error",
-          })
-          .eq("id", leadId);
-      }
+      await supabase
+        .from("valuation_leads")
+        .update({
+          email_error: emailResult.error.message || "Unknown resend error",
+        })
+        .eq("id", savedLead.id);
 
       return NextResponse.json(
-        { error: "We saved your request, but the email could not be sent." },
+        {
+          error:
+            "We received your request, but couldn’t send the valuation email just yet. Please try again.",
+        },
         { status: 500 }
       );
     }
 
-    if (leadId) {
-      await supabase
-        .from("valuation_leads")
-        .update({
-          email_sent_at: new Date().toISOString(),
-          resend_email_id: "data" in emailResult ? emailResult.data?.id || null : null,
-          email_error: null,
-        })
-        .eq("id", leadId);
-    }
+    await supabase
+      .from("valuation_leads")
+      .update({
+        email_sent_at: new Date().toISOString(),
+        resend_email_id:
+          "data" in emailResult ? emailResult.data?.id || null : null,
+        email_error: null,
+      })
+      .eq("id", savedLead.id);
 
     return NextResponse.json({
       ok: true,
       redirectUrl: BIZEQUITY_VALUATION_LINK,
+      message: "Your valuation link is on the way to your inbox.",
     });
   } catch (error) {
     console.error("Free valuation route error:", error);
 
     return NextResponse.json(
-      { error: "Something went wrong starting your valuation." },
+      {
+        error:
+          "Something went wrong while starting your valuation. Please try again.",
+      },
       { status: 500 }
     );
   }

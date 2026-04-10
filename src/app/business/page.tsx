@@ -249,7 +249,7 @@ export default async function Business() {
       {/* Valuation + cards */}
       <section className="bg-[url('/images/backgrounds/white-bg.png')] bg-repeat bg-top px-4 pb-14 sm:pb-16 lg:pb-20">
         <div className="max-w-[1140px] mx-auto flex flex-row items-center">
-          <ValuateCta />
+          <ValuateCta sourcePage="business-page"/>
         </div>
       </section>
 
