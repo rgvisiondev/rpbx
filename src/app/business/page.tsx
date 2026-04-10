@@ -40,8 +40,9 @@ export default async function Business() {
     <div>
       {/* SECTION 1 — HERO */}
       <div className="flex flex-col bg-[url('/images/backgrounds/white-bg.png')] bg-repeat bg-center">
-        <NavGate />
-
+        <div>
+          <NavGate />
+        </div>
         <div className="flex flex-col lg:flex-row py-10 lg:py-0">
           <div className="order-2 flex flex-1 items-center justify-center px-4 lg:order-1 lg:justify-end lg:p-[15px]">
             <div className="flex w-full max-w-lg flex-col items-center lg:w-[560px]">
