@@ -189,7 +189,7 @@ export default async function Activate() {
 
         <section className="px-4 pb-16 sm:pb-20">
           <div className="mx-auto max-w-[1140px]">
-            <ValuateCta />
+            <ValuateCta sourcePage="activate-page"/>
           </div>
         </section>
       </main>

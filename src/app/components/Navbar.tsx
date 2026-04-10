@@ -5,6 +5,10 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import Button from "./Button";
 import { createPortal } from "react-dom";
+import {
+  VALUATION_MODE,
+  BIZEQUITY_VALUATION_LINK,
+} from "@/lib/valuation-config";
 
 export default function Navbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -36,7 +40,6 @@ export default function Navbar() {
 
   const mobileMenu = (
     <>
-      {/* Overlay */}
       {isMobileMenuOpen && (
         <button
           aria-label="Close Mobile Menu Overlay"
@@ -45,15 +48,18 @@ export default function Navbar() {
         />
       )}
 
-      {/* Drawer */}
       <div
-        className={`fixed top-0 left-0 min-h-screen w-64 bg-white shadow-lg transform transition-transform duration-300 ease-in-out will-change-transform
-          lg:hidden z-50
-          ${isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"}`}
+        className={`fixed top-0 left-0 min-h-screen w-64 bg-white shadow-lg transform transition-transform duration-300 ease-in-out will-change-transform lg:hidden z-50 ${
+          isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
         aria-hidden={!isMobileMenuOpen}
       >
         <div className="flex items-center justify-between px-4 py-4 border-b">
-          <Link href="/" className="flex items-center" onClick={() => setIsMobileMenuOpen(false)}>
+          <Link
+            href="/"
+            className="flex items-center"
+            onClick={() => setIsMobileMenuOpen(false)}
+          >
             <Image
               src="/images/logos/svg/Rio-Plex-Logo-Main-Mint-&-Charcoal.svg"
               width={120}
@@ -62,10 +68,11 @@ export default function Navbar() {
               className="h-auto w-[120px]"
             />
           </Link>
+
           <button
             onClick={toggleMobileMenu}
             aria-label="Close Mobile Menu"
-            className="text-slate-600 hover:text-red-500"
+            className="text-slate-600 hover:text-[var(--color-button)] transition"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -74,28 +81,66 @@ export default function Navbar() {
               stroke="currentColor"
               strokeWidth="2"
             >
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M6 18L18 6M6 6l12 12"
+              />
             </svg>
           </button>
         </div>
+
         <ul className="flex flex-col gap-4 p-4">
-          <Link href="/" className="block text-lg text-slate-600 hover:text-[var(--color-button)]">Home</Link>
+          <li>
+            <Link
+              href="/"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="block text-lg text-slate-600 hover:text-[var(--color-button)]"
+            >
+              Home
+            </Link>
+          </li>
+
           {navItems.map((item) => (
             <li key={item.href}>
               <Link
                 href={item.href}
                 onClick={() => setIsMobileMenuOpen(false)}
-                className="block text-lg text-slate-600 hover:text-red-500"
+                className="block text-lg text-slate-600 hover:text-[var(--color-button)]"
               >
                 {item.name}
               </Link>
             </li>
           ))}
+
+          {VALUATION_MODE === "free" && (
+            <li>
+              <a
+                href={BIZEQUITY_VALUATION_LINK}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="block text-lg text-slate-600 hover:text-[var(--color-button)]"
+              >
+                Get Valuation
+              </a>
+            </li>
+          )}
+
           <li>
-            <Link href="/pricing" className="block text-lg text-slate-600 hover:text-[var(--color-button)]">Join Now</Link>
+            <Link
+              href="/pricing"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="block text-lg text-slate-600 hover:text-[var(--color-button)]"
+            >
+              Join Now
+            </Link>
           </li>
+
           <li>
-            <Button href="/login" onClick={() => setIsMobileMenuOpen(false)}>Login</Button>
+            <Button href="/login" onClick={() => setIsMobileMenuOpen(false)}>
+              Sign In
+            </Button>
           </li>
         </ul>
       </div>
@@ -117,7 +162,6 @@ export default function Navbar() {
             />
           </Link>
 
-          {/* Mobile Menu Button */}
           <div className="lg:hidden">
             <button
               onClick={toggleMobileMenu}
@@ -133,12 +177,15 @@ export default function Navbar() {
                 stroke="currentColor"
                 strokeWidth="2"
               >
-                <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M4 6h16M4 12h16M4 18h16"
+                />
               </svg>
             </button>
           </div>
 
-          {/* Desktop Navigation */}
           <div className="hidden lg:block">
             <ul className="flex items-center gap-6">
               {navItems.map((item) => (
@@ -151,10 +198,33 @@ export default function Navbar() {
                   </Link>
                 </li>
               ))}
-              <li>|</li>
-              <li className="text-[18px] font-medium hover:text-[var(--color-button)]">
-                <Link href="/pricing" className="text-[18px] font-medium hover:text-[var(--color-button)]">Join Now</Link>
+
+              {VALUATION_MODE === "free" && (
+                <li>
+                  <a
+                    href={BIZEQUITY_VALUATION_LINK}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[18px] font-medium hover:text-[var(--color-button)]"
+                  >
+                    Get Valuation
+                  </a>
+                </li>
+              )}
+
+              <li>
+                |
               </li>
+
+              <li>
+                <Link
+                  href="/pricing"
+                  className="text-[18px] font-medium hover:text-[var(--color-button)]"
+                >
+                  Join Now
+                </Link>
+              </li>
+
               <li>
                 <Button href="/login">Sign In</Button>
               </li>
@@ -163,7 +233,6 @@ export default function Navbar() {
         </div>
       </div>
 
-      {/* Portal for mobile overlay and drawer */}
       {mounted && createPortal(mobileMenu, document.body)}
     </nav>
   );
