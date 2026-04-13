@@ -1,11 +1,17 @@
-// app/(member)/dashboard/listings/[listingId]/edit/page.tsx
 import { createClientRSC } from '@/../utils/supabase/server';
 import { notFound, redirect } from 'next/navigation';
 import type { Metadata } from "next";
 import { geocodeAddresssTomTom } from '@/lib/geocode';
 import EditListingFormClient from './EditListingFormClient';
 
-import { CASH_FLOW_BUCKET_KEYS, EBITDA_BUCKET_KEYS, isAllowedKey } from '@/lib/ranges';
+import {
+  ANNUAL_REVENUE_KEYS,
+  CASH_FLOW_BUCKET_KEYS,
+  EBITDA_BUCKET_KEYS,
+  YEARS_IN_BUSINESS_KEYS,
+  EMPLOYEE_COUNT_KEYS,
+  isAllowedKey,
+} from '@/lib/ranges';
 
 type Params = { listingId: string };
 type PageProps = { params: Promise<Params> };
@@ -22,7 +28,6 @@ export default async function EditListingPage({ params }: PageProps) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect(`/login?next=/dashboard/listings/${listingId}/edit`);
 
-  // Fetch listing the user owns
   const { data: listing } = await supabase
     .from('business_listings')
     .select(`
@@ -48,14 +53,12 @@ export default async function EditListingPage({ params }: PageProps) {
     const id = String(formData.get('id') ?? '');
     if (!id) redirect('/dashboard/listings?msg=missing_id');
 
-    // Basics
     const title = String(formData.get('title') ?? '').trim();
     const industry = String(formData.get('industry') ?? '').trim();
     const contact_email = String(formData.get('contact_email') ?? '').trim();
     const listing_image_choice =
       String(formData.get('listing_image_choice') ?? '').trim() || null;
 
-    // Details
     const ownership_percentage =
       formData.get('ownership_percentage') !== null &&
       String(formData.get('ownership_percentage')) !== ''
@@ -63,7 +66,7 @@ export default async function EditListingPage({ params }: PageProps) {
         : null;
 
     const annual = String(formData.get('annual_revenue_range') ?? '');
-    const cash = formData.get('cash_flow_range');       // ✅ renamed
+    const cash = formData.get('cash_flow_range');
     const ebitda = formData.get('ebitda_range');
     const years = String(formData.get('years_in_business') ?? '');
     const empCount = String(formData.get('employee_count_range') ?? '');
@@ -78,13 +81,6 @@ export default async function EditListingPage({ params }: PageProps) {
     const city = geo?.city || null;
     const county = geo?.county || null;
 
-    // Keep the same allow-lists you used in onboarding
-    const ALLOWED = {
-      annual: new Set(['0_50k', '50k_100k', '100k_250k', '250k_1m', '1m_plus']),
-      years: new Set(['lt_1', '1_3', '3_5', '5_10', 'gt_10']),
-      emp: new Set(['1_4', '5_10', '11_25', '26_50', '51_100', 'gt_100']),
-    };
-
     const payload = {
       title,
       industry,
@@ -94,14 +90,11 @@ export default async function EditListingPage({ params }: PageProps) {
       listing_image_choice,
 
       ownership_percentage,
-      annual_revenue_range: ALLOWED.annual.has(annual) ? annual : null,
-
-      // ✅ book_value_range -> cash_flow_range
+      annual_revenue_range: isAllowedKey(ANNUAL_REVENUE_KEYS, annual) ? annual : null,
       cash_flow_range: isAllowedKey(CASH_FLOW_BUCKET_KEYS, cash) ? cash : null,
       ebitda_range: isAllowedKey(EBITDA_BUCKET_KEYS, ebitda) ? ebitda : null,
-
-      years_in_business: ALLOWED.years.has(years) ? years : null,
-      employee_count_range: ALLOWED.emp.has(empCount) ? empCount : null,
+      years_in_business: isAllowedKey(YEARS_IN_BUSINESS_KEYS, years) ? years : null,
+      employee_count_range: isAllowedKey(EMPLOYEE_COUNT_KEYS, empCount) ? empCount : null,
       description,
 
       can_provide_financials,
@@ -118,7 +111,6 @@ export default async function EditListingPage({ params }: PageProps) {
       address,
     };
 
-    // Update core fields first
     const { error: updErr } = await sb
       .from('business_listings')
       .update(payload)
@@ -131,7 +123,6 @@ export default async function EditListingPage({ params }: PageProps) {
       redirect(`/dashboard/listings/${id}/edit?msg=update_failed`);
     }
 
-    // Optional file upload
     const file = formData.get('cover') as File | null;
     if (file && file.size > 0) {
       const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
