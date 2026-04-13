@@ -6,32 +6,33 @@ import Image from "next/image";
 import type { Metadata } from "next";
 import { createClientRSC } from "@/../utils/supabase/server";
 import { redirect } from "next/navigation";
-import { BadgeCheckIcon, Filter, ChevronDown } from "lucide-react"; // Added Icons
+import { BadgeCheckIcon, Filter, ChevronDown } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger
 } from "@/components/ui/tooltip";
-import { imageUrl } from "@/lib/industryImages";
+import { imageUrl, INDUSTRY_SLUGS } from "@/lib/industryImages";
+import {
+  ANNUAL_REVENUE_BUCKETS,
+  EBITDA_BUCKETS,
+  YEARS_IN_BUSINESS_BUCKETS,
+  EMPLOYEE_COUNT_BUCKETS,
+  labelForKey,
+} from "@/lib/ranges";
 
 export const metadata: Metadata = {
   title: "Business Listings | RioPlex Business Exchange",
   description: "Connecting Local Business Owners With Investors",
 };
 
-// --- filter tokens (match what you SAVE in DB) ---
+// Shared-source filter options
 const INDUSTRIES = [
   { label: "All Categories", value: "" },
-  { label: "Manufacturing", value: "Manufacturing" },
-  { label: "Retail", value: "Retail" },
-  { label: "Hospitality", value: "Hospitality" },
-  { label: "Construction", value: "Construction" },
-  { label: "Professional Services", value: "Professional_services" },
-  { label: "Healthcare", value: "Healthcare" },
-  { label: "Real Estate", value: "Real_estate" },
-  { label: "Transportation & Logistics", value: "Transportation_logistics" },
-  { label: "Technology", value: "Technology" },
-  { label: "Other", value: "Other" },
+  ...Object.keys(INDUSTRY_SLUGS).map((label) => ({
+    label,
+    value: label,
+  })),
 ] as const;
 
 const COUNTIES = [
@@ -44,48 +45,35 @@ const COUNTIES = [
 
 const ANNUAL = [
   { label: "—", value: "" },
-  { label: "0–50K", value: "0_50k" },
-  { label: "50K–100K", value: "50k_100k" },
-  { label: "100K–250K", value: "100k_250k" },
-  { label: "250K–1M", value: "250k_1m" },
-  { label: "1M+", value: "1m_plus" },
+  ...ANNUAL_REVENUE_BUCKETS.map((b) => ({
+    label: b.label,
+    value: b.key,
+  })),
 ] as const;
 
 const EBITDA = [
   { label: "—", value: "" },
-  { label: "Under 50K", value: "lt_50k" },
-  { label: "50K–150K", value: "50k_150k" },
-  { label: "150K–500K", value: "150k_500k" },
-  { label: "500K–1M", value: "500k_1m" },
-  { label: "1M+", value: "gt_1m" },
+  ...EBITDA_BUCKETS.map((b) => ({
+    label: b.label,
+    value: b.key,
+  })),
 ] as const;
 
 const YEARS = [
   { label: "—", value: "" },
-  { label: "Less than 1", value: "lt_1" },
-  { label: "1–3", value: "1_3" },
-  { label: "3–5", value: "3_5" },
-  { label: "5–10", value: "5_10" },
-  { label: "10+", value: "gt_10" },
+  ...YEARS_IN_BUSINESS_BUCKETS.map((b) => ({
+    label: b.label,
+    value: b.key,
+  })),
 ] as const;
 
 const EMP = [
   { label: "—", value: "" },
-  { label: "1–4", value: "1_4" },
-  { label: "5–10", value: "5_10" },
-  { label: "11–25", value: "11_25" },
-  { label: "26–50", value: "26_50" },
-  { label: "51–100", value: "51_100" },
-  { label: "100+", value: "gt_100" },
+  ...EMPLOYEE_COUNT_BUCKETS.map((b) => ({
+    label: b.label,
+    value: b.key,
+  })),
 ] as const;
-
-// label maps for displaying tokens on cards
-const LABELS = {
-  annual: Object.fromEntries(ANNUAL.filter(x => x.value).map(x => [x.value, x.label])),
-  ebitda: Object.fromEntries(EBITDA.filter(x => x.value).map(x => [x.value, x.label])),
-  years: Object.fromEntries(YEARS.filter(x => x.value).map(x => [x.value, x.label])),
-  emp: Object.fromEntries(EMP.filter(x => x.value).map(x => [x.value, x.label])),
-} as const;
 
 type SearchParams = Promise<{
   industry?: string;
@@ -132,6 +120,8 @@ export default async function Businesses({
       city,
       annual_revenue_range,
       ebitda_range,
+      years_in_business,
+      employee_count_range,
       listing_image_choice,
       updated_at,
       is_promoted_effective,
@@ -147,7 +137,7 @@ export default async function Businesses({
   if (emp) query = query.eq("employee_count_range", emp);
   if (county) query = query.eq("county", county);
 
-  // sorting — stick to "date" (updated_at desc).
+  // sorting — keep existing behavior
   query = query
     .order("is_promoted_effective", { ascending: false, nullsFirst: false })
     .order("updated_at", { ascending: false })
@@ -158,7 +148,6 @@ export default async function Businesses({
     console.error("Listings query failed:", error.message);
   }
 
-  // signed URLs for covers (private bucket)
   const covers: Record<string, string | null> = {};
   if (rows?.length) {
     for (const r of rows) {
@@ -172,7 +161,6 @@ export default async function Businesses({
   const startIdx = total ? from + 1 : 0;
   const endIdx = rows ? from + rows.length : 0;
 
-  // helper for building selected attr in the sidebar form
   const sel = (a: string | undefined, b: string) => (a === b ? true : undefined);
 
   return (
@@ -183,14 +171,7 @@ export default async function Businesses({
         <h1 className="text-center pb-15">Business Listings</h1>
 
         <div className="flex flex-col md:flex-row gap-10">
-
-          {/* LEFT: Filters Wrapper 
-            Moved width classes here. 
-            Added checkbox hack for mobile toggling.
-          */}
           <div className="w-full md:w-1/3 lg:w-1/4 h-fit">
-
-            {/* Mobile Toggle Button (Hidden on Desktop) */}
             <input type="checkbox" id="filter-toggle" className="peer hidden" />
             <label
               htmlFor="filter-toggle"
@@ -203,13 +184,7 @@ export default async function Businesses({
               <ChevronDown size={20} />
             </label>
 
-            {/* The Form 
-                hidden by default on mobile, 
-                shown when peer (checkbox) is checked,
-                ALWAYS shown on md (desktop)
-            */}
             <form id="filters" className="hidden peer-checked:block md:block w-full bg-white p-5 rounded-lg shadow-md">
-              {/* Categories (Industry) */}
               <div className="mb-5 max-h-52 overflow-y-auto pr-2">
                 <p className="font-medium mb-2">Categories</p>
                 <ul className="space-y-2 text-md">
@@ -227,43 +202,78 @@ export default async function Businesses({
                 </ul>
               </div>
 
-              {/* Annual Revenue */}
               <div className="mb-4">
                 <label className="block mb-1 text-md">Annual Revenue</label>
-                <select name="annual" className="w-full border rounded px-2 py-1 text-md" defaultValue={annual}>
-                  {ANNUAL.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+                <select
+                  name="annual"
+                  className="w-full border rounded px-2 py-1 text-md"
+                  defaultValue={annual}
+                >
+                  {ANNUAL.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
                 </select>
               </div>
 
-              {/* EBITDA */}
               <div className="mb-4">
                 <label className="block mb-1 text-md">Company EBITDA</label>
-                <select name="ebitda" className="w-full border rounded px-2 py-1 text-md" defaultValue={ebitda}>
-                  {EBITDA.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+                <select
+                  name="ebitda"
+                  className="w-full border rounded px-2 py-1 text-md"
+                  defaultValue={ebitda}
+                >
+                  {EBITDA.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
                 </select>
               </div>
 
-              {/* Years */}
               <div className="mb-4">
                 <label className="block mb-1 text-md">Years in Business</label>
-                <select name="years" className="w-full border rounded px-2 py-1 text-md" defaultValue={years}>
-                  {YEARS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+                <select
+                  name="years"
+                  className="w-full border rounded px-2 py-1 text-md"
+                  defaultValue={years}
+                >
+                  {YEARS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
                 </select>
               </div>
 
-              {/* Employees */}
               <div className="mb-4">
                 <label className="block mb-1 text-md">Number of Employees</label>
-                <select name="emp" className="w-full border rounded px-2 py-1 text-md" defaultValue={emp}>
-                  {EMP.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+                <select
+                  name="emp"
+                  className="w-full border rounded px-2 py-1 text-md"
+                  defaultValue={emp}
+                >
+                  {EMP.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
                 </select>
               </div>
 
-              {/* County */}
               <div className="mb-4">
                 <label className="block mb-1 text-md">County Business is Located In</label>
-                <select name="county" className="w-full border rounded px-2 py-1 text-md" defaultValue={county}>
-                  {COUNTIES.map(opt => <option key={opt.value || "none"} value={opt.value}>{opt.label}</option>)}
+                <select
+                  name="county"
+                  className="w-full border rounded px-2 py-1 text-md"
+                  defaultValue={county}
+                >
+                  {COUNTIES.map((opt) => (
+                    <option key={opt.value || "none"} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
                 </select>
               </div>
 
@@ -271,18 +281,18 @@ export default async function Businesses({
             </form>
           </div>
 
-          {/* RIGHT: Listings */}
           <div className="flex-1">
-            {/* Header + Sort (sort wired to ?sort=date for now) */}
             <div className="flex justify-between items-center mb-5">
-              <p className="text-sm md:text-base">{total > 0 ? `Showing ${startIdx}-${endIdx} of ${total} results` : "No results"}</p>
+              <p className="text-sm md:text-base">
+                {total > 0 ? `Showing ${startIdx}-${endIdx} of ${total} results` : "No results"}
+              </p>
               <div className="flex items-center">
                 <label className="text-md mr-2 hidden sm:block">Sort by</label>
                 <select
                   name="sort"
                   className="border rounded px-2 py-1 text-md bg-white"
                   defaultValue={sp.sort || "date"}
-                  form="filters"               // <-- this makes it submit with the sidebar form
+                  form="filters"
                 >
                   <option value="date">Date</option>
                   <option value="revenue" disabled>Revenue</option>
@@ -290,11 +300,10 @@ export default async function Businesses({
                 </select>
               </div>
             </div>
-            {/* Grid: 2 per row (sm and up) */}
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               {(rows || []).map((r) => (
                 <div key={r.id} className="bg-white rounded-lg shadow-lg overflow-hidden border">
-                  {/* Use <img> for signed URLs; Next/Image requires remotePatterns config */}
                   {covers[r.id] ? (
                     <img
                       src={covers[r.id]!}
@@ -314,6 +323,7 @@ export default async function Businesses({
                   <div className="p-5">
                     <div className="flex items-left gap-5">
                       <h4 className="large">{r.industry + " Business" || "Business"}</h4>
+
                       {r.is_promoted_effective && (
                         <Tooltip>
                           <TooltipTrigger>
@@ -325,30 +335,35 @@ export default async function Businesses({
                             {`Boosted Listing Active`}
                           </TooltipContent>
                         </Tooltip>
-
                       )}
+
                       {r.has_purchased_valuation && (
                         <Tooltip>
                           <TooltipTrigger>
                             <div className="text-black flex rounded-full items-center justify-center min-w-[25px] min-h-[25px]">
-                              <Image src={"/images/logos/svg/Rio-Plex-Logo-Icon-Mint.svg"} alt="RPBX" width={25} height={25} />
+                              <Image
+                                src={"/images/logos/svg/Rio-Plex-Logo-Icon-Mint.svg"}
+                                alt="RPBX"
+                                width={25}
+                                height={25}
+                              />
                             </div>
                           </TooltipTrigger>
                           <TooltipContent>
                             {`Valuated By RPBX`}
                           </TooltipContent>
                         </Tooltip>
-
                       )}
                     </div>
+
                     <div className="flex justify-between mt-2">
                       <div>
                         <p className="font-semibold">Annual Revenue</p>
-                        <p>{(r.annual_revenue_range && LABELS.annual[r.annual_revenue_range]) || "—"}</p>
+                        <p>{labelForKey(r.annual_revenue_range, ANNUAL_REVENUE_BUCKETS)}</p>
                       </div>
                       <div>
                         <p className="font-semibold">Company EBITDA</p>
-                        <p>{(r.ebitda_range && LABELS.ebitda[r.ebitda_range]) || "—"}</p>
+                        <p>{labelForKey(r.ebitda_range, EBITDA_BUCKETS)}</p>
                       </div>
                     </div>
 
@@ -363,7 +378,6 @@ export default async function Businesses({
                       <p>{r.county || "—"}</p>
                     </div>
 
-                    {/* Link to your listing page; adjust route as needed */}
                     <Link href={`/business-listing/${r.id}`}>
                       <Button className="mt-4 w-full">View Business</Button>
                     </Link>
@@ -372,7 +386,6 @@ export default async function Businesses({
               ))}
             </div>
 
-            {/* Simple pager (prev/next) */}
             {total > PAGE_SIZE && (
               <div className="flex justify-center gap-3 mt-8">
                 {page > 1 && (

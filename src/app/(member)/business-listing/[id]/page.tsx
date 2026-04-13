@@ -5,7 +5,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import type { Metadata } from "next";
 import { createClientRSC } from "@/../utils/supabase/server";
-import { BadgeCheckIcon } from "lucide-react"
+import { BadgeCheckIcon } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
@@ -13,6 +13,13 @@ import {
 } from "@/components/ui/tooltip";
 
 import { imageUrl } from "@/lib/industryImages";
+import {
+  ANNUAL_REVENUE_BUCKETS,
+  EBITDA_BUCKETS,
+  YEARS_IN_BUSINESS_BUCKETS,
+  EMPLOYEE_COUNT_BUCKETS,
+  labelForKey,
+} from "@/lib/ranges";
 
 import Modal from "@/app/components/Modal";
 import ContactBusiness from "@/app/components/popups/ContactBusiness";
@@ -39,41 +46,6 @@ export async function generateMetadata(
       : "Business Listing | RioPlex Business Exchange",
   };
 }
-
-const LABELS = {
-  annual: {
-    "0_50k": "0–50K",
-    "50k_100k": "50K–100K",
-    "100k_250k": "100K–250K",
-    "250k_1m": "250K–1M",
-    "1m_plus": "1M+",
-  },
-  ebitda: {
-    "lt_50k": "Under 50K",
-    "50k_150k": "50K–150K",
-    "150k_500k": "150K–500K",
-    "500k_1m": "500K–1M",
-    "gt_1m": "1M+",
-  },
-  years: {
-    "lt_1": "< 1 year",
-    "1_3": "1–3 years",
-    "3_5": "3–5 years",
-    "5_10": "5–10 years",
-    "gt_10": "10+ years",
-  },
-  emp: {
-    "1_4": "1–4",
-    "5_10": "5–10",
-    "11_25": "11–25",
-    "26_50": "26–50",
-    "51_100": "51–100",
-    "gt_100": "100+",
-  },
-} as const;
-
-const fmt = (v: string | null | undefined, m: Record<string, string>) =>
-  (v && m[v]) || "—";
 
 export default async function ListingPage({
   params,
@@ -144,14 +116,11 @@ export default async function ListingPage({
   const isPublished = listing.status === "published" && listing.is_active === true;
   const isOwner = listing.owner_id === user.id;
   if (!isPublished && !isOwner) {
-    // Hide unpublished listings from non-owners
     notFound();
   }
 
   const catalogKey = listing.listing_image_choice as string | null;
-  const imgSrc = catalogKey
-    ? imageUrl(catalogKey)
-    : null;
+  const imgSrc = catalogKey ? imageUrl(catalogKey) : null;
 
   return (
     <div className="flex flex-col bg-[url('/images/backgrounds/white-bg.png')] bg-repeat bg-top min-h-screen">
@@ -159,10 +128,11 @@ export default async function ListingPage({
 
       <div className="w-full lg:max-w-[1140px] mx-auto py-10 gap-10 px-5 lg:px-2">
         <div className="bg-white rounded-lg shadow-lg overflow-hidden border p-6 lg:p-10 ">
-          <div className="flex flex-col lg:flex-row lg:items-center gap-5  pb-5">
+          <div className="flex flex-col lg:flex-row lg:items-center gap-5 pb-5">
             <h1 className="text-2xl lg:text-3xl font-bold text-left flex ">
               {listing.industry + " Business" || "Business Listing"}
             </h1>
+
             <div className="flex flex-row gap-2">
               {listing.is_promoted_effective && (
                 <div className="flex">
@@ -179,12 +149,18 @@ export default async function ListingPage({
                   </Tooltip>
                 </div>
               )}
+
               {listing.has_purchased_valuation && (
                 <div className="flex">
                   <Tooltip>
                     <TooltipTrigger>
                       <div className="min-w-[130px] bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-black px-3 py-1 gap-3 flex rounded-full items-center justify-center ">
-                        <Image src={"/images/logos/svg/Rio-Plex-Logo-Icon-White.svg"} alt="RPBX" width={20} height={20} />
+                        <Image
+                          src={"/images/logos/svg/Rio-Plex-Logo-Icon-White.svg"}
+                          alt="RPBX"
+                          width={20}
+                          height={20}
+                        />
                         <p className="text-white">Valuated</p>
                       </div>
                     </TooltipTrigger>
@@ -196,11 +172,10 @@ export default async function ListingPage({
               )}
             </div>
           </div>
+
           <div className="flex flex-col md:flex-row gap-5">
-            {/* Left: image + description */}
             <div className="flex flex-col w-full lg:w-2/3">
               {imgSrc ? (
-                // Use <img> for signed URLs; Next/Image domain config not required
                 <img
                   src={imgSrc}
                   alt={listing.industry ?? "Business"}
@@ -221,16 +196,36 @@ export default async function ListingPage({
               </p>
             </div>
 
-            {/* Right: facts */}
             <div className="flex flex-col w-full lg:w-1/3">
               {[
-                { label: "Annual Revenue", value: fmt(listing.annual_revenue_range, LABELS.annual) },
-                { label: "Company EBITDA", value: fmt(listing.ebitda_range, LABELS.ebitda) },
-                { label: "Years in Business", value: fmt(listing.years_in_business, LABELS.years) },
-                { label: "Employees", value: fmt(listing.employee_count_range, LABELS.emp) },
-                { label: "Location", value: [listing.county, listing.city].filter(Boolean).join(", ") || "—" },
-                { label: "Financial Statements Available on Request", value: listing.can_provide_financials ? "Yes" : "No" },
-                { label: "Tax Returns Available on Request", value: listing.can_provide_tax_returns ? "Yes" : "No" },
+                {
+                  label: "Annual Revenue",
+                  value: labelForKey(listing.annual_revenue_range, ANNUAL_REVENUE_BUCKETS),
+                },
+                {
+                  label: "Company EBITDA",
+                  value: labelForKey(listing.ebitda_range, EBITDA_BUCKETS),
+                },
+                {
+                  label: "Years in Business",
+                  value: labelForKey(listing.years_in_business, YEARS_IN_BUSINESS_BUCKETS),
+                },
+                {
+                  label: "Employees",
+                  value: labelForKey(listing.employee_count_range, EMPLOYEE_COUNT_BUCKETS),
+                },
+                {
+                  label: "Location",
+                  value: [listing.county, listing.city].filter(Boolean).join(", ") || "—",
+                },
+                {
+                  label: "Financial Statements Available on Request",
+                  value: listing.can_provide_financials ? "Yes" : "No",
+                },
+                {
+                  label: "Tax Returns Available on Request",
+                  value: listing.can_provide_tax_returns ? "Yes" : "No",
+                },
               ].map((item, i) => (
                 <div key={i} className="mb-5 p-5 bg-[#f5f5f5] rounded-lg text-center">
                   <p className="font-semibold">{item.label}</p>
@@ -239,11 +234,9 @@ export default async function ListingPage({
               ))}
 
               <Modal
-                trigger={
-                <Button className="w-full">Contact</Button>
-                }
+                trigger={<Button className="w-full">Contact</Button>}
               >
-                <ContactBusiness 
+                <ContactBusiness
                   name={listing.title ? `${listing.title} Owner` : "Business Owner"}
                   email={listing.contact_email || ""}
                   businessName={listing.title || undefined}
@@ -252,12 +245,13 @@ export default async function ListingPage({
                   investorIndustry={investorIndustry}
                   investorLocation={investorLocation}
                 />
+              </Modal>
 
-              </Modal>  
-
-              {/* If you want owners to see an Edit link: */}
               {isOwner && (
-                <Link href={`/dashboard/listings/${listing.id}/edit`} className="mt-3 inline-block underline text-center">
+                <Link
+                  href={`/dashboard/listings/${listing.id}/edit`}
+                  className="mt-3 inline-block underline text-center"
+                >
                   Edit this listing
                 </Link>
               )}
