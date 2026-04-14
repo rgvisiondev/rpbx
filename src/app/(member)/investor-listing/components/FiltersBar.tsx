@@ -1,43 +1,15 @@
-// app/investor-listing/components/FiltersBar.tsx
 "use client";
 
 import { useSearchParams, useRouter } from "next/navigation";
 import { useState } from "react";
+import { INDUSTRY_OPTIONS } from "@/lib/industryImages";
 
-// Constants (kept same as provided)
 const INDUSTRIES = [
   { label: "All Categories", value: "" },
-  { label: "Healthcare", value: "Healthcare" },
-  { label: "Technology", value: "Technology" },
-  { label: "Finance", value: "Finance" },
-  { label: "Real Estate", value: "Real Estate" },
-  { label: "Education", value: "Education" },
-  { label: "Manufacturing", value: "Manufacturing" },
-  { label: "Retail", value: "Retail" },
-  { label: "Hospitality", value: "Hospitality" },
-  { label: "Transportation", value: "Transportation" },
-  { label: "Agriculture", value: "Agriculture" },
-  { label: "Energy", value: "Energy" },
-  { label: "Entertainment", value: "Entertainment" },
-  { label: "Construction", value: "Construction" },
-  { label: "Telecommunications", value: "Telecommunications" },
-  { label: "Insurance", value: "Insurance" },
-  { label: "Legal", value: "Legal" },
-  { label: "Automotive", value: "Automotive" },
-  { label: "Food and Beverage", value: "Food and Beverage" },
-  { label: "Media and Advertising", value: "Media and Advertising" },
-  { label: "Pharmaceutical", value: "Pharmaceutical" },
-  { label: "Tourism", value: "Tourism" },
-  { label: "Fashion", value: "Fashion" },
-  { label: "Logistics", value: "Logistics" },
-  { label: "Non-profit", value: "Non-profit" },
-  { label: "Environmental Services", value: "Environmental Services" },
-  { label: "Biotechnology", value: "Biotechnology" },
-  { label: "Aerospace", value: "Aerospace" },
-  { label: "E-commerce", value: "E-commerce" },
-  { label: "Consulting", value: "Consulting" },
-  { label: "Sports and Recreation", value: "Sports and Recreation" },
-  { label: "Other", value: "Other" },
+  ...INDUSTRY_OPTIONS.map((label) => ({
+    label,
+    value: label,
+  })),
 ] as const;
 
 const EBITDA = [
@@ -79,7 +51,6 @@ export default function FiltersBar() {
 
   return (
     <div className="w-full flex flex-col md:flex-row justify-end items-stretch md:items-start gap-4">
-      {/* Mobile Toggle Button */}
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
@@ -89,7 +60,6 @@ export default function FiltersBar() {
         <span className="text-gray-500 text-sm">{isOpen ? '▲' : '▼'}</span>
       </button>
 
-      {/* Filter Container */}
       <form
         className={`
           ${isOpen ? 'flex' : 'hidden'} 

@@ -3,7 +3,7 @@ import { createClientRSC } from '@/../utils/supabase/server';
 import { redirect } from 'next/navigation';
 import Button from '@/app/components/Button';
 import { Progress } from "@/components/ui/progress";
-import { INDUSTRY_SLUGS } from '@/lib/industryImages';
+import { INDUSTRY_OPTIONS } from '@/lib/industryImages';
 import IndustryImagePicker from '@/app/onboarding/components/IndustryImagePicker';
 import { geocodeAddresssTomTom } from '@/lib/geocode';
 import AddressAutocomplete from '@/app/onboarding/components/AddressAutocomplete';
@@ -36,7 +36,7 @@ export default async function Setup({
     redirect('/dashboard/listings?err=no_draft_for_listing');
   }
 
-  const INDUSTRIES = Object.keys(INDUSTRY_SLUGS);
+  const INDUSTRIES = INDUSTRY_OPTIONS;
 
   async function save(formData: FormData) {
     'use server';

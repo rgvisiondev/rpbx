@@ -5,7 +5,7 @@ import Button from '@/app/components/Button';
 import { Progress } from '@/components/ui/progress';
 import { useState } from 'react';
 
-import { INDUSTRY_SLUGS } from '@/lib/industryImages';
+import { INDUSTRY_OPTIONS } from '@/lib/industryImages';
 import IndustryImagePicker from '@/app/onboarding/components/IndustryImagePicker';
 import AddressAutocomplete from '@/app/onboarding/components/AddressAutocomplete';
 import { DescriptionAiAssist } from '@/app/onboarding/components/DescriptionAIAssist';
@@ -61,7 +61,7 @@ export default function EditListingFormClient({
 }: EditListingFormClientProps) {
   const [description, setDescription] = useState(listing?.description ?? '');
 
-  const INDUSTRIES = Object.keys(INDUSTRY_SLUGS);
+  const INDUSTRIES = INDUSTRY_OPTIONS;
 
   return (
     <div className="flex flex-col bg-[url('/images/backgrounds/white-bg.png')] bg-repeat bg-center min-h-screen justify-center p-5">
