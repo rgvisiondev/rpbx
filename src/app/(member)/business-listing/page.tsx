@@ -12,7 +12,7 @@ import {
   TooltipContent,
   TooltipTrigger
 } from "@/components/ui/tooltip";
-import { imageUrl, INDUSTRY_SLUGS } from "@/lib/industryImages";
+import { imageUrl, INDUSTRY_OPTIONS } from "@/lib/industryImages";
 import {
   ANNUAL_REVENUE_BUCKETS,
   EBITDA_BUCKETS,
@@ -26,10 +26,9 @@ export const metadata: Metadata = {
   description: "Connecting Local Business Owners With Investors",
 };
 
-// Shared-source filter options
 const INDUSTRIES = [
   { label: "All Categories", value: "" },
-  ...Object.keys(INDUSTRY_SLUGS).map((label) => ({
+  ...INDUSTRY_OPTIONS.map((label) => ({
     label,
     value: label,
   })),
@@ -97,7 +96,6 @@ export default async function Businesses({
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login?next=/business-listing");
 
-  // read & validate filters
   const industry = INDUSTRIES.some(i => i.value === sp.industry) ? (sp.industry || "") : "";
   const annual = ANNUAL.some(a => a.value === sp.annual) ? (sp.annual || "") : "";
   const ebitda = EBITDA.some(e => e.value === sp.ebitda) ? (sp.ebitda || "") : "";
@@ -109,7 +107,6 @@ export default async function Businesses({
   const from = (page - 1) * PAGE_SIZE;
   const to = from + PAGE_SIZE - 1;
 
-  // base query (published & active only)
   let query = supabase
     .from("v_business_listings_with_promo")
     .select(`
@@ -137,7 +134,6 @@ export default async function Businesses({
   if (emp) query = query.eq("employee_count_range", emp);
   if (county) query = query.eq("county", county);
 
-  // sorting — keep existing behavior
   query = query
     .order("is_promoted_effective", { ascending: false, nullsFirst: false })
     .order("updated_at", { ascending: false })

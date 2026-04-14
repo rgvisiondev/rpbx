@@ -5,10 +5,9 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import Button from "./Button";
 import { createPortal } from "react-dom";
+import { BIZEQUITY_VALUATION_LINK, VALUATION_MODE } from "@/lib/valuation-config";
 
 type UserType = "business" | "investor" | "admin" | null;
-
-
 
 export default function Navbar({ userType }: { userType: UserType }) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -38,7 +37,13 @@ export default function Navbar({ userType }: { userType: UserType }) {
     { name: "Business Listings", href: "/business-listing", show: !isBusiness || isAdmin },
     { name: "Browse Investors", href: "/investor-listing", show: !isInvestor || isAdmin },
     { name: "Blog", href: "/blog" },
-    { name: "Events", href: "/events" }
+    { name: "Events", href: "/events" },
+    {
+      name: "Get Valuation",
+      href: BIZEQUITY_VALUATION_LINK,
+      show: isBusiness && VALUATION_MODE === "free",
+      external: true,
+    },
   ].filter((i) => i.show !== false);
 
   const rightActions = {
@@ -48,7 +53,6 @@ export default function Navbar({ userType }: { userType: UserType }) {
 
   const mobileMenu = (
     <>
-      {/* Overlay */}
       {isMobileMenuOpen && (
         <button
           aria-label="Close Mobile Menu Overlay"
@@ -57,7 +61,6 @@ export default function Navbar({ userType }: { userType: UserType }) {
         />
       )}
 
-      {/* Drawer */}
       <div
         className={`fixed top-0 left-0 min-h-screen w-64 bg-white shadow-lg transform transition-transform duration-300 ease-in-out will-change-transform
           lg:hidden z-50
@@ -93,13 +96,25 @@ export default function Navbar({ userType }: { userType: UserType }) {
         <ul className="flex flex-col gap-4 p-4">
           {navItems.map((item) => (
             <li key={item.href}>
-              <Link
-                href={item.href}
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="block text-lg text-slate-600 hover:text-red-500"
-              >
-                {item.name}
-              </Link>
+              {item.external ? (
+                <a
+                  href={item.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="block text-lg text-slate-600 hover:text-red-500"
+                >
+                  {item.name}
+                </a>
+              ) : (
+                <Link
+                  href={item.href}
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="block text-lg text-slate-600 hover:text-red-500"
+                >
+                  {item.name}
+                </Link>
+              )}
             </li>
           ))}
           <li>
@@ -108,7 +123,6 @@ export default function Navbar({ userType }: { userType: UserType }) {
             </Link>
           </li>
 
-          {/* Investor / Admin: View Profile */}
           {rightActions.showViewProfile && (
             <li>
               <Link href="/dashboard/profile/edit" onClick={() => setIsMobileMenuOpen(false)} className="green-nav block">
@@ -117,7 +131,6 @@ export default function Navbar({ userType }: { userType: UserType }) {
             </li>
           )}
 
-          {/* Business / Admin: View Your Listings */}
           {rightActions.showListings && (
             <li>
               <Link href="/dashboard/listings" onClick={() => setIsMobileMenuOpen(false)} className="green-nav block">
@@ -150,7 +163,6 @@ export default function Navbar({ userType }: { userType: UserType }) {
             />
           </Link>
 
-          {/* Mobile Menu Button */}
           <div className="lg:hidden">
             <button
               onClick={toggleMobileMenu}
@@ -169,20 +181,29 @@ export default function Navbar({ userType }: { userType: UserType }) {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
               </svg>
             </button>
-
           </div>
 
-          {/* Desktop Navigation */}
           <div className="hidden lg:block">
             <ul className="flex items-center gap-6">
               {navItems.map((item) => (
                 <li key={item.href}>
-                  <Link
-                    href={item.href}
-                    className="text-[18px] font-medium hover:text-[var(--color-button)]"
-                  >
-                    {item.name}
-                  </Link>
+                  {item.external ? (
+                    <a
+                      href={item.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[18px] font-medium hover:text-[var(--color-button)]"
+                    >
+                      {item.name}
+                    </a>
+                  ) : (
+                    <Link
+                      href={item.href}
+                      className="text-[18px] font-medium hover:text-[var(--color-button)]"
+                    >
+                      {item.name}
+                    </Link>
+                  )}
                 </li>
               ))}
               <li>|</li>
@@ -211,7 +232,6 @@ export default function Navbar({ userType }: { userType: UserType }) {
         </div>
       </div>
 
-      {/* Portal for mobile overlay and drawer */}
       {mounted && createPortal(mobileMenu, document.body)}
     </nav>
   );

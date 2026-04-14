@@ -24,12 +24,43 @@ import {
   startMonthlyListingCheckout,
   startYearlyListingCheckout,
 } from "./actions";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 export const metadata: Metadata = {
   title: "Your Listings | RioPlex Business Exchange",
   description:
     "Manage your business listings and subscriptions on RioPlex Business Exchange.",
 };
+
+type SubscriptionLite = {
+  id: string;
+  status: string | null;
+  current_period_end: string | null;
+  cancel_at_period_end: boolean | null;
+};
+
+function canContinueOnboarding(subscription: SubscriptionLite | null) {
+  if (!subscription) return false;
+
+  const status = subscription.status ?? "";
+  const periodEnd = subscription.current_period_end
+    ? new Date(subscription.current_period_end).getTime()
+    : null;
+  const now = Date.now();
+
+  if (status === "active" || status === "trialing") {
+    if (subscription.cancel_at_period_end && periodEnd !== null) {
+      return periodEnd > now;
+    }
+    return true;
+  }
+
+  return false;
+}
 
 export default async function OwnerListings() {
   const supabase = await createClientRSC();
@@ -42,22 +73,27 @@ export default async function OwnerListings() {
   const { data: rows } = await supabase
     .from("business_listings")
     .select(
-      "id, title, industry, listing_image_choice, status, is_active, updated_at, is_hidden"
+      "id, title, industry, listing_image_choice, status, is_active, updated_at, is_hidden, stripe_subscription_id",
     )
     .eq("owner_id", user.id)
     .order("updated_at", { ascending: false });
 
   const listingIds = (rows ?? []).map((r) => r.id);
+  const subscriptionIds = (rows ?? [])
+    .map((r) => r.stripe_subscription_id)
+    .filter((id): id is string => !!id);
 
   const { boosted, evalStatus } = await getListingBadges(supabase, listingIds);
 
-  const signedUrls = new Map<string, string>();
-  for (const r of rows ?? []) {
-    if (r.listing_image_choice) {
-      const { data: s } = await supabase.storage
-        .from("listings")
-        .createSignedUrl(r.listing_image_choice, 60);
-      if (s?.signedUrl) signedUrls.set(r.id, s.signedUrl);
+  const subscriptionMap = new Map<string, SubscriptionLite>();
+  if (subscriptionIds.length > 0) {
+    const { data: subscriptions } = await supabase
+      .from("subscriptions")
+      .select("id, status, current_period_end, cancel_at_period_end")
+      .in("id", subscriptionIds);
+
+    for (const sub of subscriptions ?? []) {
+      subscriptionMap.set(sub.id, sub);
     }
   }
 
@@ -86,6 +122,16 @@ export default async function OwnerListings() {
                 const evalState = evalStatus.get(l.id);
                 const catalogKey = l.listing_image_choice as string | null;
                 const imgSrc = catalogKey ? imageUrl(catalogKey) : null;
+
+                const subscription = l.stripe_subscription_id
+                  ? (subscriptionMap.get(l.stripe_subscription_id) ?? null)
+                  : null;
+
+                const isDraft = l.status === "draft";
+                const showContinueOnboarding =
+                  isDraft && canContinueOnboarding(subscription);
+                const showBillingRequired =
+                  isDraft && !canContinueOnboarding(subscription);
 
                 return (
                   <div
@@ -142,98 +188,219 @@ export default async function OwnerListings() {
                         Last Updated: {updated}
                       </p>
 
-                      <div className="flex flex-wrap gap-2 mt-3">
-                        {isBoosted && (
-                          <span className="px-2 py-1 text-xs rounded-full bg-amber-100 text-amber-700">
-                            Boosted
-                          </span>
-                        )}
-                        {evalState === "purchased" && (
-                          <span className="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-700">
-                            Evaluation: Purchased
-                          </span>
-                        )}
-                        {evalState === "in_progress" && (
-                          <span className="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-700">
-                            Evaluation: In Progress
-                          </span>
-                        )}
-                        {evalState === "completed" && (
-                          <span className="px-2 py-1 text-xs rounded-full bg-green-100 text-green-700">
-                            Evaluation: Completed
-                          </span>
-                        )}
-                      </div>
+                      {!isDraft && (
+                        <>
+                          <div className="flex flex-wrap gap-2 mt-3">
+                            {isBoosted && (
+                              <span className="px-2 py-1 text-xs rounded-full bg-amber-100 text-amber-700">
+                                Boosted
+                              </span>
+                            )}
+                            {evalState === "purchased" && (
+                              <span className="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-700">
+                                Evaluation: Purchased
+                              </span>
+                            )}
+                            {evalState === "in_progress" && (
+                              <span className="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-700">
+                                Evaluation: In Progress
+                              </span>
+                            )}
+                            {evalState === "completed" && (
+                              <span className="px-2 py-1 text-xs rounded-full bg-green-100 text-green-700">
+                                Evaluation: Completed
+                              </span>
+                            )}
+                          </div>
 
-                      <div className="flex gap-4 text-sm">
-                        <Link
-                          href={`/business-listing/${l.id}`}
-                          className="green-link"
-                        >
-                          Preview
-                        </Link>
-                        <Link
-                          href={`/dashboard/listings/${l.id}/edit`}
-                          className="green-link"
-                        >
-                          Edit
-                        </Link>
-                      </div>
-
-                      <VisibilityToggle
-                        id={l.id}
-                        initialHidden={!!l.is_hidden}
-                        setHiddenAction={setListingHidden}
-                        labelVisible="Visible to investors"
-                        labelHidden="Hidden from investors"
-                        helper="Turn off to hide this listing"
-                        toastHidden="Listing hidden"
-                        toastVisible="Listing is now visible"
-                      />
-
-                      <div className="mt-5 grid grid-cols-3 gap-1 text-sm text-center">
-                        {!isBoosted ? (
-                          <form action={startBoost.bind(null, l.id)}>
-                            <button
-                              type="submit"
-                              className="w-full text-white font-medium items-center py-2 rounded-lg bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] hover:cursor-pointer"
+                          <div className="flex gap-4 text-sm">
+                            <Link
+                              href={`/business-listing/${l.id}`}
+                              className="green-link"
                             >
-                              Promote
-                            </button>
-                          </form>
-                        ) : (
-                          <form action={openPortal}>
-                            <button
-                              type="submit"
-                              className="w-full text-white font-medium items-center py-2 rounded-lg bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] hover:cursor-pointer"
+                              Preview
+                            </Link>
+                            <Link
+                              href={`/dashboard/listings/${l.id}/edit`}
+                              className="green-link"
                             >
-                              Manage Boost
-                            </button>
-                          </form>
-                        )}
+                              Edit
+                            </Link>
+                          </div>
 
-                        <form action={openPortal}>
-                          <button
-                            type="submit"
-                            className="w-full text-white font-medium items-center py-2 rounded-lg bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] hover:cursor-pointer"
-                          >
-                            Manage Plan
-                          </button>
-                        </form>
+                          <VisibilityToggle
+                            id={l.id}
+                            initialHidden={!!l.is_hidden}
+                            setHiddenAction={setListingHidden}
+                            labelVisible="Visible to investors"
+                            labelHidden="Hidden from investors"
+                            helper="Turn off to hide this listing"
+                            toastHidden="Listing hidden"
+                            toastVisible="Listing is now visible"
+                          />
 
-                        {!evalState && (
-                          <form action={startEvaluation.bind(null, l.id)}>
-                            <button
-                              type="submit"
-                              className="w-full text-white font-medium items-center py-2 rounded-lg bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] hover:cursor-pointer"
+                          <div className="mt-5 grid grid-cols-3 gap-1 text-sm text-center">
+                            {!isBoosted ? (
+                              <form action={startBoost.bind(null, l.id)}>
+                                <button
+                                  type="submit"
+                                  className="w-full text-white font-medium items-center py-2 rounded-lg bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] hover:cursor-pointer"
+                                >
+                                  Promote
+                                </button>
+                              </form>
+                            ) : (
+                              <form action={openPortal}>
+                                <button
+                                  type="submit"
+                                  className="w-full text-white font-medium items-center py-2 rounded-lg bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] hover:cursor-pointer"
+                                >
+                                  Manage Boost
+                                </button>
+                              </form>
+                            )}
+
+                            <form action={openPortal}>
+                              <button
+                                type="submit"
+                                className="w-full text-white font-medium items-center py-2 rounded-lg bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] hover:cursor-pointer"
+                              >
+                                Manage Plan
+                              </button>
+                            </form>
+
+                            {!evalState && (
+                              <form action={startEvaluation.bind(null, l.id)}>
+                                <button
+                                  type="submit"
+                                  className="w-full text-white font-medium items-center py-2 rounded-lg bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] hover:cursor-pointer"
+                                >
+                                  {VALUATION_MODE === "free"
+                                    ? "Get Free Valuation"
+                                    : "Get Valuation"}
+                                </button>
+                              </form>
+                            )}
+                          </div>
+                        </>
+                      )}
+
+                      {showContinueOnboarding && (
+                        <div className="mt-4 rounded-2xl border border-[#9ed3c3] bg-[#f6fbf9] p-4 shadow-sm">
+                          <div className="flex items-start gap-3">
+                            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white border border-[#d7eee7] shadow-sm">
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="1.8"
+                                className="h-5 w-5 text-[#5c9f8d]"
+                              >
+                                <path
+                                  d="M12 6v6l4 2"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                />
+                                <circle cx="12" cy="12" r="9" />
+                              </svg>
+                            </div>
+
+                            <div className="min-w-0 flex-1">
+                              <div className="inline-flex items-center rounded-full bg-[#9ed3c3]/20 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-[#3f7f70]">
+                                Onboarding Incomplete
+                              </div>
+
+                              <div className="mt-3 flex items-center gap-2">
+                                <p className="text-sm font-semibold text-neutral-900">
+                                  Finish setup
+                                </p>
+
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <button
+                                      type="button"
+                                      className="flex h-5 w-5 items-center justify-center rounded-full border border-neutral-300 bg-white text-[11px] text-neutral-500"
+                                    >
+                                      ⓘ
+                                    </button>
+                                  </TooltipTrigger>
+
+                                  <TooltipContent>
+                                    This listing is still a draft. Complete
+                                    onboarding to publish it and make it visible
+                                    to investors.
+                                  </TooltipContent>
+                                </Tooltip>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="mt-4">
+                            <Link
+                              href={`/onboarding/business/${l.id}/set-up`}
+                              className="inline-flex w-full items-center justify-center rounded-xl bg-[var(--color-primary)] px-4 py-2.5 text-sm font-medium text-white transition hover:bg-[var(--color-primary-hover)]"
                             >
-                              {VALUATION_MODE === "free"
-                                ? "Get Free Valuation"
-                                : "Get Valuation"}
-                            </button>
-                          </form>
-                        )}
-                      </div>
+                              Continue Onboarding
+                            </Link>
+                          </div>
+                        </div>
+                      )}
+
+                      {showBillingRequired && (
+                        <div className="mt-4 rounded-2xl border border-neutral-200 bg-neutral-50 p-4 shadow-sm">
+                          <div className="flex items-start gap-3">
+                            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white border border-neutral-200 shadow-sm">
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="1.8"
+                                className="h-5 w-5 text-neutral-500"
+                              >
+                                <path
+                                  d="M12 8V12M12 16H12.01"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                />
+                                <circle cx="12" cy="12" r="9" />
+                              </svg>
+                            </div>
+
+                            <div className="min-w-0 flex-1">
+                              <div className="inline-flex items-center rounded-full bg-neutral-200 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-neutral-700">
+                                Draft Listing
+                              </div>
+
+                              <p className="mt-3 text-sm font-semibold text-neutral-900">
+                                Active plan required to continue
+                              </p>
+
+                              <p className="mt-1 text-sm leading-5 text-neutral-600">
+                                This draft needs an active business membership
+                                before it can be published.
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="mt-4 flex flex-col gap-2">
+                            <form action={openPortal}>
+                              <button
+                                type="submit"
+                                className="inline-flex w-full items-center justify-center rounded-xl bg-[var(--color-primary)] px-4 py-2.5 text-sm font-medium text-white transition hover:bg-[var(--color-primary-hover)]"
+                              >
+                                Manage Billing
+                              </button>
+                            </form>
+
+                            <p className="text-center text-xs text-neutral-500">
+                              Once your listing access is active, you can finish
+                              onboarding and publish.
+                            </p>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 );

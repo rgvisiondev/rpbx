@@ -3,10 +3,9 @@ import { createClientRSC } from "@/../utils/supabase/server";
 import { redirect } from "next/navigation";
 import OwnershipRange from "./OwnershipRange";
 import Button from "../../../components/Button";
-import { Progress } from "@/components/ui/progress"
-import { INDUSTRY_SLUGS } from "@/lib/industryImages";
+import { Progress } from "@/components/ui/progress";
+import { INDUSTRY_OPTIONS } from "@/lib/industryImages";
 import { EBITDA_BUCKETS, CASH_FLOW_BUCKETS } from "@/lib/ranges";
-
 
 export default async function Preferences() {
   const supabase = await createClientRSC();
@@ -39,7 +38,6 @@ export default async function Preferences() {
     const { data: { user } } = await sb.auth.getUser();
     if (!user) redirect("/login?next=/onboarding/investor/preferences");
 
-    // Ownership (clamped + ordered)
     const oMin = Math.max(0, Math.min(100, Number(formData.get("ownership_min") ?? 0)));
     const oMax = Math.max(0, Math.min(100, Number(formData.get("ownership_max") ?? 100)));
     const ownership_min = Math.min(oMin, oMax);
@@ -47,13 +45,11 @@ export default async function Preferences() {
     const industry_experience = String(formData.get("industry_experience") ?? "").trim() || null;
     const net_worth = String(formData.get("net_worth") ?? "").trim() || null;
 
-    // Industries
     const primary_industry = String(formData.get("primary_industry") ?? "").trim() || null;
     const additional_industries = formData.getAll("additional_industries")
       .map((x) => String(x).trim())
       .filter(Boolean);
 
-    // Buckets
     const target_ebitda = String(formData.get("ebitda_bucket") ?? "").trim() || null;
     const target_cash_flow = String(formData.get("cashflow_bucket") ?? "").trim() || null;
 
@@ -86,8 +82,6 @@ export default async function Preferences() {
     redirect("/onboarding/investor/compliance");
   }
 
-  const INDUSTRY_OPTIONS = Object.keys(INDUSTRY_SLUGS)
-
   const INDUSTRY_EXPERIENCE_OPTIONS = [
     { label: "0–2 years", value: "0-2" },
     { label: "3–5 years", value: "3-5" },
@@ -106,7 +100,6 @@ export default async function Preferences() {
     { label: "$30M+", value: ">30M" },
   ] as const;
 
-
   return (
     <div className="flex flex-col bg-[url('/images/backgrounds/white-bg.png')] bg-repeat bg-center min-h-screen justify-center p-5">
       <div className='mx-auto max-w-lg lg:min-w-[550px]'>
@@ -117,13 +110,12 @@ export default async function Preferences() {
       <div className=" bg-white mx-auto max-w-lg lg:min-w-[550px] p-6 my-5 rounded-xl border border-neutral-200 shadow">
         <Link href="/onboarding/investor/contact" className="text-sm underline hover:text-[#60BC9B]">&larr; Introduce Yourself</Link>
         <form action={save}>
-          <h1 className="text-2xl font-semibold  mt-2">Define Your Investment Style</h1>
+          <h1 className="text-2xl font-semibold mt-2">Define Your Investment Style</h1>
           <p className="mt-2">Tell us what kind of opportunities you’re looking for. Set your target ownership range, preferred industries, and ideal financial profile so we can connect you with the right businesses.</p>
           <hr className="mb-1 mt-4" />
 
-          {/* Ownership % range */}
           <div>
-            <label className="block mb-2  pt-4">
+            <label className="block mb-2 pt-4">
               <span>Target ownership %</span>
             </label>
             <OwnershipRange
@@ -134,7 +126,6 @@ export default async function Preferences() {
             />
           </div>
 
-          {/* Net Worth */}
           <div>
             <label className="block mb-2 pt-4">
               <span>Current Net Worth</span>
@@ -154,8 +145,7 @@ export default async function Preferences() {
             </select>
           </div>
 
-          {/* Years of Experience */}
-          <label className="block  pt-4">
+          <label className="block pt-4">
             <span>Years of Experience</span>
             <select
               name="industry_experience"
@@ -172,8 +162,7 @@ export default async function Preferences() {
             </select>
           </label>
 
-          {/* Primary industry */}
-          <label className="block  py-4">
+          <label className="block py-4">
             <span>Primary industry</span>
             <select
               name="primary_industry"
@@ -188,7 +177,6 @@ export default async function Preferences() {
             </select>
           </label>
 
-          {/* Additional industries */}
           <fieldset className="block">
             <legend className="block">Additional industries (optional)</legend>
 
@@ -196,7 +184,7 @@ export default async function Preferences() {
               {INDUSTRY_OPTIONS.map((opt) => {
                 const checked =
                   Array.isArray(draft?.additional_industries) &&
-                  draft!.additional_industries.includes(opt);
+                  draft.additional_industries.includes(opt);
 
                 return (
                   <label
@@ -216,14 +204,12 @@ export default async function Preferences() {
               })}
             </div>
 
-            {/* (Optional) small hint */}
             <p className="text-grey small mt-1">
               Pick any that apply. You can change these later.
             </p>
           </fieldset>
 
-          {/* EBITDA bucket */}
-          <label className="block  pt-4">
+          <label className="block pt-4">
             <span>Company EBITDA target</span>
             <select
               name="ebitda_bucket"
@@ -237,8 +223,7 @@ export default async function Preferences() {
             </select>
           </label>
 
-          {/* Cash Flow bucket */}
-          <label className="block  pt-4">
+          <label className="block pt-4">
             <span>Cash flow (SDE) target (optional)</span>
             <select
               name="cashflow_bucket"
