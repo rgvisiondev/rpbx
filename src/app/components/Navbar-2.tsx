@@ -39,7 +39,7 @@ export default function Navbar({ userType }: { userType: UserType }) {
     { name: "Blog", href: "/blog" },
     { name: "Events", href: "/events" },
     {
-      name: "Get Valuation",
+      name: "Free Valuation",
       href: BIZEQUITY_VALUATION_LINK,
       show: isBusiness && VALUATION_MODE === "free",
       external: true,
