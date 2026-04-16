@@ -27,6 +27,7 @@ export const INDUSTRY_OPTIONS: string[] = [
   "E-Commerce & Online Businesses",
   "Fitness & Wellness",
   "Childcare & Family Services",
+  "Laundromats & Laundry Services",
 ];
 
 export const INDUSTRY_SLUGS: Record<string, string> = {
@@ -60,6 +61,7 @@ export const INDUSTRY_SLUGS: Record<string, string> = {
   "E-Commerce & Online Businesses": "ecommerce",
   "Fitness & Wellness": "fitness-wellness",
   "Childcare & Family Services": "childcare",
+  "Laundromats & Laundry Services": "laundry",
 };
 
 export const INDUSTRY_IMAGES: Record<string, string[]> = {
@@ -278,6 +280,14 @@ export const INDUSTRY_IMAGES: Record<string, string[]> = {
     "childcare/4.svg",
     "childcare/5.svg",
     "childcare/6.svg",
+  ],
+  laundry: [
+    "laundry/1.svg",
+    "laundry/2.svg",
+    "laundry/3.svg",
+    "laundry/4.svg",
+    "laundry/5.svg",
+    "laundry/6.svg",
   ],
 };
 
