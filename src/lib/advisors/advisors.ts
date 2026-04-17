@@ -47,4 +47,14 @@ export const experts = [
     email: "b.martin@raymondjames.com",
     contactHeadline: "Planning an exit, preserving wealth, or aligning financial goals with your future?"
   },
+  {
+    index: 5,
+    name: "Marco Villarreal",
+    title: "Global CFO & Finance Executive",
+    shortDescription: "Seasoned CFO and finance executive with over 25 years of experience driving global growth, managing M&A projects, and scaling revenue from $20 million to $400 million.",
+    description: "Marco is a seasoned CFO and finance executive with over 25 years of experience, and a member of The CFO Centre, the largest CFO Fractional firm in the world (18 countries). He has driven strategic organic and inorganic growth initiatives worldwide, leading over 25 due diligence processes, acquiring 7 companies, and participating in 10 Post-Merger Integration processes. He has implemented operational excellence practices across diverse industries and global markets. His career spans leadership roles in the United States, LATAM, Europe, Asia, India, and Africa, where he has led multicultural teams and delivered sustainable business results. As CFO, Marco was instrumental in scaling a private BPO firm from $20 million to $400 million in revenue across six countries. He designed and executed financial strategies, managed complex M&A projects, and optimized global tax compliance in collaboration with EY. As Chief Investment Officer, he diversified investment portfolios, established a family office succession plan, and led cost and tax-saving initiatives that significantly improved financial performance. He brings a strategic perspective, business acumen, and a passion for scaling businesses, optimizing operations, and achieving long-term organizational goals through thoughtful financial stewardship and dynamic leadership. His educational background includes a Master of Science in Nonprofit Administration from Louisiana State University Shreveport, an MBA from the Kellogg Graduate School of Management at Northwestern University, a Master of Engineering in Wastewater Treatment from McGill University, and a B.S. in Civil Engineering from Tecnológico de Monterrey.",
+    img: "/images/experts/marco-villarreal.png",
+    email: "Marco.villarreal@cfocentre.com",
+    contactHeadline: "Ready to scale your business, optimize global operations, or execute a complex M&A strategy?"
+  }
 ];
