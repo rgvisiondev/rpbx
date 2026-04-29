@@ -32,6 +32,7 @@ export default async function ReviewStep({
       id,
       title,
       industry,
+      secondary_industry,
       address,
       county,
       city,
@@ -145,6 +146,7 @@ export default async function ReviewStep({
             )}
             <div><b>Title:</b> {draft.title ?? '—'}</div>
             <div><b>Industry:</b> {draft.industry ?? '—'}</div>
+            <div><b>Secondary Industry:</b> {draft.secondary_industry ?? '—'}</div>
             {draft.address && (
               <div><b>Address:</b> {draft.address}</div>
             )}

@@ -122,7 +122,7 @@ export default function Navbar() {
                 onClick={() => setIsMobileMenuOpen(false)}
                 className="block text-lg text-slate-600 hover:text-[var(--color-button)]"
               >
-                Get Valuation
+                Free Valuation
               </a>
             </li>
           )}
@@ -207,7 +207,7 @@ export default function Navbar() {
                     rel="noopener noreferrer"
                     className="text-[18px] font-medium hover:text-[var(--color-button)]"
                   >
-                    Get Valuation
+                    Free Valuation
                   </a>
                 </li>
               )}

@@ -73,7 +73,7 @@ export default async function OwnerListings() {
   const { data: rows } = await supabase
     .from("business_listings")
     .select(
-      "id, title, industry, listing_image_choice, status, is_active, updated_at, is_hidden, stripe_subscription_id",
+      "id, title, industry, secondary_industry, listing_image_choice, status, is_active, updated_at, is_hidden, stripe_subscription_id",
     )
     .eq("owner_id", user.id)
     .order("updated_at", { ascending: false });
@@ -106,6 +106,7 @@ export default async function OwnerListings() {
 
         <div className="w-full lg:w-[1140px] mx-auto py-10 px-5 lg:px-0">
           <h1 className="mb-4">Your Listings</h1>
+
           <p className="text-sm text-gray-600 mb-6">
             Use the customer portal to update payment methods, view invoices, or
             cancel plans.
@@ -118,13 +119,14 @@ export default async function OwnerListings() {
                 const updated = l.updated_at
                   ? new Date(l.updated_at).toLocaleString()
                   : "—";
+
                 const isBoosted = boosted.has(l.id);
                 const evalState = evalStatus.get(l.id);
                 const catalogKey = l.listing_image_choice as string | null;
                 const imgSrc = catalogKey ? imageUrl(catalogKey) : null;
 
                 const subscription = l.stripe_subscription_id
-                  ? (subscriptionMap.get(l.stripe_subscription_id) ?? null)
+                  ? subscriptionMap.get(l.stripe_subscription_id) ?? null
                   : null;
 
                 const isDraft = l.status === "draft";
@@ -137,24 +139,24 @@ export default async function OwnerListings() {
                   <div
                     key={l.id}
                     className={`
-                      bg-white 
-                      rounded-2xl 
-                      shadow-sm 
-                      border 
-                      p-0 
-                      flex 
-                      flex-col 
-                      transition-all 
-                      hover:shadow-xl 
+                      bg-white
+                      rounded-2xl
+                      shadow-sm
+                      border
+                      overflow-hidden
+                      flex
+                      flex-col
+                      transition-all
+                      hover:shadow-xl
                       hover:-translate-y-1
                       ${l.is_hidden ? "opacity-90" : ""}
                     `}
                   >
-                    <div className="relative h-50 w-full mb-4 overflow-hidden rounded-t-xl">
+                    <div className="relative h-48 w-full overflow-hidden">
                       {imgSrc ? (
                         <img
                           src={imgSrc}
-                          alt=""
+                          alt={l.industry ?? "Business listing"}
                           className="w-full h-full object-cover"
                         />
                       ) : (
@@ -177,67 +179,89 @@ export default async function OwnerListings() {
                       )}
                     </div>
 
-                    <div className="p-5">
-                      <h3 className="text-lg font-semibold mb-1 -mt-5">
-                        {l.title ?? "Untitled Listing"}
-                      </h3>
-                      <p className="text-sm text-gray-500">
-                        {l.industry ?? "—"}
-                      </p>
-                      <p className="text-xs text-neutral-400 mt-2">
-                        Last Updated: {updated}
-                      </p>
+                    <div className="p-5 flex flex-col flex-1">
+                      <div>
+                        <h3 className="text-lg font-semibold text-neutral-900 leading-snug">
+                          {l.title ?? "Untitled Listing"}
+                        </h3>
+
+                        <div className="mt-3 flex flex-wrap items-center gap-2">
+                          {l.industry && (
+                            <span className="inline-flex items-center rounded-full bg-[#9ed3c3]/25 px-3 py-1 text-xs font-medium text-gray-800">
+                              {l.industry}
+                            </span>
+                          )}
+
+                          {l.secondary_industry && (
+                            <span className="inline-flex items-center rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-600">
+                              Secondary: {l.secondary_industry}
+                            </span>
+                          )}
+                        </div>
+
+                        <p className="mt-3 text-xs text-neutral-400">
+                          Last Updated: {updated}
+                        </p>
+                      </div>
 
                       {!isDraft && (
                         <>
-                          <div className="flex flex-wrap gap-2 mt-3">
-                            {isBoosted && (
-                              <span className="px-2 py-1 text-xs rounded-full bg-amber-100 text-amber-700">
-                                Boosted
-                              </span>
-                            )}
-                            {evalState === "purchased" && (
-                              <span className="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-700">
-                                Evaluation: Purchased
-                              </span>
-                            )}
-                            {evalState === "in_progress" && (
-                              <span className="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-700">
-                                Evaluation: In Progress
-                              </span>
-                            )}
-                            {evalState === "completed" && (
-                              <span className="px-2 py-1 text-xs rounded-full bg-green-100 text-green-700">
-                                Evaluation: Completed
-                              </span>
-                            )}
+                          <div className="mt-4 border-t border-gray-100 pt-4">
+                            <div className="flex flex-wrap gap-2">
+                              {isBoosted && (
+                                <span className="px-2 py-1 text-xs rounded-full bg-amber-100 text-amber-700">
+                                  Boosted
+                                </span>
+                              )}
+
+                              {evalState === "purchased" && (
+                                <span className="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-700">
+                                  Evaluation: Purchased
+                                </span>
+                              )}
+
+                              {evalState === "in_progress" && (
+                                <span className="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-700">
+                                  Evaluation: In Progress
+                                </span>
+                              )}
+
+                              {evalState === "completed" && (
+                                <span className="px-2 py-1 text-xs rounded-full bg-green-100 text-green-700">
+                                  Evaluation: Completed
+                                </span>
+                              )}
+                            </div>
+
+                            <div className="mt-4 flex gap-4 text-sm">
+                              <Link
+                                href={`/business-listing/${l.id}`}
+                                className="green-link"
+                              >
+                                Preview
+                              </Link>
+
+                              <Link
+                                href={`/dashboard/listings/${l.id}/edit`}
+                                className="green-link"
+                              >
+                                Edit
+                              </Link>
+                            </div>
                           </div>
 
-                          <div className="flex gap-4 text-sm">
-                            <Link
-                              href={`/business-listing/${l.id}`}
-                              className="green-link"
-                            >
-                              Preview
-                            </Link>
-                            <Link
-                              href={`/dashboard/listings/${l.id}/edit`}
-                              className="green-link"
-                            >
-                              Edit
-                            </Link>
+                          <div className="mt-4">
+                            <VisibilityToggle
+                              id={l.id}
+                              initialHidden={!!l.is_hidden}
+                              setHiddenAction={setListingHidden}
+                              labelVisible="Visible to investors"
+                              labelHidden="Hidden from investors"
+                              helper="Turn off to hide this listing"
+                              toastHidden="Listing hidden"
+                              toastVisible="Listing is now visible"
+                            />
                           </div>
-
-                          <VisibilityToggle
-                            id={l.id}
-                            initialHidden={!!l.is_hidden}
-                            setHiddenAction={setListingHidden}
-                            labelVisible="Visible to investors"
-                            labelHidden="Hidden from investors"
-                            helper="Turn off to hide this listing"
-                            toastHidden="Listing hidden"
-                            toastVisible="Listing is now visible"
-                          />
 
                           <div className="mt-5 grid grid-cols-3 gap-1 text-sm text-center">
                             {!isBoosted ? (
@@ -406,44 +430,57 @@ export default async function OwnerListings() {
                 );
               })}
 
-            <div className="bg-white rounded-xl border border-dashed flex items-center justify-center p-4 min-h-[300px]">
-              <div className="flex flex-col items-center gap-3">
-                <svg
-                  width="32"
-                  height="32"
-                  viewBox="0 0 24 24"
-                  className="opacity-60"
-                >
-                  <path
-                    d="M12 5v14m-7-7h14"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    fill="none"
-                    strokeLinecap="round"
-                  />
-                </svg>
-
-                <div className="text-sm font-medium">Add Listing</div>
-
-                <div className="flex gap-2">
-                  <form action={startMonthlyListingCheckout}>
-                    <button
-                      type="submit"
-                      className="w-25 mt-4 px-4 py-2 rounded-lg bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] hover:cursor-pointer text-white transition"
-                    >
-                      Monthly
-                    </button>
-                  </form>
-
-                  <form action={startYearlyListingCheckout}>
-                    <button
-                      type="submit"
-                      className="w-25 mt-4 px-4 py-2 rounded-lg bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] hover:cursor-pointer text-white transition"
-                    >
-                      Yearly
-                    </button>
-                  </form>
+            <div className="bg-white rounded-2xl border-2 border-dashed border-[#9ed3c3]/60 p-6 min-h-[360px] flex flex-col justify-between shadow-sm transition-all hover:-translate-y-1 hover:shadow-lg">
+              <div>
+                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-[#9ed3c3]/20 text-gray-800">
+                  <svg
+                    width="26"
+                    height="26"
+                    viewBox="0 0 24 24"
+                    className="opacity-80"
+                  >
+                    <path
+                      d="M12 5v14m-7-7h14"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      fill="none"
+                      strokeLinecap="round"
+                    />
+                  </svg>
                 </div>
+
+                <h3 className="text-lg font-semibold text-gray-900">
+                  Add another business listing
+                </h3>
+
+                <p className="mt-2 text-sm leading-relaxed text-gray-600">
+                  Create a separate listing for another business opportunity.
+                  Choose monthly flexibility or yearly savings to start setup.
+                </p>
+              </div>
+
+              <div className="mt-6 space-y-3">
+                <form action={startMonthlyListingCheckout}>
+                  <button
+                    type="submit"
+                    className="w-full rounded-xl bg-[var(--color-primary)] px-4 py-2.5 text-sm font-medium text-white transition hover:bg-[var(--color-primary-hover)] hover:cursor-pointer"
+                  >
+                    Add Monthly Listing
+                  </button>
+                </form>
+
+                <form action={startYearlyListingCheckout}>
+                  <button
+                    type="submit"
+                    className="w-full rounded-xl border border-[#9ed3c3] bg-white px-4 py-2.5 text-sm font-medium text-gray-800 transition hover:bg-[#9ed3c3]/15 hover:cursor-pointer"
+                  >
+                    Add Yearly Listing
+                  </button>
+                </form>
+
+                <p className="text-center text-xs text-gray-500">
+                  You’ll be guided through setup after checkout.
+                </p>
               </div>
             </div>
           </div>
@@ -453,9 +490,10 @@ export default async function OwnerListings() {
               <div className="absolute -top-24 -right-24 w-64 h-64 bg-[#4da685]/20 rounded-full blur-3xl pointer-events-none"></div>
 
               <div className="max-w-2xl">
-                <h2 className=" text-white text-2xl lg:text-3xl font-semibold">
+                <h2 className="text-white text-2xl lg:text-3xl font-semibold">
                   Need support beyond your listing?
                 </h2>
+
                 <p className="text-white mt-2 text-sm lg:text-base">
                   Work with trusted advisors to strengthen your valuation, legal
                   positioning, financial structure, and media exposure.
@@ -477,6 +515,7 @@ export default async function OwnerListings() {
                   >
                     <Eval />
                   </Modal>
+
                   <h4 className="mt-4 text-white font-medium text-center">
                     Business Valuation
                   </h4>
@@ -496,6 +535,7 @@ export default async function OwnerListings() {
                   >
                     <Legal />
                   </Modal>
+
                   <h4 className="mt-4 text-white font-medium text-center">
                     Legal Representation
                   </h4>
@@ -515,6 +555,7 @@ export default async function OwnerListings() {
                   >
                     <Cpa />
                   </Modal>
+
                   <h4 className="mt-4 text-white font-medium text-center">
                     CPA &amp; Bookkeeping
                   </h4>
@@ -534,6 +575,7 @@ export default async function OwnerListings() {
                   >
                     <Marketing />
                   </Modal>
+
                   <h4 className="mt-4 text-white font-medium text-center">
                     Media Amplification
                   </h4>

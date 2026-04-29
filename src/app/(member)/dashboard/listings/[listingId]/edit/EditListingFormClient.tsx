@@ -32,6 +32,7 @@ type EditListing = {
 
   title: string | null;
   industry: string | null;
+  secondary_industry: string | null;
   county: string | null;
   city: string | null;
   contact_email: string | null;
@@ -96,6 +97,7 @@ export default function EditListingFormClient({
             <IndustryImagePicker
               allIndustries={INDUSTRIES}
               defaultIndustry={listing?.industry ?? ''}
+              defaultSecondaryIndustry={listing?.secondary_industry ?? ''}
               defaultImageKey={listing?.listing_image_choice ?? ''}
             />
           </label>
