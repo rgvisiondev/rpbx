@@ -10,7 +10,7 @@ import { BadgeCheckIcon, Filter, ChevronDown } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
-  TooltipTrigger
+  TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { imageUrl, INDUSTRY_OPTIONS } from "@/lib/industryImages";
 import {
@@ -89,19 +89,31 @@ const PAGE_SIZE = 8;
 
 export default async function Businesses({
   searchParams,
-}: { searchParams: SearchParams }) {
+}: {
+  searchParams: SearchParams;
+}) {
   const sp = await searchParams;
 
   const supabase = await createClientRSC();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) redirect("/login?next=/business-listing");
 
-  const industry = INDUSTRIES.some(i => i.value === sp.industry) ? (sp.industry || "") : "";
-  const annual = ANNUAL.some(a => a.value === sp.annual) ? (sp.annual || "") : "";
-  const ebitda = EBITDA.some(e => e.value === sp.ebitda) ? (sp.ebitda || "") : "";
-  const years = YEARS.some(y => y.value === sp.years) ? (sp.years || "") : "";
-  const emp = EMP.some(e => e.value === sp.emp) ? (sp.emp || "") : "";
-  const county = COUNTIES.some(c => c.value === sp.county) ? (sp.county || "") : "";
+  const industry = INDUSTRIES.some((i) => i.value === sp.industry)
+    ? sp.industry || ""
+    : "";
+  const annual = ANNUAL.some((a) => a.value === sp.annual)
+    ? sp.annual || ""
+    : "";
+  const ebitda = EBITDA.some((e) => e.value === sp.ebitda)
+    ? sp.ebitda || ""
+    : "";
+  const years = YEARS.some((y) => y.value === sp.years) ? sp.years || "" : "";
+  const emp = EMP.some((e) => e.value === sp.emp) ? sp.emp || "" : "";
+  const county = COUNTIES.some((c) => c.value === sp.county)
+    ? sp.county || ""
+    : "";
 
   const page = Math.max(1, Number(sp.page || "1") || 1);
   const from = (page - 1) * PAGE_SIZE;
@@ -109,10 +121,12 @@ export default async function Businesses({
 
   let query = supabase
     .from("v_business_listings_with_promo")
-    .select(`
+    .select(
+      `
       id,
       title,
       industry,
+      secondary_industry,
       county,
       city,
       annual_revenue_range,
@@ -123,11 +137,17 @@ export default async function Businesses({
       updated_at,
       is_promoted_effective,
       has_purchased_valuation
-    `, { count: "exact" })
+    `,
+      { count: "exact" },
+    )
     .eq("status", "published")
     .eq("is_active", true);
 
-  if (industry) query = query.eq("industry", industry);
+  if (industry) {
+    query = query.or(
+      `industry.eq."${industry}",secondary_industry.eq."${industry}"`,
+    );
+  }
   if (annual) query = query.eq("annual_revenue_range", annual);
   if (ebitda) query = query.eq("ebitda_range", ebitda);
   if (years) query = query.eq("years_in_business", years);
@@ -157,7 +177,8 @@ export default async function Businesses({
   const startIdx = total ? from + 1 : 0;
   const endIdx = rows ? from + rows.length : 0;
 
-  const sel = (a: string | undefined, b: string) => (a === b ? true : undefined);
+  const sel = (a: string | undefined, b: string) =>
+    a === b ? true : undefined;
 
   return (
     <div className="flex flex-col bg-[url('/images/backgrounds/white-bg.png')] bg-repeat bg-top min-h-screen">
@@ -180,12 +201,18 @@ export default async function Businesses({
               <ChevronDown size={20} />
             </label>
 
-            <form id="filters" className="hidden peer-checked:block md:block w-full bg-white p-5 rounded-lg shadow-md">
+            <form
+              id="filters"
+              className="hidden peer-checked:block md:block w-full bg-white p-5 rounded-lg shadow-md"
+            >
               <div className="mb-5 max-h-52 overflow-y-auto pr-2">
                 <p className="font-medium mb-2">Categories</p>
                 <ul className="space-y-2 text-md">
                   {INDUSTRIES.map((it) => (
-                    <li key={it.value || "all"} className="flex items-center gap-2">
+                    <li
+                      key={it.value || "all"}
+                      className="flex items-center gap-2"
+                    >
                       <input
                         type="radio"
                         name="industry"
@@ -244,7 +271,9 @@ export default async function Businesses({
               </div>
 
               <div className="mb-4">
-                <label className="block mb-1 text-md">Number of Employees</label>
+                <label className="block mb-1 text-md">
+                  Number of Employees
+                </label>
                 <select
                   name="emp"
                   className="w-full border rounded px-2 py-1 text-md"
@@ -259,7 +288,9 @@ export default async function Businesses({
               </div>
 
               <div className="mb-4">
-                <label className="block mb-1 text-md">County Business is Located In</label>
+                <label className="block mb-1 text-md">
+                  County Business is Located In
+                </label>
                 <select
                   name="county"
                   className="w-full border rounded px-2 py-1 text-md"
@@ -280,7 +311,9 @@ export default async function Businesses({
           <div className="flex-1">
             <div className="flex justify-between items-center mb-5">
               <p className="text-sm md:text-base">
-                {total > 0 ? `Showing ${startIdx}-${endIdx} of ${total} results` : "No results"}
+                {total > 0
+                  ? `Showing ${startIdx}-${endIdx} of ${total} results`
+                  : "No results"}
               </p>
               <div className="flex items-center">
                 <label className="text-md mr-2 hidden sm:block">Sort by</label>
@@ -291,15 +324,22 @@ export default async function Businesses({
                   form="filters"
                 >
                   <option value="date">Date</option>
-                  <option value="revenue" disabled>Revenue</option>
-                  <option value="ebitda" disabled>EBITDA</option>
+                  <option value="revenue" disabled>
+                    Revenue
+                  </option>
+                  <option value="ebitda" disabled>
+                    EBITDA
+                  </option>
                 </select>
               </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               {(rows || []).map((r) => (
-                <div key={r.id} className="bg-white rounded-lg shadow-lg overflow-hidden border">
+                <div
+                  key={r.id}
+                  className="bg-white rounded-lg shadow-lg overflow-hidden border"
+                >
                   {covers[r.id] ? (
                     <img
                       src={covers[r.id]!}
@@ -317,61 +357,89 @@ export default async function Businesses({
                   )}
 
                   <div className="p-5">
-                    <div className="flex items-left gap-5">
-                      <h4 className="large">{r.industry + " Business" || "Business"}</h4>
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="min-w-0 flex-1">
+                        <h4 className="large leading-snug">
+                          {r.industry ? `${r.industry} Business` : "Business"}
+                        </h4>
 
-                      {r.is_promoted_effective && (
-                        <Tooltip>
-                          <TooltipTrigger>
-                            <div className="bg-[#9ed3c3] hover:bg-[#7fb8a9] text-black p-[3px] flex rounded-full items-center justify-center min-w-[25px] min-h-[25px]">
-                              <BadgeCheckIcon size={20} strokeWidth={2.5} className="text-white" />
-                            </div>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            {`Boosted Listing Active`}
-                          </TooltipContent>
-                        </Tooltip>
-                      )}
+                        <div className="mt-3 flex flex-wrap items-center gap-2">
+                          {r.industry && (
+                            <span className="inline-flex items-center rounded-full bg-[#9ed3c3]/25 px-3 py-1 text-xs font-medium text-gray-800">
+                              {r.industry}
+                            </span>
+                          )}
 
-                      {r.has_purchased_valuation && (
-                        <Tooltip>
-                          <TooltipTrigger>
-                            <div className="text-black flex rounded-full items-center justify-center min-w-[25px] min-h-[25px]">
-                              <Image
-                                src={"/images/logos/svg/Rio-Plex-Logo-Icon-Mint.svg"}
-                                alt="RPBX"
-                                width={25}
-                                height={25}
-                              />
-                            </div>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            {`Valuated By RPBX`}
-                          </TooltipContent>
-                        </Tooltip>
-                      )}
+                          {r.secondary_industry && (
+                            <span className="inline-flex items-center rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-600">
+                              {r.secondary_industry}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="flex shrink-0 items-center gap-2">
+                        {r.is_promoted_effective && (
+                          <Tooltip>
+                            <TooltipTrigger>
+                              <div className="bg-[#9ed3c3] hover:bg-[#7fb8a9] text-black p-[3px] flex rounded-full items-center justify-center min-w-[25px] min-h-[25px]">
+                                <BadgeCheckIcon
+                                  size={20}
+                                  strokeWidth={2.5}
+                                  className="text-white"
+                                />
+                              </div>
+                            </TooltipTrigger>
+                            <TooltipContent>{`Boosted Listing Active`}</TooltipContent>
+                          </Tooltip>
+                        )}
+
+                        {r.has_purchased_valuation && (
+                          <Tooltip>
+                            <TooltipTrigger>
+                              <div className="text-black flex rounded-full items-center justify-center min-w-[25px] min-h-[25px]">
+                                <Image
+                                  src="/images/logos/svg/Rio-Plex-Logo-Icon-Mint.svg"
+                                  alt="RPBX"
+                                  width={25}
+                                  height={25}
+                                />
+                              </div>
+                            </TooltipTrigger>
+                            <TooltipContent>{`Valuated By RPBX`}</TooltipContent>
+                          </Tooltip>
+                        )}
+                      </div>
                     </div>
 
-                    <div className="flex justify-between mt-2">
-                      <div>
-                        <p className="font-semibold">Annual Revenue</p>
-                        <p>{labelForKey(r.annual_revenue_range, ANNUAL_REVENUE_BUCKETS)}</p>
-                      </div>
-                      <div>
-                        <p className="font-semibold">Company EBITDA</p>
-                        <p>{labelForKey(r.ebitda_range, EBITDA_BUCKETS)}</p>
-                      </div>
-                    </div>
+                    <div className="mt-5 border-t border-gray-100 pt-4">
+                      <div className="flex justify-between gap-4">
+                        <div>
+                          <p className="font-semibold">Annual Revenue</p>
+                          <p>
+                            {labelForKey(
+                              r.annual_revenue_range,
+                              ANNUAL_REVENUE_BUCKETS,
+                            )}
+                          </p>
+                        </div>
 
-                    <div className="flex items-center mt-3 text-sm text-gray-600">
-                      <Image
-                        src="/images/icons/location.png"
-                        alt="Location"
-                        className="w-4 h-4 mr-2"
-                        width={16}
-                        height={16}
-                      />
-                      <p>{r.county || "—"}</p>
+                        <div>
+                          <p className="font-semibold">Company EBITDA</p>
+                          <p>{labelForKey(r.ebitda_range, EBITDA_BUCKETS)}</p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center mt-3 text-sm text-gray-600">
+                        <Image
+                          src="/images/icons/location.png"
+                          alt="Location"
+                          className="w-4 h-4 mr-2"
+                          width={16}
+                          height={16}
+                        />
+                        <p>{r.county || "—"}</p>
+                      </div>
                     </div>
 
                     <Link href={`/business-listing/${r.id}`}>
@@ -386,7 +454,10 @@ export default async function Businesses({
               <div className="flex justify-center gap-3 mt-8">
                 {page > 1 && (
                   <Link
-                    href={{ pathname: "/business-listings", query: { ...sp, page: String(page - 1) } }}
+                    href={{
+                      pathname: "/business-listings",
+                      query: { ...sp, page: String(page - 1) },
+                    }}
                     className="underline"
                   >
                     ← Previous
@@ -394,7 +465,10 @@ export default async function Businesses({
                 )}
                 {endIdx < total && (
                   <Link
-                    href={{ pathname: "/business-listings", query: { ...sp, page: String(page + 1) } }}
+                    href={{
+                      pathname: "/business-listings",
+                      query: { ...sp, page: String(page + 1) },
+                    }}
                     className="underline"
                   >
                     Next →

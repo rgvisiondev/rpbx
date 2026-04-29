@@ -32,7 +32,7 @@ export default async function EditListingPage({ params }: PageProps) {
     .from('business_listings')
     .select(`
       id, owner_id, status, is_active,
-      title, industry, county, city, contact_email,
+      title, industry, secondary_industry, county, city, contact_email,
       ownership_percentage, annual_revenue_range, cash_flow_range, ebitda_range,
       years_in_business, employee_count_range, description, listing_image_choice,
       can_provide_financials, can_provide_tax_returns, address
