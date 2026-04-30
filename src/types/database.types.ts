@@ -66,6 +66,7 @@ export type Database = {
           owner_id: string
           ownership_percentage: number | null
           postal_code: string | null
+          secondary_industry: string | null
           state_code: string | null
           status: string
           stripe_subscription_id: string | null
@@ -104,6 +105,7 @@ export type Database = {
           owner_id: string
           ownership_percentage?: number | null
           postal_code?: string | null
+          secondary_industry?: string | null
           state_code?: string | null
           status?: string
           stripe_subscription_id?: string | null
@@ -142,6 +144,7 @@ export type Database = {
           owner_id?: string
           ownership_percentage?: number | null
           postal_code?: string | null
+          secondary_industry?: string | null
           state_code?: string | null
           status?: string
           stripe_subscription_id?: string | null
@@ -795,9 +798,9 @@ export type Database = {
       v_business_listings_with_promo: {
         Row: {
           annual_revenue_range: string | null
-          book_value_range: string | null
           can_provide_financials: boolean | null
           can_provide_tax_returns: boolean | null
+          cash_flow_range: string | null
           city: string | null
           contact_email: string | null
           country_code: string | null
@@ -825,6 +828,7 @@ export type Database = {
           owner_id: string | null
           ownership_percentage: number | null
           postal_code: string | null
+          secondary_industry: string | null
           state_code: string | null
           status: string | null
           title: string | null
@@ -833,9 +837,9 @@ export type Database = {
         }
         Insert: {
           annual_revenue_range?: string | null
-          book_value_range?: string | null
           can_provide_financials?: boolean | null
           can_provide_tax_returns?: boolean | null
+          cash_flow_range?: string | null
           city?: string | null
           contact_email?: string | null
           country_code?: string | null
@@ -863,6 +867,7 @@ export type Database = {
           owner_id?: string | null
           ownership_percentage?: number | null
           postal_code?: string | null
+          secondary_industry?: string | null
           state_code?: string | null
           status?: string | null
           title?: string | null
@@ -871,9 +876,9 @@ export type Database = {
         }
         Update: {
           annual_revenue_range?: string | null
-          book_value_range?: string | null
           can_provide_financials?: boolean | null
           can_provide_tax_returns?: boolean | null
+          cash_flow_range?: string | null
           city?: string | null
           contact_email?: string | null
           country_code?: string | null
@@ -901,6 +906,7 @@ export type Database = {
           owner_id?: string | null
           ownership_percentage?: number | null
           postal_code?: string | null
+          secondary_industry?: string | null
           state_code?: string | null
           status?: string | null
           title?: string | null
