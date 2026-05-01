@@ -96,6 +96,7 @@ export function ActivateForm() {
       <input name="lookup" type="hidden" value={lookup} />
       <input name="trial_days" type="hidden" value="30" />
       <input type="hidden" name="turnstile_token" value={turnstileToken ?? ""} />
+      <input type="hidden" name="source" value="activate" />
 
       <div className="grid grid-cols-2 gap-4">
         <div>

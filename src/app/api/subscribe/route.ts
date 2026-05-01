@@ -52,6 +52,8 @@ export async function POST(req: Request) {
     const email = String(form.get("email") ?? "");
     const password = String(form.get("password") ?? "");
     const turnstileToken = form.get("turnstile_token");
+    const source = String(form.get("source") ?? "");
+    const isActivateSignup = source === "activate";
 
     if ((!lookup && !priceIdFromForm) || !email || !password) {
       return Response.redirect(
@@ -189,6 +191,13 @@ export async function POST(req: Request) {
       email: signUpRes.user?.email ?? email,
     });
 
+    const successUrl = isActivateSignup
+      ? `${origin}/activate/success?session_id={CHECKOUT_SESSION_ID}`
+      : `${origin}/welcome?session_id={CHECKOUT_SESSION_ID}`;
+    const cancelUrl = isActivateSignup
+      ? `${origin}/activate/success?session_id={CHECKOUT_SESSION_ID}`
+      : `${origin}/welcome?session_id={CHECKOUT_SESSION_ID}`;
+
     // 4) Create Checkout Session
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
@@ -209,8 +218,8 @@ export async function POST(req: Request) {
         },
       },
 
-      success_url: `${origin}/welcome?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${origin}/subscribe/${lookup}`,
+      success_url: successUrl,
+      cancel_url: cancelUrl,
       allow_promotion_codes: true,
     });
 
