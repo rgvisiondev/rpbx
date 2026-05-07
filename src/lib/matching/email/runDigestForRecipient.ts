@@ -13,6 +13,7 @@ import { shouldSendDigest } from "@/lib/matching/email/shouldSendDigest";
 import { sendMatchDigestEmail } from "@/lib/matching/email/sendMatchDigestEmail";
 import { logDigestSend } from "@/lib/matching/email/logDigestSend";
 import { logDigestSkip } from "@/lib/matching/email/logDigestSkip";
+import { upsertMatchExposures } from "@/lib/matching/email/upsertMatchExposure";
 
 export type RunDigestResult = {
   recipientType: "investor" | "business_owner";
@@ -30,7 +31,12 @@ type CommonOptions = {
 };
 
 function mapSkipReason(
-  reason: "ok" | "no_email" | "no_matches" | "missing_payload" | "recipient_ineligible"
+  reason:
+    | "ok"
+    | "no_email"
+    | "no_matches"
+    | "missing_payload"
+    | "recipient_ineligible",
 ):
   | "no_strong_matches"
   | "no_email"
@@ -47,7 +53,7 @@ function mapSkipReason(
 export async function runInvestorDigestForRecipient(
   supabase: SupabaseClient<Database>,
   recipient: InvestorDigestRecipientRow,
-  options: CommonOptions
+  options: CommonOptions,
 ): Promise<RunDigestResult> {
   try {
     const digest = await buildInvestorDigest(supabase, recipient.userId, {
@@ -129,6 +135,20 @@ export async function runInvestorDigestForRecipient(
       errorMessage: null,
     });
 
+    await upsertMatchExposures(
+      supabase,
+      digest.matches
+        .map((match) => match.entity.listing.id)
+        .filter((id): id is string => typeof id === "string" && id.length > 0)
+        .map((listingId) => ({
+          recipientUserId: digest.recipient.userId,
+          recipientType: "investor" as const,
+          entityType: "listing" as const,
+          entityId: listingId,
+          matchedListingId: null,
+        })),
+    );
+
     return {
       recipientType: "investor",
       recipientUserId: recipient.userId,
@@ -142,7 +162,10 @@ export async function runInvestorDigestForRecipient(
       recipientType: "investor",
       recipientUserId: recipient.userId,
       outcome: "failed",
-      reason: error instanceof Error ? error.message : "Unknown investor orchestrator error",
+      reason:
+        error instanceof Error
+          ? error.message
+          : "Unknown investor orchestrator error",
     };
   }
 }
@@ -150,7 +173,7 @@ export async function runInvestorDigestForRecipient(
 export async function runBusinessOwnerDigestForRecipient(
   supabase: SupabaseClient<Database>,
   recipient: BusinessOwnerDigestRecipientRow,
-  options: CommonOptions
+  options: CommonOptions,
 ): Promise<RunDigestResult> {
   try {
     const digest = await buildBusinessOwnerDigest(supabase, recipient.userId, {
@@ -206,7 +229,9 @@ export async function runBusinessOwnerDigestForRecipient(
         featuredEntityId: digest.featuredMatch?.entity.investor.id ?? null,
         includedEntityIds: digest.matches
           .map((m) => m.entity.investor.id)
-          .filter((id): id is string => typeof id === "string" && id.length > 0),
+          .filter(
+            (id): id is string => typeof id === "string" && id.length > 0,
+          ),
         status: "failed",
         providerMessageId: null,
         errorMessage: sendResult.error ?? "Unknown send error",
@@ -236,6 +261,26 @@ export async function runBusinessOwnerDigestForRecipient(
       providerMessageId: sendResult.messageId ?? null,
       errorMessage: null,
     });
+
+    await upsertMatchExposures(
+      supabase,
+      digest.matches
+        .map((match) => {
+          const investorId = match.entity.investor.id;
+          const listingId = match.entity.matchedListing.id;
+
+          if (!investorId || !listingId) return null;
+
+          return {
+            recipientUserId: digest.recipient.userId,
+            recipientType: "business_owner" as const,
+            entityType: "investor" as const,
+            entityId: investorId,
+            matchedListingId: listingId,
+          };
+        })
+        .filter((input): input is NonNullable<typeof input> => input !== null),
+    );
 
     return {
       recipientType: "business_owner",

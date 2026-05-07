@@ -13,11 +13,7 @@ import {
 
 type OwnerProfile = Pick<
   Database["public"]["Tables"]["profiles"]["Row"],
-  | "id"
-  | "first_name"
-  | "last_name"
-  | "display_name"
-  | "user_type"
+  "id" | "first_name" | "last_name" | "display_name" | "user_type"
 >;
 
 type OwnerListing = Pick<
@@ -114,7 +110,7 @@ export type BusinessOwnerDigestPayload = {
 function formatLocation(
   city?: string | null,
   county?: string | null,
-  stateCode?: string | null
+  stateCode?: string | null,
 ): string | null {
   const cleanCity = city?.trim();
   const cleanCounty = county?.trim();
@@ -141,7 +137,10 @@ function truncateText(value: string, max = 160): string {
 }
 
 function buildInvestorDisplayName(investor: InvestorCandidate): string {
-  const fullName = [investor.first_name, investor.last_name].filter(Boolean).join(" ").trim();
+  const fullName = [investor.first_name, investor.last_name]
+    .filter(Boolean)
+    .join(" ")
+    .trim();
   if (fullName) return fullName;
   if (investor.organization_entity) return investor.organization_entity;
   return "Investor Profile";
@@ -157,9 +156,7 @@ function buildInvestorTeaser(investor: InvestorCandidate): string | null {
   const parts: string[] = ["Active investor profile"];
 
   const industryLabel =
-    investor.primary_industry ??
-    investor.additional_industries?.[0] ??
-    null;
+    investor.primary_industry ?? investor.additional_industries?.[0] ?? null;
 
   if (industryLabel) {
     parts.push(`with interest in ${industryLabel.toLowerCase()} opportunities`);
@@ -200,9 +197,10 @@ export async function buildBusinessOwnerDigest(
   options?: {
     appBaseUrl?: string;
     defaultRecipientEmail?: string | null;
-  }
+  },
 ): Promise<BusinessOwnerDigestPayload> {
-  const appBaseUrl = options?.appBaseUrl ?? process.env.NEXT_PUBLIC_SITE_URL ?? "";
+  const appBaseUrl =
+    options?.appBaseUrl ?? process.env.NEXT_PUBLIC_SITE_URL ?? "";
   const reviewMatchesHref = `${appBaseUrl}/member/match-digest`;
 
   // 1) Load owner profile
@@ -235,7 +233,7 @@ export async function buildBusinessOwnerDigest(
         annual_revenue_range,
         updated_at,
         created_at
-      `
+      `,
     )
     .eq("owner_id", ownerUserId)
     .eq("status", "published")
@@ -302,7 +300,7 @@ export async function buildBusinessOwnerDigest(
         has_paid_access,
         updated_at,
         created_at
-      `
+      `,
     );
 
   if (investorsErr) throw investorsErr;
@@ -313,11 +311,13 @@ export async function buildBusinessOwnerDigest(
       inv.user_id &&
       inv.user_id !== ownerUserId &&
       inv.status === "published" &&
-      inv.is_hidden === false
+      inv.is_hidden === false,
   );
 
   const investorIds = investors.map((inv) => inv.id).filter(Boolean);
-  const ownerListingIds = ownerListings.map((listing) => listing.id).filter(Boolean);
+  const ownerListingIds = ownerListings
+    .map((listing) => listing.id)
+    .filter(Boolean);
 
   // 4) Pull exposure history for this business owner -> investor + listing relationship
   const exposureByInvestorAndListing = new Map<string, MatchExposureRow>();
@@ -337,7 +337,7 @@ export async function buildBusinessOwnerDigest(
           last_emailed_at,
           dismissed_at,
           contacted_at
-        `
+        `,
       )
       .eq("recipient_user_id", ownerUserId)
       .eq("recipient_type", "business_owner")
@@ -353,7 +353,7 @@ export async function buildBusinessOwnerDigest(
       if (!exposure.entity_id || !exposure.matched_listing_id) continue;
       exposureByInvestorAndListing.set(
         buildExposureKey(exposure.entity_id, exposure.matched_listing_id),
-        exposure
+        exposure,
       );
     }
   }
@@ -363,12 +363,17 @@ export async function buildBusinessOwnerDigest(
     investors.map((investor) => {
       const matchMeta = scoreInvestorForBusiness(
         listing as ListingForInvestorScoring,
-        investor as InvestorForBusinessScoring
+        investor as InvestorForBusinessScoring,
       );
       const investorId = investor.id ?? "";
       const listingId = listing.id ?? "";
 
-      const exposure = investorId && listingId ? exposureByInvestorAndListing.get(buildExposureKey(investorId, listingId)) : undefined;
+      const exposure =
+        investorId && listingId
+          ? exposureByInvestorAndListing.get(
+              buildExposureKey(investorId, listingId),
+            )
+          : undefined;
 
       const entity: BusinessOwnerDigestMatchEntity = {
         investor,
@@ -387,8 +392,10 @@ export async function buildBusinessOwnerDigest(
         createdAt: investor.created_at,
         updatedAt: investor.updated_at,
         dedupeKey: investor.id || undefined, // display dedupe: one investor max in digest
-        contextKey: listing.id, // preserve listing context that produced the match
-        isPreviouslySeen: Boolean(exposure?.last_seen_at || exposure?.first_seen_at),
+        contextKey: listing.id || undefined, // preserve listing context that produced the match
+        isPreviouslySeen: Boolean(
+          exposure?.last_seen_at || exposure?.first_seen_at,
+        ),
         exposure: exposure
           ? {
               firstSeenAt: exposure.first_seen_at,
@@ -399,7 +406,7 @@ export async function buildBusinessOwnerDigest(
             }
           : undefined,
       };
-    })
+    }),
   );
 
   // 6) Select top digest matches
@@ -416,7 +423,9 @@ export async function buildBusinessOwnerDigest(
       email: recipientEmail,
       firstName: ownerProfile?.first_name ?? null,
       lastName: ownerProfile?.last_name ?? null,
-      listingIds: ownerListings.map((l) => l.id),
+      listingIds: ownerListings
+        .map((l) => l.id)
+        .filter((id): id is string => typeof id === "string" && id.length > 0),
     },
     subject: buildBusinessOwnerSubject(ownerProfile?.first_name),
     preheader: "Curated investor matches aligned with your active listings.",
