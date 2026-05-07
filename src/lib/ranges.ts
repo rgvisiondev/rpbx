@@ -29,12 +29,13 @@ export function labelForKey<K extends string>(
 
 // Annual Revenue (business listing)
 export const ANNUAL_REVENUE_BUCKETS = [
+  { key: "0_100k", label: "Under $100K" },
   { key: "100k_250k", label: "$100K–$250K" },
   { key: "250k_500k", label: "$250K–$500K" },
-  { key: "500k_1m", label: "$500k-$1M"},
-  { key: "1m_5m", label: "$1M-$5M"},
-  { key: "5m_10m", label: "$5M-$10M"},
-  { key: "10m_plus", label: "$10M+"}
+  { key: "500k_1m", label: "$500K–$1M" },
+  { key: "1m_5m", label: "$1M–$5M" },
+  { key: "5m_10m", label: "$5M–$10M" },
+  { key: "10m_plus", label: "$10M+" },
 ] as const;
 
 export const EBITDA_BUCKETS = [
@@ -49,7 +50,7 @@ export const EBITDA_BUCKETS = [
 export const CASH_FLOW_BUCKETS = [
   { key: "50k_150k", label: "$50K–$150K" },
   { key: "150k_500k", label: "$150K–$500K" },
-  { key: "500k_1m", label: "$500K-$1M+" },
+  { key: "500k_1m", label: "$500K-$1M" },
   { key: "1m_5m", label: "$1M-$5M"},
   { key: "5m_10m", label: "$5M-$10M"},
   { key: "10m_plus", label: "$10M+"}

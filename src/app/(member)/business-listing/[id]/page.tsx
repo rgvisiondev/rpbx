@@ -5,31 +5,43 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import type { Metadata } from "next";
 import { createClientRSC } from "@/../utils/supabase/server";
-import { BadgeCheckIcon } from "lucide-react"
+import { BadgeCheckIcon } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
-  TooltipTrigger
+  TooltipTrigger,
 } from "@/components/ui/tooltip";
 
 import { imageUrl } from "@/lib/industryImages";
+import {
+  ANNUAL_REVENUE_BUCKETS,
+  EBITDA_BUCKETS,
+  YEARS_IN_BUSINESS_BUCKETS,
+  EMPLOYEE_COUNT_BUCKETS,
+  labelForKey,
+} from "@/lib/ranges";
 
 import Modal from "@/app/components/Modal";
 import ContactBusiness from "@/app/components/popups/ContactBusiness";
 
-// Optional: dynamic metadata from the listing
-export async function generateMetadata(
-  { params }: { params: Promise<{ id: string }> }
-): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
   const { id } = await params;
   const supabase = await createClientRSC();
+
   const { data } = await supabase
     .from("business_listings")
-    .select("title, industry, status, is_active")
+    .select("title, industry, secondary_industry, status, is_active")
     .eq("id", id)
     .maybeSingle();
 
-  const title = data?.industry || "Business Listing";
+  const title = data?.industry
+    ? `${data.industry} Business`
+    : "Business Listing";
+
   const published = data?.status === "published" && data?.is_active === true;
 
   return {
@@ -40,41 +52,6 @@ export async function generateMetadata(
   };
 }
 
-const LABELS = {
-  annual: {
-    "0_50k": "0–50K",
-    "50k_100k": "50K–100K",
-    "100k_250k": "100K–250K",
-    "250k_1m": "250K–1M",
-    "1m_plus": "1M+",
-  },
-  ebitda: {
-    "lt_50k": "Under 50K",
-    "50k_150k": "50K–150K",
-    "150k_500k": "150K–500K",
-    "500k_1m": "500K–1M",
-    "gt_1m": "1M+",
-  },
-  years: {
-    "lt_1": "< 1 year",
-    "1_3": "1–3 years",
-    "3_5": "3–5 years",
-    "5_10": "5–10 years",
-    "gt_10": "10+ years",
-  },
-  emp: {
-    "1_4": "1–4",
-    "5_10": "5–10",
-    "11_25": "11–25",
-    "26_50": "26–50",
-    "51_100": "51–100",
-    "gt_100": "100+",
-  },
-} as const;
-
-const fmt = (v: string | null | undefined, m: Record<string, string>) =>
-  (v && m[v]) || "—";
-
 export default async function ListingPage({
   params,
 }: {
@@ -83,35 +60,35 @@ export default async function ListingPage({
   const { id } = await params;
   const supabase = await createClientRSC();
 
-  // Require login
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
   if (!user) redirect(`/login?next=/business-listing/${id}`);
 
-  // Fetch investor information if logged in
   let investorName: string | undefined;
   let investorOrganization: string | undefined;
   let investorIndustry: string | undefined;
   let investorLocation: string | undefined;
 
-  if (user) {
-    const { data: investor } = await supabase
-      .from("investor_profiles")
-      .select("first_name, last_name, organization_entity, primary_industry, city")
-      .eq("user_id", user.id)
-      .eq("status", "published")
-      .order("updated_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
+  const { data: investor } = await supabase
+    .from("investor_profiles")
+    .select("first_name, last_name, organization_entity, primary_industry, city")
+    .eq("user_id", user.id)
+    .eq("status", "published")
+    .order("updated_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
 
-    if (investor) {
-      investorName = [investor.first_name, investor.last_name].filter(Boolean).join(" ") || undefined;
-      investorOrganization = investor.organization_entity || undefined;
-      investorIndustry = investor.primary_industry || undefined;
-      investorLocation = investor.city || undefined;
-    }
+  if (investor) {
+    investorName =
+      [investor.first_name, investor.last_name].filter(Boolean).join(" ") ||
+      undefined;
+    investorOrganization = investor.organization_entity || undefined;
+    investorIndustry = investor.primary_industry || undefined;
+    investorLocation = investor.city || undefined;
   }
 
-  // Fetch listing by id
   const { data: listing } = await supabase
     .from("v_business_listings_with_promo")
     .select(`
@@ -121,6 +98,7 @@ export default async function ListingPage({
       is_active,
       title,
       industry,
+      secondary_industry,
       county,
       city,
       description,
@@ -140,128 +118,206 @@ export default async function ListingPage({
 
   if (!listing) notFound();
 
-  // Gate visibility: any authed user can view published+active; drafts only visible to owner
-  const isPublished = listing.status === "published" && listing.is_active === true;
+  const isPublished =
+    listing.status === "published" && listing.is_active === true;
   const isOwner = listing.owner_id === user.id;
+
   if (!isPublished && !isOwner) {
-    // Hide unpublished listings from non-owners
     notFound();
   }
 
   const catalogKey = listing.listing_image_choice as string | null;
-  const imgSrc = catalogKey
-    ? imageUrl(catalogKey)
-    : null;
+  const imgSrc = catalogKey ? imageUrl(catalogKey) : null;
+
+  const listingTitle = listing.industry
+    ? `${listing.industry} Business`
+    : "Business Listing";
+
+  const detailItems = [
+    {
+      label: "Annual Revenue",
+      value: labelForKey(
+        listing.annual_revenue_range,
+        ANNUAL_REVENUE_BUCKETS,
+      ),
+    },
+    {
+      label: "Company EBITDA",
+      value: labelForKey(listing.ebitda_range, EBITDA_BUCKETS),
+    },
+    {
+      label: "Years in Business",
+      value: labelForKey(
+        listing.years_in_business,
+        YEARS_IN_BUSINESS_BUCKETS,
+      ),
+    },
+    {
+      label: "Employees",
+      value: labelForKey(
+        listing.employee_count_range,
+        EMPLOYEE_COUNT_BUCKETS,
+      ),
+    },
+    {
+      label: "Location",
+      value: [listing.county, listing.city].filter(Boolean).join(", ") || "—",
+    },
+    {
+      label: "Financial Statements Available on Request",
+      value: listing.can_provide_financials ? "Yes" : "No",
+    },
+    {
+      label: "Tax Returns Available on Request",
+      value: listing.can_provide_tax_returns ? "Yes" : "No",
+    },
+  ];
 
   return (
-    <div className="flex flex-col bg-[url('/images/backgrounds/white-bg.png')] bg-repeat bg-top min-h-screen">
+    <div className="flex min-h-screen flex-col bg-[url('/images/backgrounds/white-bg.png')] bg-repeat bg-top">
       <NavGate />
 
-      <div className="w-full lg:max-w-[1140px] mx-auto py-10 gap-10 px-5 lg:px-2">
-        <div className="bg-white rounded-lg shadow-lg overflow-hidden border p-6 lg:p-10 ">
-          <div className="flex flex-col lg:flex-row lg:items-center gap-5  pb-5">
-            <h1 className="text-2xl lg:text-3xl font-bold text-left flex ">
-              {listing.industry + " Business" || "Business Listing"}
-            </h1>
-            <div className="flex flex-row gap-2">
-              {listing.is_promoted_effective && (
-                <div className="flex">
+      <div className="mx-auto w-full px-5 py-10 lg:max-w-[1140px] lg:px-2">
+        <div className="overflow-hidden rounded-2xl border bg-white shadow-lg">
+          <div className="border-b border-gray-100 p-6 lg:p-10">
+            <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+              <div className="min-w-0">
+
+                <h1 className="text-left text-2xl font-bold leading-tight text-gray-950 lg:text-3xl">
+                  {listingTitle}
+                </h1>
+
+                <div className="mt-4 flex flex-wrap items-center gap-2">
+                  {listing.industry && (
+                    <span className="inline-flex items-center rounded-full bg-[#9ed3c3]/25 px-3 py-1 text-xs font-medium text-gray-800">
+                      {listing.industry}
+                    </span>
+                  )}
+
+                  {listing.secondary_industry && (
+                    <span className="inline-flex items-center rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-600">
+                      {listing.secondary_industry}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                {listing.is_promoted_effective && (
                   <Tooltip>
                     <TooltipTrigger>
-                      <div className="min-w-[130px] bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-black px-3 py-1 gap-3 flex rounded-full items-center justify-center ">
-                        <BadgeCheckIcon size={20} strokeWidth={2.5} className="text-white" />
+                      <div className="flex min-w-[130px] items-center justify-center gap-3 rounded-full bg-[var(--color-primary)] px-3 py-1 text-black hover:bg-[var(--color-primary-hover)]">
+                        <BadgeCheckIcon
+                          size={20}
+                          strokeWidth={2.5}
+                          className="text-white"
+                        />
                         <p className="text-white">Boosted</p>
                       </div>
                     </TooltipTrigger>
-                    <TooltipContent>
-                      {`Boosted Listing Active`}
-                    </TooltipContent>
+                    <TooltipContent>Boosted Listing Active</TooltipContent>
                   </Tooltip>
-                </div>
-              )}
-              {listing.has_purchased_valuation && (
-                <div className="flex">
+                )}
+
+                {listing.has_purchased_valuation && (
                   <Tooltip>
                     <TooltipTrigger>
-                      <div className="min-w-[130px] bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-black px-3 py-1 gap-3 flex rounded-full items-center justify-center ">
-                        <Image src={"/images/logos/svg/Rio-Plex-Logo-Icon-White.svg"} alt="RPBX" width={20} height={20} />
+                      <div className="flex min-w-[130px] items-center justify-center gap-3 rounded-full bg-[var(--color-primary)] px-3 py-1 text-black hover:bg-[var(--color-primary-hover)]">
+                        <Image
+                          src="/images/logos/svg/Rio-Plex-Logo-Icon-White.svg"
+                          alt="RPBX"
+                          width={20}
+                          height={20}
+                        />
                         <p className="text-white">Valuated</p>
                       </div>
                     </TooltipTrigger>
-                    <TooltipContent>
-                      {`Valuated By RPBX`}
-                    </TooltipContent>
+                    <TooltipContent>Valuated By RPBX</TooltipContent>
                   </Tooltip>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           </div>
-          <div className="flex flex-col md:flex-row gap-5">
-            {/* Left: image + description */}
-            <div className="flex flex-col w-full lg:w-2/3">
+
+          <div className="grid gap-8 p-6 lg:grid-cols-[2fr_1fr] lg:p-10">
+            <div className="min-w-0">
               {imgSrc ? (
-                // Use <img> for signed URLs; Next/Image domain config not required
                 <img
                   src={imgSrc}
                   alt={listing.industry ?? "Business"}
-                  className="w-full h-auto object-cover rounded-lg mb-5"
+                  className="mb-6 h-auto w-full rounded-2xl object-cover shadow-sm"
                 />
               ) : (
                 <Image
                   src="/images/businesses/home-services.jpg"
                   alt="Business"
-                  className="w-full object-cover rounded-lg mb-5"
-                  width={300}
-                  height={200}
+                  className="mb-6 w-full rounded-2xl object-cover shadow-sm"
+                  width={800}
+                  height={480}
                 />
               )}
 
-              <p className="text-sm lg:text-base leading-relaxed whitespace-pre-wrap">
-                <b>About Us: </b> {listing.description || "—"}
-              </p>
+              <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+                <h2 className="mb-3 text-lg font-semibold text-gray-950">
+                  About this business
+                </h2>
+
+                <p className="whitespace-pre-wrap text-sm leading-relaxed text-gray-700 lg:text-base">
+                  {listing.description || "—"}
+                </p>
+              </div>
             </div>
 
-            {/* Right: facts */}
-            <div className="flex flex-col w-full lg:w-1/3">
-              {[
-                { label: "Annual Revenue", value: fmt(listing.annual_revenue_range, LABELS.annual) },
-                { label: "Company EBITDA", value: fmt(listing.ebitda_range, LABELS.ebitda) },
-                { label: "Years in Business", value: fmt(listing.years_in_business, LABELS.years) },
-                { label: "Employees", value: fmt(listing.employee_count_range, LABELS.emp) },
-                { label: "Location", value: [listing.county, listing.city].filter(Boolean).join(", ") || "—" },
-                { label: "Financial Statements Available on Request", value: listing.can_provide_financials ? "Yes" : "No" },
-                { label: "Tax Returns Available on Request", value: listing.can_provide_tax_returns ? "Yes" : "No" },
-              ].map((item, i) => (
-                <div key={i} className="mb-5 p-5 bg-[#f5f5f5] rounded-lg text-center">
-                  <p className="font-semibold">{item.label}</p>
-                  <p>{item.value}</p>
+            <aside className="flex flex-col">
+              <div className="rounded-2xl border border-gray-100 bg-[#f8fbfa] p-5 shadow-sm">
+                <h2 className="mb-4 text-lg font-semibold text-gray-950">
+                  Listing Details
+                </h2>
+
+                <div className="space-y-3">
+                  {detailItems.map((item, i) => (
+                    <div
+                      key={i}
+                      className="rounded-xl bg-white p-4 text-center shadow-sm ring-1 ring-gray-100"
+                    >
+                      <p className="text-sm font-semibold text-gray-900">
+                        {item.label}
+                      </p>
+                      <p className="mt-1 text-sm text-gray-700">
+                        {item.value}
+                      </p>
+                    </div>
+                  ))}
                 </div>
-              ))}
 
-              <Modal
-                trigger={
-                <Button className="w-full">Contact</Button>
-                }
-              >
-                <ContactBusiness 
-                  name={listing.title ? `${listing.title} Owner` : "Business Owner"}
-                  email={listing.contact_email || ""}
-                  businessName={listing.title || undefined}
-                  investorName={investorName}
-                  investorOrganization={investorOrganization}
-                  investorIndustry={investorIndustry}
-                  investorLocation={investorLocation}
-                />
+                <div className="mt-5">
+                  <Modal trigger={<Button className="w-full">Contact</Button>}>
+                    <ContactBusiness
+                      name={
+                        listing.title
+                          ? `${listing.title} Owner`
+                          : "Business Owner"
+                      }
+                      email={listing.contact_email || ""}
+                      businessName={listing.title || undefined}
+                      investorName={investorName}
+                      investorOrganization={investorOrganization}
+                      investorIndustry={investorIndustry}
+                      investorLocation={investorLocation}
+                    />
+                  </Modal>
+                </div>
 
-              </Modal>  
-
-              {/* If you want owners to see an Edit link: */}
-              {isOwner && (
-                <Link href={`/dashboard/listings/${listing.id}/edit`} className="mt-3 inline-block underline text-center">
-                  Edit this listing
-                </Link>
-              )}
-            </div>
+                {isOwner && (
+                  <Link
+                    href={`/dashboard/listings/${listing.id}/edit`}
+                    className="mt-4 block text-center text-sm font-medium text-[#5c9f8d] underline-offset-4 hover:underline"
+                  >
+                    Edit this listing
+                  </Link>
+                )}
+              </div>
+            </aside>
           </div>
         </div>
       </div>

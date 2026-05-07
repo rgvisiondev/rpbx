@@ -1,5 +1,5 @@
-// app/owner/listings/page.tsx
 export const dynamic = "force-dynamic";
+
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
@@ -7,10 +7,8 @@ import { redirect } from "next/navigation";
 import { createClientRSC } from "@/../utils/supabase/server";
 import { getListingBadges } from "@/lib/listings/badges";
 import { imageUrl } from "@/lib/industryImages";
+import { VALUATION_MODE } from "@/lib/valuation-config";
 import NavGate from "@/app/components/NavGate";
-import { headers } from "next/headers";
-import { getStripe } from "@/lib/stripe";
-import { setListingHidden } from "./actions";
 import { VisibilityToggle } from "../_components/VisibilityToggle";
 import Modal from "@/app/components/Modal";
 import HoverGif from "@/components/HoverGif";
@@ -18,12 +16,19 @@ import Eval from "@/app/components/popups/Eval";
 import Legal from "@/app/components/popups/Legal";
 import Cpa from "@/app/components/popups/Cpa";
 import Marketing from "@/app/components/popups/marketing";
-
-const PRICE_LISTING_MONTHLY =
-  process.env.NEXT_PUBLIC_STRIPE_PRICE_BUSINESS_MONTHLY!;
-const PRICE_LISTING_YEARLY =
-  process.env.NEXT_PUBLIC_STRIPE_PRICE_BUSINESS_YEARLY!;
-const ORIGIN = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+import {
+  openPortal,
+  setListingHidden,
+  startBoost,
+  startEvaluation,
+  startMonthlyListingCheckout,
+  startYearlyListingCheckout,
+} from "./actions";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 export const metadata: Metadata = {
   title: "Your Listings | RioPlex Business Exchange",
@@ -31,206 +36,64 @@ export const metadata: Metadata = {
     "Manage your business listings and subscriptions on RioPlex Business Exchange.",
 };
 
-// ---- SERVER ACTIONS ----
-async function startListingPriceCheckout(priceId: string) {
-  "use server";
+type SubscriptionLite = {
+  id: string;
+  status: string | null;
+  current_period_end: string | null;
+  cancel_at_period_end: boolean | null;
+};
 
-  const supabase = await createClientRSC();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login?next=/dashboard/listings");
+function canContinueOnboarding(subscription: SubscriptionLite | null) {
+  if (!subscription) return false;
 
-  const h = await headers();
-  const ck = h.get("cookie") ?? "";
+  const status = subscription.status ?? "";
+  const periodEnd = subscription.current_period_end
+    ? new Date(subscription.current_period_end).getTime()
+    : null;
+  const now = Date.now();
 
-  const res = await fetch(`${ORIGIN}/api/checkout`, {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      cookie: ck.toString(),
-    },
-    body: JSON.stringify({
-      priceId,
-      purpose: "listing_plan",
-      successUrl: `${ORIGIN}/onboarding/business/claim?session_id={CHECKOUT_SESSION_ID}`,
-      cancelUrl: `${ORIGIN}/dashboard/listings`,
-    }),
-    cache: "no-store",
-  });
-
-  if (!res.ok) {
-    let body = "";
-    try {
-      body = await res.text();
-    } catch {
-      // ignore
+  if (status === "active" || status === "trialing") {
+    if (subscription.cancel_at_period_end && periodEnd !== null) {
+      return periodEnd > now;
     }
-    console.error("listing_plan checkout failed", res.status, body);
-    redirect("/dashboard/listings?err=listing_plan_checkout");
+    return true;
   }
 
-  const { url } = await res.json();
-  if (!url) {
-    console.error("No session URL returned from /api/checkout (listing_plan)");
-    redirect("/dashboard/listings?err=no_session_url");
-  }
-
-  redirect(url);
+  return false;
 }
 
-async function startEvaluation(listingId: string) {
-  "use server";
-
-  const h = await headers();
-  const ck = h.get("cookie");
-
-  const res = await fetch(`${ORIGIN}/api/checkout/evaluation`, {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      ...(ck ? { cookie: ck } : {}),
-    },
-    body: JSON.stringify({ listingId }),
-    cache: "no-store",
-  });
-
-  if (!res.ok) {
-    let body = "";
-    try {
-      body = await res.text();
-    } catch {
-      // ignore
-    }
-    console.error(
-      "Failed to create evaluation checkout session",
-      res.status,
-      body,
-    );
-    return redirect("/dashboard/listings?err=eval_checkout");
-  }
-
-  const { url } = await res.json();
-  if (!url) return redirect("/dashboard/listings?err=no_eval_url");
-
-  redirect(url);
-}
-
-async function startBoost(listingId: string) {
-  "use server";
-
-  const { createClientRSC } = await import("@/../utils/supabase/server");
-  const supabase = await createClientRSC();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login?next=/dashboard/listings");
-
-  // Verify if profile is a business owner
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("user_type")
-    .eq("id", user.id)
-    .maybeSingle();
-  if (!profile || profile.user_type !== "business") {
-    return redirect("/dashboard");
-  }
-
-  // Verify listing ownership
-  const { data: listing, error: listErr } = await supabase
-    .from("business_listings")
-    .select("id, owner_id")
-    .eq("id", listingId)
-    .maybeSingle();
-
-  if (listErr) redirect("/dashboard/listings?err=promo_db");
-  if (!listing || listing.owner_id !== user.id)
-    redirect("/dashboard/listings?err=forbidden");
-
-  // Whitelist promo price
-  const promoPriceId = process.env.NEXT_PUBLIC_STRIPE_PRICE_PROMO;
-  if (!promoPriceId) redirect("/dashboard/listings?err=missing_price");
-
-  const { ensureCustomer } = await import("@/lib/ensure-customer");
-  const customerId = await ensureCustomer(user);
-
-  const stripe = getStripe();
-  if (!stripe) {
-    redirect("/dashboard/listings?err=stripe_not_configured");
-  }
-
-  // (Optional) ensure the price is recurring
-  const price = await stripe.prices.retrieve(promoPriceId);
-  if (price.type !== "recurring")
-    redirect("/dashboard/listings?err=not_recurring");
-
-  const session = await stripe.checkout.sessions.create({
-    mode: "subscription",
-    customer: customerId,
-    line_items: [{ price: promoPriceId, quantity: 1 }],
-    success_url: `${ORIGIN}/dashboard/listings?promoted=${listingId}`,
-    cancel_url: `${ORIGIN}/dashboard/listings`,
-    subscription_data: {
-      metadata: {
-        supabase_user_id: user.id,
-        purpose: "listing_promo",
-        listing_id: listingId,
-      },
-    },
-    metadata: {
-      supabase_user_id: user.id,
-      purpose: "listing_promo",
-      listing_id: listingId,
-    },
-    allow_promotion_codes: true,
-  });
-
-  if (!session.url) {
-    console.error("Stripe returned no session.url", { sessionId: session.id });
-    redirect("/dashboard/listings?err=no_session_url");
-  }
-
-  redirect(session.url);
-}
-
-async function openPortal(_formData: FormData) {
-  "use server";
-  void _formData;
-  const { openBillingPortal } = await import("@/app/server/billing");
-  const url = await openBillingPortal(`${ORIGIN}/dashboard/listings`);
-  redirect(url);
-}
-
-// ---- PAGE ----
 export default async function OwnerListings() {
   const supabase = await createClientRSC();
   const {
     data: { user },
   } = await supabase.auth.getUser();
+
   if (!user) redirect("/login?next=/dashboard/listings");
 
-  // 1) Fetch listings
   const { data: rows } = await supabase
     .from("business_listings")
     .select(
-      "id, title, industry, listing_image_choice, status, is_active, updated_at, is_hidden",
+      "id, title, industry, secondary_industry, listing_image_choice, status, is_active, updated_at, is_hidden, stripe_subscription_id",
     )
     .eq("owner_id", user.id)
     .order("updated_at", { ascending: false });
 
   const listingIds = (rows ?? []).map((r) => r.id);
+  const subscriptionIds = (rows ?? [])
+    .map((r) => r.stripe_subscription_id)
+    .filter((id): id is string => !!id);
 
-  // 2) Centralize badges (boost + evaluation) via shared helper
   const { boosted, evalStatus } = await getListingBadges(supabase, listingIds);
 
-  // 3) Signed URLs for thumbnails
-  const signedUrls = new Map<string, string>();
-  for (const r of rows ?? []) {
-    if (r.listing_image_choice) {
-      const { data: s } = await supabase.storage
-        .from("listings")
-        .createSignedUrl(r.listing_image_choice, 60);
-      if (s?.signedUrl) signedUrls.set(r.id, s.signedUrl);
+  const subscriptionMap = new Map<string, SubscriptionLite>();
+  if (subscriptionIds.length > 0) {
+    const { data: subscriptions } = await supabase
+      .from("subscriptions")
+      .select("id, status, current_period_end, cancel_at_period_end")
+      .in("id", subscriptionIds);
+
+    for (const sub of subscriptions ?? []) {
+      subscriptionMap.set(sub.id, sub);
     }
   }
 
@@ -243,46 +106,57 @@ export default async function OwnerListings() {
 
         <div className="w-full lg:w-[1140px] mx-auto py-10 px-5 lg:px-0">
           <h1 className="mb-4">Your Listings</h1>
+
           <p className="text-sm text-gray-600 mb-6">
             Use the customer portal to update payment methods, view invoices, or
             cancel plans.
           </p>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {/* Existing listings */}
             {rows &&
               rows.length > 0 &&
               rows.map((l) => {
                 const updated = l.updated_at
                   ? new Date(l.updated_at).toLocaleString()
                   : "—";
+
                 const isBoosted = boosted.has(l.id);
-                const evalState = evalStatus.get(l.id); // 'purchased' | 'in_progress' | 'completed' | undefined;
+                const evalState = evalStatus.get(l.id);
                 const catalogKey = l.listing_image_choice as string | null;
                 const imgSrc = catalogKey ? imageUrl(catalogKey) : null;
+
+                const subscription = l.stripe_subscription_id
+                  ? subscriptionMap.get(l.stripe_subscription_id) ?? null
+                  : null;
+
+                const isDraft = l.status === "draft";
+                const showContinueOnboarding =
+                  isDraft && canContinueOnboarding(subscription);
+                const showBillingRequired =
+                  isDraft && !canContinueOnboarding(subscription);
 
                 return (
                   <div
                     key={l.id}
                     className={`
-                      bg-white 
-                      rounded-2xl 
-                      shadow-sm 
-                      border 
-                      p-0 
-                      flex 
-                      flex-col 
-                      transition-all 
-                      hover:shadow-xl 
+                      bg-white
+                      rounded-2xl
+                      shadow-sm
+                      border
+                      overflow-hidden
+                      flex
+                      flex-col
+                      transition-all
+                      hover:shadow-xl
                       hover:-translate-y-1
-                     ${l.is_hidden ? "opacity-90" : ""}`}
+                      ${l.is_hidden ? "opacity-90" : ""}
+                    `}
                   >
-                    {/* Thumbnail */}
-                    <div className="relative h-50 w-full mb-4 overflow-hidden rounded-t-xl">
+                    <div className="relative h-48 w-full overflow-hidden">
                       {imgSrc ? (
                         <img
                           src={imgSrc}
-                          alt=""
+                          alt={l.industry ?? "Business listing"}
                           className="w-full h-full object-cover"
                         />
                       ) : (
@@ -294,12 +168,10 @@ export default async function OwnerListings() {
                         />
                       )}
 
-                      {/* gray overlay when hidden */}
                       {l.is_hidden && (
                         <div className="absolute inset-0 bg-neutral-200/50" />
                       )}
 
-                      {/* HIDDEN pill */}
                       {l.is_hidden && (
                         <span className="absolute top-3 right-3 px-2 py-1 text-xs font-semibold rounded-full bg-neutral-900/80 text-white">
                           HIDDEN
@@ -307,182 +179,327 @@ export default async function OwnerListings() {
                       )}
                     </div>
 
-                    <div className="p-5">
-                      {/* Title + meta */}
-                      <h3 className="text-lg font-semibold mb-1 -mt-5">
-                        {l.title ?? "Untitled Listing"}
-                      </h3>
-                      <p className="text-sm text-gray-500">
-                        {l.industry ?? "—"}
-                      </p>
-                      <p className="text-xs text-neutral-400 mt-2">
-                        Last Updated: {updated}
-                      </p>
+                    <div className="p-5 flex flex-col flex-1">
+                      <div>
+                        <h3 className="text-lg font-semibold text-neutral-900 leading-snug">
+                          {l.title ?? "Untitled Listing"}
+                        </h3>
 
-                      {/* Badges */}
-                      <div className="flex flex-wrap gap-2 mt-3">
-                        {isBoosted && (
-                          <span className="px-2 py-1 text-xs rounded-full bg-amber-100 text-amber-700">
-                            Boosted
-                          </span>
-                        )}
-                        {evalState === "purchased" && (
-                          <span className="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-700">
-                            Evaluation: Purchased
-                          </span>
-                        )}
-                        {evalState === "in_progress" && (
-                          <span className="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-700">
-                            Evaluation: In Progress
-                          </span>
-                        )}
-                        {evalState === "completed" && (
-                          <span className="px-2 py-1 text-xs rounded-full bg-green-100 text-green-700">
-                            Evaluation: Completed
-                          </span>
-                        )}
+                        <div className="mt-3 flex flex-wrap items-center gap-2">
+                          {l.industry && (
+                            <span className="inline-flex items-center rounded-full bg-[#9ed3c3]/25 px-3 py-1 text-xs font-medium text-gray-800">
+                              {l.industry}
+                            </span>
+                          )}
+
+                          {l.secondary_industry && (
+                            <span className="inline-flex items-center rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-600">
+                              Secondary: {l.secondary_industry}
+                            </span>
+                          )}
+                        </div>
+
+                        <p className="mt-3 text-xs text-neutral-400">
+                          Last Updated: {updated}
+                        </p>
                       </div>
 
-                      {/* Links row */}
-                      <div className="flex gap-4 text-sm">
-                        <Link
-                          href={`/business-listing/${l.id}`}
-                          className="green-link"
-                        >
-                          Preview
-                        </Link>
-                        <Link
-                          href={`/dashboard/listings/${l.id}/edit`}
-                          className="green-link"
-                        >
-                          Edit
-                        </Link>
-                      </div>
+                      {!isDraft && (
+                        <>
+                          <div className="mt-4 border-t border-gray-100 pt-4">
+                            <div className="flex flex-wrap gap-2">
+                              {isBoosted && (
+                                <span className="px-2 py-1 text-xs rounded-full bg-amber-100 text-amber-700">
+                                  Boosted
+                                </span>
+                              )}
 
-                      <VisibilityToggle
-                        id={l.id}
-                        initialHidden={!!l.is_hidden}
-                        setHiddenAction={setListingHidden}
-                        labelVisible="Visible to investors"
-                        labelHidden="Hidden from investors"
-                        helper="Turn off to hide this listing"
-                        toastHidden="Listing hidden"
-                        toastVisible="Listing is now visible"
-                      />
+                              {evalState === "purchased" && (
+                                <span className="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-700">
+                                  Evaluation: Purchased
+                                </span>
+                              )}
 
-                      {/* Action buttons */}
-                      <div className="mt-5 grid grid-cols-3 gap-1 text-sm text-center">
-                        {!isBoosted ? (
-                          <form action={startBoost.bind(null, l.id)}>
-                            <button
-                              type="submit"
-                              className="w-full text-white font-medium items-center py-2 rounded-lg bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] hover:cursor-pointer"
-                            >
-                              Promote
-                            </button>
-                          </form>
-                        ) : (
-                          <form action={openPortal}>
-                            <button
-                              type="submit"
-                              className="w-full text-white font-medium items-center py-2 rounded-lg bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] hover:cursor-pointer"
-                            >
-                              Manage Boost
-                            </button>
-                          </form>
-                        )}
+                              {evalState === "in_progress" && (
+                                <span className="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-700">
+                                  Evaluation: In Progress
+                                </span>
+                              )}
 
-                        <form action={openPortal}>
-                          <button
-                            type="submit"
-                            className="w-full text-white font-medium items-center py-2 rounded-lg bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] hover:cursor-pointer"
-                          >
-                            Manage Plan
-                          </button>
-                        </form>
-                        {!evalState && (
-                          <form action={startEvaluation.bind(null, l.id)}>
-                            <button
-                              type="submit"
-                              className="w-full text-white font-medium items-center py-2 rounded-lg bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] hover:cursor-pointer"
+                              {evalState === "completed" && (
+                                <span className="px-2 py-1 text-xs rounded-full bg-green-100 text-green-700">
+                                  Evaluation: Completed
+                                </span>
+                              )}
+                            </div>
+
+                            <div className="mt-4 flex gap-4 text-sm">
+                              <Link
+                                href={`/business-listing/${l.id}`}
+                                className="green-link"
+                              >
+                                Preview
+                              </Link>
+
+                              <Link
+                                href={`/dashboard/listings/${l.id}/edit`}
+                                className="green-link"
+                              >
+                                Edit
+                              </Link>
+                            </div>
+                          </div>
+
+                          <div className="mt-4">
+                            <VisibilityToggle
+                              id={l.id}
+                              initialHidden={!!l.is_hidden}
+                              setHiddenAction={setListingHidden}
+                              labelVisible="Visible to investors"
+                              labelHidden="Hidden from investors"
+                              helper="Turn off to hide this listing"
+                              toastHidden="Listing hidden"
+                              toastVisible="Listing is now visible"
+                            />
+                          </div>
+
+                          <div className="mt-5 grid grid-cols-3 gap-1 text-sm text-center">
+                            {!isBoosted ? (
+                              <form action={startBoost.bind(null, l.id)}>
+                                <button
+                                  type="submit"
+                                  className="w-full text-white font-medium items-center py-2 rounded-lg bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] hover:cursor-pointer"
+                                >
+                                  Promote
+                                </button>
+                              </form>
+                            ) : (
+                              <form action={openPortal}>
+                                <button
+                                  type="submit"
+                                  className="w-full text-white font-medium items-center py-2 rounded-lg bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] hover:cursor-pointer"
+                                >
+                                  Manage Boost
+                                </button>
+                              </form>
+                            )}
+
+                            <form action={openPortal}>
+                              <button
+                                type="submit"
+                                className="w-full text-white font-medium items-center py-2 rounded-lg bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] hover:cursor-pointer"
+                              >
+                                Manage Plan
+                              </button>
+                            </form>
+
+                            {!evalState && (
+                              <form action={startEvaluation.bind(null, l.id)}>
+                                <button
+                                  type="submit"
+                                  className="w-full text-white font-medium items-center py-2 rounded-lg bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] hover:cursor-pointer"
+                                >
+                                  {VALUATION_MODE === "free"
+                                    ? "Get Free Valuation"
+                                    : "Get Valuation"}
+                                </button>
+                              </form>
+                            )}
+                          </div>
+                        </>
+                      )}
+
+                      {showContinueOnboarding && (
+                        <div className="mt-4 rounded-2xl border border-[#9ed3c3] bg-[#f6fbf9] p-4 shadow-sm">
+                          <div className="flex items-start gap-3">
+                            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white border border-[#d7eee7] shadow-sm">
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="1.8"
+                                className="h-5 w-5 text-[#5c9f8d]"
+                              >
+                                <path
+                                  d="M12 6v6l4 2"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                />
+                                <circle cx="12" cy="12" r="9" />
+                              </svg>
+                            </div>
+
+                            <div className="min-w-0 flex-1">
+                              <div className="inline-flex items-center rounded-full bg-[#9ed3c3]/20 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-[#3f7f70]">
+                                Onboarding Incomplete
+                              </div>
+
+                              <div className="mt-3 flex items-center gap-2">
+                                <p className="text-sm font-semibold text-neutral-900">
+                                  Finish setup
+                                </p>
+
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <button
+                                      type="button"
+                                      className="flex h-5 w-5 items-center justify-center rounded-full border border-neutral-300 bg-white text-[11px] text-neutral-500"
+                                    >
+                                      ⓘ
+                                    </button>
+                                  </TooltipTrigger>
+
+                                  <TooltipContent>
+                                    This listing is still a draft. Complete
+                                    onboarding to publish it and make it visible
+                                    to investors.
+                                  </TooltipContent>
+                                </Tooltip>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="mt-4">
+                            <Link
+                              href={`/onboarding/business/${l.id}/set-up`}
+                              className="inline-flex w-full items-center justify-center rounded-xl bg-[var(--color-primary)] px-4 py-2.5 text-sm font-medium text-white transition hover:bg-[var(--color-primary-hover)]"
                             >
-                              Get Valuation
-                            </button>
-                          </form>
-                        )}
-                      </div>
+                              Continue Onboarding
+                            </Link>
+                          </div>
+                        </div>
+                      )}
+
+                      {showBillingRequired && (
+                        <div className="mt-4 rounded-2xl border border-neutral-200 bg-neutral-50 p-4 shadow-sm">
+                          <div className="flex items-start gap-3">
+                            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white border border-neutral-200 shadow-sm">
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="1.8"
+                                className="h-5 w-5 text-neutral-500"
+                              >
+                                <path
+                                  d="M12 8V12M12 16H12.01"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                />
+                                <circle cx="12" cy="12" r="9" />
+                              </svg>
+                            </div>
+
+                            <div className="min-w-0 flex-1">
+                              <div className="inline-flex items-center rounded-full bg-neutral-200 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-neutral-700">
+                                Draft Listing
+                              </div>
+
+                              <p className="mt-3 text-sm font-semibold text-neutral-900">
+                                Active plan required to continue
+                              </p>
+
+                              <p className="mt-1 text-sm leading-5 text-neutral-600">
+                                This draft needs an active business membership
+                                before it can be published.
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="mt-4 flex flex-col gap-2">
+                            <form action={openPortal}>
+                              <button
+                                type="submit"
+                                className="inline-flex w-full items-center justify-center rounded-xl bg-[var(--color-primary)] px-4 py-2.5 text-sm font-medium text-white transition hover:bg-[var(--color-primary-hover)]"
+                              >
+                                Manage Billing
+                              </button>
+                            </form>
+
+                            <p className="text-center text-xs text-neutral-500">
+                              Once your listing access is active, you can finish
+                              onboarding and publish.
+                            </p>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 );
               })}
 
-            {/* Add Listing Card */}
-            <div className="bg-white rounded-xl border border-dashed flex items-center justify-center p-4 min-h-[300px]">
-              <div className="flex flex-col items-center gap-3">
-                <svg
-                  width="32"
-                  height="32"
-                  viewBox="0 0 24 24"
-                  className="opacity-60"
-                >
-                  <path
-                    d="M12 5v14m-7-7h14"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    fill="none"
-                    strokeLinecap="round"
-                  />
-                </svg>
-                <div className="text-sm font-medium">Add Listing</div>
-                <div className="flex gap-2">
-                  <form
-                    action={startListingPriceCheckout.bind(
-                      null,
-                      PRICE_LISTING_MONTHLY,
-                    )}
+            <div className="bg-white rounded-2xl border-2 border-dashed border-[#9ed3c3]/60 p-6 min-h-[360px] flex flex-col justify-between shadow-sm transition-all hover:-translate-y-1 hover:shadow-lg">
+              <div>
+                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-[#9ed3c3]/20 text-gray-800">
+                  <svg
+                    width="26"
+                    height="26"
+                    viewBox="0 0 24 24"
+                    className="opacity-80"
                   >
-                    <button
-                      type="submit"
-                      className="w-25 mt-4 px-4 py-2 rounded-lg bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] hover:cursor-pointer text-white transition"
-                    >
-                      Monthly
-                    </button>
-                  </form>
-                  <form
-                    action={startListingPriceCheckout.bind(
-                      null,
-                      PRICE_LISTING_YEARLY,
-                    )}
-                  >
-                    <button
-                      type="submit"
-                      className="w-25 mt-4 px-4 py-2 rounded-lg bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] hover:cursor-pointer text-white transition"
-                    >
-                      Yearly
-                    </button>
-                  </form>
+                    <path
+                      d="M12 5v14m-7-7h14"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      fill="none"
+                      strokeLinecap="round"
+                    />
+                  </svg>
                 </div>
+
+                <h3 className="text-lg font-semibold text-gray-900">
+                  Add another business listing
+                </h3>
+
+                <p className="mt-2 text-sm leading-relaxed text-gray-600">
+                  Create a separate listing for another business opportunity.
+                  Choose monthly flexibility or yearly savings to start setup.
+                </p>
+              </div>
+
+              <div className="mt-6 space-y-3">
+                <form action={startMonthlyListingCheckout}>
+                  <button
+                    type="submit"
+                    className="w-full rounded-xl bg-[var(--color-primary)] px-4 py-2.5 text-sm font-medium text-white transition hover:bg-[var(--color-primary-hover)] hover:cursor-pointer"
+                  >
+                    Add Monthly Listing
+                  </button>
+                </form>
+
+                <form action={startYearlyListingCheckout}>
+                  <button
+                    type="submit"
+                    className="w-full rounded-xl border border-[#9ed3c3] bg-white px-4 py-2.5 text-sm font-medium text-gray-800 transition hover:bg-[#9ed3c3]/15 hover:cursor-pointer"
+                  >
+                    Add Yearly Listing
+                  </button>
+                </form>
+
+                <p className="text-center text-xs text-gray-500">
+                  You’ll be guided through setup after checkout.
+                </p>
               </div>
             </div>
           </div>
-          {/* Business Solutions Section */}
+
           <section className="max-w-[1140px] mx-auto px-5 lg:px-0 py-14">
             <div className="relative bg-[url('/images/backgrounds/footer-bg.png')] bg-fixed bg-center bg-cover rounded-[40px] p-8 lg:p-12 text-white overflow-hidden">
-              {/* subtle glow */}
               <div className="absolute -top-24 -right-24 w-64 h-64 bg-[#4da685]/20 rounded-full blur-3xl pointer-events-none"></div>
 
-              {/* Header */}
               <div className="max-w-2xl">
-                <h2 className=" text-white text-2xl lg:text-3xl font-semibold">
+                <h2 className="text-white text-2xl lg:text-3xl font-semibold">
                   Need support beyond your listing?
                 </h2>
+
                 <p className="text-white mt-2 text-sm lg:text-base">
                   Work with trusted advisors to strengthen your valuation, legal
                   positioning, financial structure, and media exposure.
                 </p>
               </div>
 
-              {/* Grid */}
               <div className="mt-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
                 <div className="flex flex-col items-center">
                   <Modal
@@ -498,6 +515,7 @@ export default async function OwnerListings() {
                   >
                     <Eval />
                   </Modal>
+
                   <h4 className="mt-4 text-white font-medium text-center">
                     Business Valuation
                   </h4>
@@ -517,6 +535,7 @@ export default async function OwnerListings() {
                   >
                     <Legal />
                   </Modal>
+
                   <h4 className="mt-4 text-white font-medium text-center">
                     Legal Representation
                   </h4>
@@ -536,6 +555,7 @@ export default async function OwnerListings() {
                   >
                     <Cpa />
                   </Modal>
+
                   <h4 className="mt-4 text-white font-medium text-center">
                     CPA &amp; Bookkeeping
                   </h4>
@@ -555,6 +575,7 @@ export default async function OwnerListings() {
                   >
                     <Marketing />
                   </Modal>
+
                   <h4 className="mt-4 text-white font-medium text-center">
                     Media Amplification
                   </h4>

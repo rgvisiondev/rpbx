@@ -5,12 +5,18 @@ import Button from '@/app/components/Button';
 import { Progress } from '@/components/ui/progress';
 import { useState } from 'react';
 
-import { INDUSTRY_SLUGS } from '@/lib/industryImages';
+import { INDUSTRY_OPTIONS } from '@/lib/industryImages';
 import IndustryImagePicker from '@/app/onboarding/components/IndustryImagePicker';
 import AddressAutocomplete from '@/app/onboarding/components/AddressAutocomplete';
 import { DescriptionAiAssist } from '@/app/onboarding/components/DescriptionAIAssist';
 
-import { CASH_FLOW_BUCKETS, EBITDA_BUCKETS } from '@/lib/ranges';
+import {
+  ANNUAL_REVENUE_BUCKETS,
+  CASH_FLOW_BUCKETS,
+  EBITDA_BUCKETS,
+  YEARS_IN_BUSINESS_BUCKETS,
+  EMPLOYEE_COUNT_BUCKETS,
+} from '@/lib/ranges';
 
 import {
   Tooltip,
@@ -26,13 +32,14 @@ type EditListing = {
 
   title: string | null;
   industry: string | null;
+  secondary_industry: string | null;
   county: string | null;
   city: string | null;
   contact_email: string | null;
 
   ownership_percentage: number | null;
   annual_revenue_range: string | null;
-  cash_flow_range: string | null; // ✅ replaced book_value_range
+  cash_flow_range: string | null;
   ebitda_range: string | null;
   years_in_business: string | null;
   employee_count_range: string | null;
@@ -55,7 +62,7 @@ export default function EditListingFormClient({
 }: EditListingFormClientProps) {
   const [description, setDescription] = useState(listing?.description ?? '');
 
-  const INDUSTRIES = Object.keys(INDUSTRY_SLUGS);
+  const INDUSTRIES = INDUSTRY_OPTIONS;
 
   return (
     <div className="flex flex-col bg-[url('/images/backgrounds/white-bg.png')] bg-repeat bg-center min-h-screen justify-center p-5">
@@ -76,7 +83,6 @@ export default function EditListingFormClient({
           <p className="mt-2">Update your listing details. Changes save to the live listing.</p>
           <hr className="mb-1 mt-4" />
 
-          {/* Basics */}
           <label className="block pt-4">
             <span>Business Title</span>
             <input
@@ -91,6 +97,7 @@ export default function EditListingFormClient({
             <IndustryImagePicker
               allIndustries={INDUSTRIES}
               defaultIndustry={listing?.industry ?? ''}
+              defaultSecondaryIndustry={listing?.secondary_industry ?? ''}
               defaultImageKey={listing?.listing_image_choice ?? ''}
             />
           </label>
@@ -108,7 +115,6 @@ export default function EditListingFormClient({
             </p>
           </label>
 
-          {/* Contact flags */}
           <label className="block pt-4">
             <span>Contact email</span>
             <input
@@ -138,7 +144,6 @@ export default function EditListingFormClient({
             <span>We can provide tax returns on request</span>
           </label>
 
-          {/* Details */}
           <label className="block pt-4">
             <span>Ownership percentage</span>
             <input
@@ -160,15 +165,14 @@ export default function EditListingFormClient({
               className="mt-1 w-full border rounded px-3 py-2 hover:cursor-pointer"
             >
               <option value="">—</option>
-              <option value="0_50k">0–50K</option>
-              <option value="50k_100k">50K–100K</option>
-              <option value="100k_250k">100K–250K</option>
-              <option value="250k_1m">250K–1M</option>
-              <option value="1m_plus">1M+</option>
+              {ANNUAL_REVENUE_BUCKETS.map((b) => (
+                <option key={b.key} value={b.key}>
+                  {b.label}
+                </option>
+              ))}
             </select>
           </label>
 
-          {/* ✅ Replaced Book Value with Cash Flow */}
           <label className="block pt-4">
             <span>Cash flow (SDE)</span>
             <select
@@ -178,7 +182,9 @@ export default function EditListingFormClient({
             >
               <option value="">—</option>
               {CASH_FLOW_BUCKETS.map((b) => (
-                <option key={b.key} value={b.key}>{b.label}</option>
+                <option key={b.key} value={b.key}>
+                  {b.label}
+                </option>
               ))}
             </select>
           </label>
@@ -201,7 +207,9 @@ export default function EditListingFormClient({
             >
               <option value="">—</option>
               {EBITDA_BUCKETS.map((b) => (
-                <option key={b.key} value={b.key}>{b.label}</option>
+                <option key={b.key} value={b.key}>
+                  {b.label}
+                </option>
               ))}
             </select>
           </label>
@@ -214,11 +222,11 @@ export default function EditListingFormClient({
               className="mt-1 w-full border rounded px-3 py-2 hover:cursor-pointer"
             >
               <option value="">—</option>
-              <option value="lt_1">Less than 1</option>
-              <option value="1_3">1–3</option>
-              <option value="3_5">3–5</option>
-              <option value="5_10">5–10</option>
-              <option value="gt_10">10+</option>
+              {YEARS_IN_BUSINESS_BUCKETS.map((b) => (
+                <option key={b.key} value={b.key}>
+                  {b.label}
+                </option>
+              ))}
             </select>
           </label>
 
@@ -230,12 +238,11 @@ export default function EditListingFormClient({
               className="mt-1 w-full border rounded px-3 py-2 hover:cursor-pointer"
             >
               <option value="">—</option>
-              <option value="1_4">1–4</option>
-              <option value="5_10">5–10</option>
-              <option value="11_25">11–25</option>
-              <option value="26_50">26–50</option>
-              <option value="51_100">51–100</option>
-              <option value="gt_100">100+</option>
+              {EMPLOYEE_COUNT_BUCKETS.map((b) => (
+                <option key={b.key} value={b.key}>
+                  {b.label}
+                </option>
+              ))}
             </select>
           </label>
 

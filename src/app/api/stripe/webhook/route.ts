@@ -249,10 +249,8 @@ async function finalizeResumeFromPause({
   if (!oldPausedRow) return;
 
   const listingId = oldPausedRow.listing_id ?? listingIdHint ?? null;
-  const pausedBoostSubscriptionId = await getPausedBoostSubscriptionIdForListing(
-    admin,
-    listingId,
-  );
+  const pausedBoostSubscriptionId =
+    await getPausedBoostSubscriptionIdForListing(admin, listingId);
   const hadDependentBoost = !!pausedBoostSubscriptionId;
   const resumedAt =
     existingNewRow?.last_pause_resumed_at ?? new Date().toISOString();
@@ -419,6 +417,7 @@ type ListingEvaluationInsert = {
   listing_id: string;
   status: string;
   stripe_payment_intent_id?: string;
+  access_type: string;
 };
 
 export async function POST(req: NextRequest) {
@@ -487,8 +486,9 @@ export async function POST(req: NextRequest) {
           "true";
 
         const isAutoResumeFromPause =
-          String(sess.metadata?.["auto_resume_from_pause"] ?? "").toLowerCase() ===
-          "true";
+          String(
+            sess.metadata?.["auto_resume_from_pause"] ?? "",
+          ).toLowerCase() === "true";
 
         const resumedFromSubscriptionId =
           (sess.metadata?.["resumed_from_subscription_id"] as
@@ -505,7 +505,8 @@ export async function POST(req: NextRequest) {
               userId,
               resumedFromSubscriptionId,
               eventRef: sess.id,
-              listingIdHint: String(sess.metadata?.["listing_id"] ?? "") || null,
+              listingIdHint:
+                String(sess.metadata?.["listing_id"] ?? "") || null,
               baseUrl,
             });
           } catch (e) {
@@ -716,10 +717,10 @@ export async function POST(req: NextRequest) {
 
         const evaluationData: ListingEvaluationInsert = {
           listing_id: listingId,
-          status: "purchased",
+          status: "completed",
+          access_type: "paid",
           ...(piId && { stripe_payment_intent_id: piId }),
         };
-
         const { error: evalErr } = await admin
           .from("listing_evaluations" as never)
           .upsert(
@@ -840,8 +841,9 @@ export async function POST(req: NextRequest) {
         "true";
 
       const resumedFromSubscriptionId =
-        (sub.metadata?.["resumed_from_subscription_id"] as string | undefined) ??
-        null;
+        (sub.metadata?.["resumed_from_subscription_id"] as
+          | string
+          | undefined) ?? null;
 
       if (
         (type === "customer.subscription.created" ||
@@ -857,7 +859,11 @@ export async function POST(req: NextRequest) {
             typeof sub.customer === "string" ? sub.customer : sub.customer?.id;
 
           if (!uid && stripeCustomerId) {
-            uid = await getUserIdForStripeCustomer(admin, stripe, stripeCustomerId);
+            uid = await getUserIdForStripeCustomer(
+              admin,
+              stripe,
+              stripeCustomerId,
+            );
           }
 
           await finalizeResumeFromPause({
@@ -1107,7 +1113,8 @@ export async function POST(req: NextRequest) {
         const nowIso = new Date().toISOString();
         const effectivePauseStart = subRow.pause_starts_at ?? nowIso;
         const effectivePauseEnd =
-          subRow.pause_ends_at ?? addDaysIso(effectivePauseStart, PAUSE_DURATION_DAYS);
+          subRow.pause_ends_at ??
+          addDaysIso(effectivePauseStart, PAUSE_DURATION_DAYS);
 
         await admin
           .from("subscriptions")

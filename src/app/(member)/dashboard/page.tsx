@@ -1,4 +1,3 @@
-// app/(member)/dashboard/page.tsx
 export const revalidate = 0;
 
 import Link from "next/link";
@@ -34,6 +33,7 @@ import { experts } from "@/lib/advisors/advisors";
 import { Mail } from "lucide-react";
 
 import BillingStatusBanner from "./_components/BillingStatusBanner";
+import OnboardingStatusBanner from "./_components/OnboardingStatusBanner";
 
 export const metadata: Metadata = {
   title: "Dashboard | RioPlex Business Exchange",
@@ -43,17 +43,13 @@ export const metadata: Metadata = {
 type DashboardData = BusinessDashboardData | InvestorDashboardData;
 
 export default async function Dashboard() {
-  // Let the (member)/layout handle the paywall/verification UX.
-  // If blocked, don't fetch anything private here.
   const gate = await requireEntitlementOrNull();
   if (gate.block) {
-    // Layout will show the overlay + blur or redirect; render nothing here.
     return null;
   }
 
   const { needsBillingFix, status } = gate;
 
-  // From here down, user is entitled & verified.
   const userType: "business" | "investor" =
     gate.role === "investor" ? "investor" : "business";
 
@@ -64,22 +60,60 @@ export default async function Dashboard() {
   } = await supabase.auth.getUser();
   if (!user) return redirect("/login");
 
+  let onboardingBanner:
+    | {
+        show: boolean;
+        label: string;
+        message: string;
+        href: string;
+        ctaLabel: string;
+      }
+    | undefined;
+
   // Post-payment onboarding nudges
   if (userType === "investor") {
     const { data: inv } = await supabase
       .from("investor_profiles")
-      .select("id")
+      .select("id, status")
       .eq("user_id", user.id)
       .maybeSingle();
 
     if (!inv) {
       redirect("/onboarding/investor/contact");
     }
-  }
-  // No special redirect for business users here for now.
-  // We assume their listing was created via the claim flow after checkout.
 
-  // Fetch private dashboard data now that we know it's safe
+    if (inv.status !== "published") {
+      onboardingBanner = {
+        show: true,
+        label: "Profile Incomplete",
+        message:
+          "Finish onboarding to publish your investor profile and appear in business matches.",
+        href: "/onboarding/investor/contact",
+        ctaLabel: "Continue Onboarding",
+      };
+    }
+  } else {
+    const { data: draftListing } = await supabase
+      .from("business_listings")
+      .select("id, title, status, updated_at")
+      .eq("owner_id", user.id)
+      .eq("status", "draft")
+      .order("updated_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (draftListing) {
+      onboardingBanner = {
+        show: true,
+        label: "Listing Incomplete",
+        message:
+          "You have a draft listing that still needs onboarding before it can be published.",
+        href: `/onboarding/business/${draftListing.id}/set-up`,
+        ctaLabel: "Continue Listing Setup",
+      };
+    }
+  }
+
   let dashboardData: DashboardData | null = null;
   let pagePaths: string[] = [];
   let labels: Record<string, string> = {};
@@ -139,12 +173,19 @@ export default async function Dashboard() {
 
   return (
     <div className="relative">
-      {/* Header / Hero */}
       <div className="flex flex-col bg-[url('/images/backgrounds/white-bg.png')] bg-repeat bg-top">
         <NavGate />
         <div className="w-full lg:max-w-[1140px] mx-auto px-5 lg:px-2 pt-4">
           <BillingStatusBanner show={needsBillingFix} status={status} />
+          <OnboardingStatusBanner
+            show={!!onboardingBanner?.show}
+            label={onboardingBanner?.label ?? ""}
+            message={onboardingBanner?.message ?? ""}
+            href={onboardingBanner?.href ?? "#"}
+            ctaLabel={onboardingBanner?.ctaLabel ?? "Continue"}
+          />
         </div>
+
         <div className="flex flex-col w-full lg:max-w-[1140px] mx-auto py-10 px-5 lg:px-2 pb-40 md:pb-52">
           <h1 className="mb-4">Welcome back, {displayName}</h1>
           <p className="text-sm text-gray-600 mb-6">
@@ -154,7 +195,6 @@ export default async function Dashboard() {
           </p>
 
           <div className="flex flex-col gap-10">
-            {/* Action buttons */}
             <div className="flex flex-col md:flex-row gap-5">
               <Link
                 href={
@@ -178,7 +218,6 @@ export default async function Dashboard() {
               </Link>
             </div>
 
-            {/* Data widgets */}
             {dashboardData && (
               <>
                 <div className="flex flex-col md:flex-row gap-5 w-full">
@@ -217,7 +256,6 @@ export default async function Dashboard() {
         </div>
       </div>
 
-      {/* Matches + Resources */}
       {dashboardData && (
         <div className="flex flex-col items-center bg-[url('/images/backgrounds/black-mint-bg.png')] bg-cover bg-center md:bg-fixed py-10 px-5 lg:px-2">
           <div className="relative -mt-120 md:-mt-82 -mb-18 z-10 w-full">

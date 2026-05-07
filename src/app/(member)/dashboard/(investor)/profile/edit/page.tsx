@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import Button from "@/app/components/Button";
 import { Progress } from "@/components/ui/progress";
-import { INDUSTRY_SLUGS } from "@/lib/industryImages";
+import { INDUSTRY_OPTIONS } from "@/lib/industryImages";
 import OwnershipRange from "@/app/onboarding/investor/preferences/OwnershipRange";
 import {
   Tooltip,
@@ -16,7 +16,7 @@ import { EBITDA_BUCKETS } from "@/lib/ranges";
 import { setInvestorHidden } from "./actions";
 import { VisibilityToggle } from "../../../_components/VisibilityToggle";
 
-const INDUSTRIES = Object.keys(INDUSTRY_SLUGS);
+const INDUSTRIES = INDUSTRY_OPTIONS;
 
 type InvestorProfileRow =
   Database["public"]["Tables"]["investor_profiles"]["Update"];
@@ -347,7 +347,7 @@ export default async function EditInvestorProfilePage() {
             <label className="block">
               <span>Company EBITDA target</span>
               <select
-                name="ebitda_bucket"
+                name="target_ebitda"
                 defaultValue={profile?.target_ebitda ?? ""}
                 className="mt-1 w-full border rounded px-3 py-2 hover:cursor-pointer"
               >
