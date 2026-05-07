@@ -469,6 +469,132 @@ export type Database = {
           },
         ]
       }
+      match_digest_sends: {
+        Row: {
+          error_message: string | null
+          featured_entity_id: string | null
+          id: number
+          included_entity_ids: Json
+          match_count: number
+          provider_message_id: string | null
+          recipient_email: string
+          recipient_type: string
+          recipient_user_id: string
+          sent_at: string
+          status: string
+          subject: string
+        }
+        Insert: {
+          error_message?: string | null
+          featured_entity_id?: string | null
+          id?: number
+          included_entity_ids?: Json
+          match_count?: number
+          provider_message_id?: string | null
+          recipient_email: string
+          recipient_type: string
+          recipient_user_id: string
+          sent_at?: string
+          status: string
+          subject: string
+        }
+        Update: {
+          error_message?: string | null
+          featured_entity_id?: string | null
+          id?: number
+          included_entity_ids?: Json
+          match_count?: number
+          provider_message_id?: string | null
+          recipient_email?: string
+          recipient_type?: string
+          recipient_user_id?: string
+          sent_at?: string
+          status?: string
+          subject?: string
+        }
+        Relationships: []
+      }
+      match_digest_skips: {
+        Row: {
+          id: number
+          match_count: number
+          notes: string | null
+          reason: string
+          recipient_email: string | null
+          recipient_type: string
+          recipient_user_id: string
+          skipped_at: string
+        }
+        Insert: {
+          id?: number
+          match_count?: number
+          notes?: string | null
+          reason: string
+          recipient_email?: string | null
+          recipient_type: string
+          recipient_user_id: string
+          skipped_at?: string
+        }
+        Update: {
+          id?: number
+          match_count?: number
+          notes?: string | null
+          reason?: string
+          recipient_email?: string | null
+          recipient_type?: string
+          recipient_user_id?: string
+          skipped_at?: string
+        }
+        Relationships: []
+      }
+      match_exposures: {
+        Row: {
+          contacted_at: string | null
+          created_at: string
+          dismissed_at: string | null
+          entity_id: string
+          entity_type: string
+          first_seen_at: string | null
+          id: string
+          last_emailed_at: string | null
+          last_seen_at: string | null
+          matched_listing_id: string | null
+          recipient_type: string
+          recipient_user_id: string
+          updated_at: string
+        }
+        Insert: {
+          contacted_at?: string | null
+          created_at?: string
+          dismissed_at?: string | null
+          entity_id: string
+          entity_type: string
+          first_seen_at?: string | null
+          id?: string
+          last_emailed_at?: string | null
+          last_seen_at?: string | null
+          matched_listing_id?: string | null
+          recipient_type: string
+          recipient_user_id: string
+          updated_at?: string
+        }
+        Update: {
+          contacted_at?: string | null
+          created_at?: string
+          dismissed_at?: string | null
+          entity_id?: string
+          entity_type?: string
+          first_seen_at?: string | null
+          id?: string
+          last_emailed_at?: string | null
+          last_seen_at?: string | null
+          matched_listing_id?: string | null
+          recipient_type?: string
+          recipient_user_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
