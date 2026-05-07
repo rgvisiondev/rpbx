@@ -297,7 +297,7 @@ export async function buildInvestorDigest(
   const exposureByListingId = new Map<string, MatchExposureRow>();
 
   if (listingIds.length > 0) {
-    const { data: exposuresRaw, error: exposuresErr } = await (supabase as any)
+    const { data: exposuresRaw, error: exposuresErr } = await supabase
       .from("match_exposures")
       .select(
         `

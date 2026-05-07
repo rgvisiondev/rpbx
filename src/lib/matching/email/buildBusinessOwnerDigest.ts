@@ -314,16 +314,19 @@ export async function buildBusinessOwnerDigest(
       inv.is_hidden === false,
   );
 
-  const investorIds = investors.map((inv) => inv.id).filter(Boolean);
+  const investorIds = investors
+    .map((inv) => inv.id)
+    .filter((id): id is string => typeof id === "string" && id.length > 0);
+
   const ownerListingIds = ownerListings
     .map((listing) => listing.id)
-    .filter(Boolean);
+    .filter((id): id is string => typeof id === "string" && id.length > 0);
 
   // 4) Pull exposure history for this business owner -> investor + listing relationship
   const exposureByInvestorAndListing = new Map<string, MatchExposureRow>();
 
   if (investorIds.length > 0 && ownerListingIds.length > 0) {
-    const { data: exposuresRaw, error: exposuresErr } = await (supabase as any)
+    const { data: exposuresRaw, error: exposuresErr } = await supabase
       .from("match_exposures")
       .select(
         `
