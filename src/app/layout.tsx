@@ -5,7 +5,7 @@ import CookieConsentWrapper from "@/components/cookieconsent";
 import Script from "next/script";
 import { Analytics } from "@vercel/analytics/next";
 import TurnstileScript from "./TurnstileScript";
-import "./globals.css";
+import './globals.css'
 
 const GTM_ID = "GTM-PG77BVJ4";
 
@@ -39,6 +39,7 @@ export const metadata: Metadata = {
     "what is a business broker",
     "buiness brokers",
     "how to value a small company",
+    "sell my business",
     "sell my business fast",
     "small business broker",
     "best business brokers",

@@ -78,7 +78,10 @@ export default async function Activate() {
       `}</style>
 
       <nav>
-        <NavBarActivate />
+        <NavBarActivate 
+          ctaText="Start 30 Days Free"
+          ctaHref="/subscribe/business_monthly?trial=30"
+        />
       </nav>
 
       <header className="hero-bg relative overflow-hidden pt-32 pb-24 lg:pt-40 lg:pb-32">

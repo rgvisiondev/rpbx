@@ -4,12 +4,20 @@ import Link from "next/link";
 import Image from "next/image";
 import { useEffect, useState } from "react";
 
-export default function NavBarActivate() {
+interface NavBarActivateProps {
+  ctaText?: string;
+  ctaHref?: string;
+}
+
+export default function NavBarActivate({
+  ctaText = "Start 30 Days Free",
+  ctaHref = "/subscribe/business_monthly?trial=30",
+}: NavBarActivateProps) {
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
     function handleScroll() {
-      setScrolled(window.scrollY > 10); // change color after 10px scroll
+      setScrolled(window.scrollY > 10);
     }
 
     window.addEventListener("scroll", handleScroll);
@@ -39,12 +47,12 @@ export default function NavBarActivate() {
           />
         </Link>
 
-        {/* Button */}
+        {/* CTA Button */}
         <Link
-          href="/subscribe/business_monthly?trial=30"
+          href={ctaHref}
           className="px-4 py-2 rounded-full text-white font-medium bg-[var(--color-button)] hover:opacity-90 transition"
         >
-          Start 30 Days Free
+          {ctaText}
         </Link>
 
       </div>

@@ -8,9 +8,7 @@ import { verifyTurnstileToken } from "@/lib/verifyTurnstile";
 import { getStripe } from "@/lib/stripe";
 import { syncMailerLiteGroups } from "@/lib/mailerlite/mailerlite";
 
-function getAllowedTrialDaysFromLookup(
-  lookup: string,
-): number {
+function getAllowedTrialDaysFromLookup(lookup: string): number {
   if (lookup === "business_monthly") return 30;
 
   return 0;
@@ -54,107 +52,27 @@ export async function POST(req: Request) {
     const turnstileToken = form.get("turnstile_token");
     const source = String(form.get("source") ?? "");
     const isActivateSignup = source === "activate";
+    const isInvestorAccessSignup = source === "investor_access";
+
+    const errorBaseUrl = isActivateSignup
+      ? `${origin}/activate`
+      : isInvestorAccessSignup
+        ? `${origin}/investor-access`
+        : lookup
+          ? `${origin}/subscribe/${lookup}`
+          : `${origin}/pricing`;
 
     if ((!lookup && !priceIdFromForm) || !email || !password) {
-      return Response.redirect(
-        `${origin}/subscribe/${lookup}?error=missing_fields`,
-        303,
-      );
+      return Response.redirect(`${errorBaseUrl}?error=unknown`, 303);
     }
 
     if (!turnstileToken || typeof turnstileToken !== "string") {
-      return Response.redirect(
-        `${origin}/subscribe/${lookup}?error=verification_failed`,
-        303,
-      );
+      return Response.redirect(`${errorBaseUrl}?error=unknown`, 303);
     }
 
     const ok = await verifyTurnstileToken(turnstileToken);
     if (!ok) {
-      return Response.redirect(
-        `${origin}/subscribe/${lookup}?error=verification_failed`,
-        303,
-      );
-    }
-
-    // 1) Create Supabase user
-    const supabase = await createClientRSC();
-    const { data: signUpRes, error: signUpErr } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: { first_name: firstName, last_name: lastName, username },
-        emailRedirectTo: `${origin}/verified`,
-      },
-    });
-
-    if (signUpErr) {
-      console.error("Sign up error:", signUpErr);
-
-      // Check for username already taken (unique constraint violation)
-      if (
-        String(signUpErr.message).toLowerCase().includes("unique") ||
-        String(signUpErr.message).toLowerCase().includes("username") ||
-        String(signUpErr.message).toLowerCase().includes("duplicate")
-      ) {
-        return Response.redirect(
-          `${origin}/subscribe/${lookup}?error=username_taken`,
-          303,
-        );
-      }
-
-      // Check for "user already exists" error
-      if (
-        String(signUpErr.message)
-          .toLowerCase()
-          .includes("already registered") ||
-        String(signUpErr.message)
-          .toLowerCase()
-          .includes("user already registered")
-      ) {
-        return Response.redirect(
-          `${origin}/subscribe/${lookup}?error=account_exists`,
-          303,
-        );
-      }
-
-      // Check for rate limiting
-      if (
-        String(signUpErr.message).toLowerCase().includes("rate") ||
-        String(signUpErr.message).toLowerCase().includes("too many")
-      ) {
-        return Response.redirect(
-          `${origin}/subscribe/${lookup}?error=rate_limit`,
-          303,
-        );
-      }
-
-      return Response.redirect(
-        `${origin}/subscribe/${lookup}?error=unknown`,
-        303,
-      );
-    }
-
-    const userId = signUpRes.user?.id;
-    if (!userId) {
-      return Response.redirect(
-        `${origin}/subscribe/${lookup}?error=unknown`,
-        303,
-      );
-    }
-
-    // ✅ MailerLite pre-checkout sync (non-subscriber) — NEVER break subscribe flow
-    try {
-      const fullName =
-        [firstName, lastName].filter(Boolean).join(" ").trim() || undefined;
-
-      // role = null means "non-subscriber" path in your MailerLite grouping logic
-      await syncMailerLiteGroups(email, null, fullName, "incomplete");
-    } catch (e) {
-      console.error(
-        "[MailerLite] Pre-checkout sync failed (/api/subscribe)",
-        e,
-      );
+      return Response.redirect(`${errorBaseUrl}?error=unknown`, 303);
     }
 
     // 2) Resolve the Price
@@ -175,15 +93,82 @@ export async function POST(req: Request) {
     }
 
     if (!price || !price.active || !(price.product as Stripe.Product)?.active) {
-      return Response.redirect(
-        `${origin}/subscribe/${lookup}?error=invalid_plan`,
-        303,
+      return Response.redirect(`${errorBaseUrl}?error=invalid_plan`, 303);
+    }
+
+    const intendedUserType = deriveUserTypeFromPrice(price);
+
+    // 1) Create Supabase user
+    const supabase = await createClientRSC();
+    const { data: signUpRes, error: signUpErr } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          first_name: firstName,
+          last_name: lastName,
+          username,
+          user_type: intendedUserType,
+        },
+        emailRedirectTo: `${origin}/verified`,
+      },
+    });
+
+    if (signUpErr) {
+      console.error("Sign up error:", signUpErr);
+
+      // Check for username already taken (unique constraint violation)
+      if (
+        String(signUpErr.message).toLowerCase().includes("unique") ||
+        String(signUpErr.message).toLowerCase().includes("username") ||
+        String(signUpErr.message).toLowerCase().includes("duplicate")
+      ) {
+        return Response.redirect(`${errorBaseUrl}?error=unknown`, 303);
+      }
+
+      // Check for "user already exists" error
+      if (
+        String(signUpErr.message)
+          .toLowerCase()
+          .includes("already registered") ||
+        String(signUpErr.message)
+          .toLowerCase()
+          .includes("user already registered")
+      ) {
+        return Response.redirect(`${errorBaseUrl}?error=unknown`, 303);
+      }
+
+      // Check for rate limiting
+      if (
+        String(signUpErr.message).toLowerCase().includes("rate") ||
+        String(signUpErr.message).toLowerCase().includes("too many")
+      ) {
+        return Response.redirect(`${errorBaseUrl}?error=unknown`, 303);
+      }
+
+      return Response.redirect(`${errorBaseUrl}?error=unknown`, 303);
+    }
+
+    const userId = signUpRes.user?.id;
+    if (!userId) {
+      return Response.redirect(`${errorBaseUrl}?error=unknown`, 303);
+    }
+
+    // ✅ MailerLite pre-checkout sync (non-subscriber) — NEVER break subscribe flow
+    try {
+      const fullName =
+        [firstName, lastName].filter(Boolean).join(" ").trim() || undefined;
+
+      // role = null means "non-subscriber" path in your MailerLite grouping logic
+      await syncMailerLiteGroups(email, null, fullName, "incomplete");
+    } catch (e) {
+      console.error(
+        "[MailerLite] Pre-checkout sync failed (/api/subscribe)",
+        e,
       );
     }
 
     const allowedTrialDays = getAllowedTrialDaysFromLookup(lookup);
-
-    const intendedUserType = deriveUserTypeFromPrice(price);
 
     // 3) Ensure Stripe Customer
     const customerId = await ensureCustomer({
@@ -193,10 +178,15 @@ export async function POST(req: Request) {
 
     const successUrl = isActivateSignup
       ? `${origin}/activate/success?session_id={CHECKOUT_SESSION_ID}`
-      : `${origin}/welcome?session_id={CHECKOUT_SESSION_ID}`;
+      : isInvestorAccessSignup
+        ? `${origin}/investor-access/success?session_id={CHECKOUT_SESSION_ID}`
+        : `${origin}/welcome?session_id={CHECKOUT_SESSION_ID}`;
+
     const cancelUrl = isActivateSignup
-      ? `${origin}/activate/success?session_id={CHECKOUT_SESSION_ID}`
-      : `${origin}/welcome?session_id={CHECKOUT_SESSION_ID}`;
+      ? `${origin}/activate`
+      : isInvestorAccessSignup
+        ? `${origin}/investor-access`
+        : `${origin}/subscribe/${lookup}`;
 
     // 4) Create Checkout Session
     const session = await stripe.checkout.sessions.create({
@@ -229,7 +219,9 @@ export async function POST(req: Request) {
 
     // lookup is available from outer scope
     return Response.redirect(
-      `${origin}/subscribe/${lookup || "business_monthly"}?error=unknown`,
+      lookup
+        ? `${origin}/subscribe/${lookup}?error=unknown`
+        : `${origin}/pricing?error=unknown`,
       303,
     );
   }
