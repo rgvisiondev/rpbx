@@ -111,7 +111,7 @@ function MatchCard({
       ) : null}
 
       <Text className="m-0 text-[20px] font-semibold leading-[28px] text-gray-900">
-        {listing.title}
+        {listing.industry}
       </Text>
 
       <Text className="m-0 mt-2 text-[14px] leading-[22px] text-gray-600">
