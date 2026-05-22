@@ -226,17 +226,26 @@ export type Database = {
       investor_profiles: {
         Row: {
           additional_industries: string[] | null
+          address: string | null
           avatar_alt: string | null
           avatar_h: number | null
           avatar_path: string | null
           avatar_updated_at: string | null
           avatar_w: number | null
           bio: string | null
+          bio_ai_generated_at: string | null
           city: string | null
           contact_email: string | null
+          country_code: string | null
+          county: string | null
           created_at: string | null
           first_name: string | null
           full_name_lc: string | null
+          geocode_confidence: number | null
+          geocode_place_id: string | null
+          geocoded_at: string | null
+          geocoded_lat: number | null
+          geocoded_lng: number | null
           id: string
           industry_experience: string | null
           is_accredited_investor: boolean | null
@@ -247,7 +256,9 @@ export type Database = {
           organization_entity: string | null
           ownership_max: number | null
           ownership_min: number | null
+          postal_code: string | null
           primary_industry: string | null
+          state_code: string | null
           status: string
           target_cash_flow: string | null
           target_ebitda: string | null
@@ -258,17 +269,26 @@ export type Database = {
         }
         Insert: {
           additional_industries?: string[] | null
+          address?: string | null
           avatar_alt?: string | null
           avatar_h?: number | null
           avatar_path?: string | null
           avatar_updated_at?: string | null
           avatar_w?: number | null
           bio?: string | null
+          bio_ai_generated_at?: string | null
           city?: string | null
           contact_email?: string | null
+          country_code?: string | null
+          county?: string | null
           created_at?: string | null
           first_name?: string | null
           full_name_lc?: string | null
+          geocode_confidence?: number | null
+          geocode_place_id?: string | null
+          geocoded_at?: string | null
+          geocoded_lat?: number | null
+          geocoded_lng?: number | null
           id?: string
           industry_experience?: string | null
           is_accredited_investor?: boolean | null
@@ -279,7 +299,9 @@ export type Database = {
           organization_entity?: string | null
           ownership_max?: number | null
           ownership_min?: number | null
+          postal_code?: string | null
           primary_industry?: string | null
+          state_code?: string | null
           status?: string
           target_cash_flow?: string | null
           target_ebitda?: string | null
@@ -290,17 +312,26 @@ export type Database = {
         }
         Update: {
           additional_industries?: string[] | null
+          address?: string | null
           avatar_alt?: string | null
           avatar_h?: number | null
           avatar_path?: string | null
           avatar_updated_at?: string | null
           avatar_w?: number | null
           bio?: string | null
+          bio_ai_generated_at?: string | null
           city?: string | null
           contact_email?: string | null
+          country_code?: string | null
+          county?: string | null
           created_at?: string | null
           first_name?: string | null
           full_name_lc?: string | null
+          geocode_confidence?: number | null
+          geocode_place_id?: string | null
+          geocoded_at?: string | null
+          geocoded_lat?: number | null
+          geocoded_lng?: number | null
           id?: string
           industry_experience?: string | null
           is_accredited_investor?: boolean | null
@@ -311,7 +342,9 @@ export type Database = {
           organization_entity?: string | null
           ownership_max?: number | null
           ownership_min?: number | null
+          postal_code?: string | null
           primary_industry?: string | null
+          state_code?: string | null
           status?: string
           target_cash_flow?: string | null
           target_ebitda?: string | null

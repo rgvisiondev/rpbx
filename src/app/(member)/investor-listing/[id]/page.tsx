@@ -50,16 +50,6 @@ function formatArrayLabel(value: unknown) {
   return "—";
 }
 
-function formatDate(value?: string | null) {
-  if (!value) return "—";
-
-  return new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  }).format(new Date(value));
-}
-
 function DetailCard({
   label,
   value,
@@ -176,6 +166,7 @@ export default async function InvestorPage({
       organization_entity,
       industry_experience,
       city,
+      state_code,
       primary_industry,
       additional_industries,
       ownership_min,
@@ -213,6 +204,8 @@ export default async function InvestorPage({
   const org = inv.organization_entity || "Independent Investor";
   const email = inv.contact_email || "";
   const city = inv.city || "—";
+  const state = inv.state_code || "";
+  const locationLabel = [city, state].filter(Boolean).join(", ") || "-";
   const primary = inv.primary_industry || "—";
   const additional = formatArrayLabel(inv.additional_industries);
 
@@ -238,7 +231,7 @@ export default async function InvestorPage({
   const profileSummaryItems = [
     {
       label: "Location",
-      value: city,
+      value: locationLabel,
       icon: MapPin,
     },
     {
@@ -297,7 +290,7 @@ export default async function InvestorPage({
                     />
                   ) : (
                     <div className="flex h-full w-full items-center justify-center bg-[#f8fbfa]">
-                      <UserRound className="h-10 w-10 text-[#5c9f8d]" />
+                      <UserRound className="h-20 w-20 text-[#5c9f8d]" />
                     </div>
                   )}
                 </div>
@@ -314,15 +307,15 @@ export default async function InvestorPage({
                   <div className="mt-4 flex flex-wrap items-center gap-2">
                     {primary !== "—" && <Chip>{primary}</Chip>}
 
-                    {city !== "—" && (
+                    {locationLabel !== "—" && (
                       <MutedChip>
                         <MapPin className="mr-1.5 h-3.5 w-3.5" />
-                        {city}
+                        {locationLabel}
                       </MutedChip>
                     )}
 
                     {industryExperience !== "—" && (
-                      <MutedChip>{industryExperience} experience</MutedChip>
+                      <MutedChip>{industryExperience} YOE</MutedChip>
                     )}
                   </div>
                 </div>
