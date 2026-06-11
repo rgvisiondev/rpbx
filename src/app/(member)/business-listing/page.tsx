@@ -1,4 +1,4 @@
-// app/business-listings/page.tsx
+// app/business-listing/page.tsx
 import NavGate from "@/app/components/NavGate";
 import Button from "@/app/components/Button";
 import Link from "next/link";
@@ -32,14 +32,6 @@ const INDUSTRIES = [
     label,
     value: label,
   })),
-] as const;
-
-const COUNTIES = [
-  { label: "—", value: "" },
-  { label: "Hidalgo County", value: "Hidalgo County" },
-  { label: "Cameron County", value: "Cameron County" },
-  { label: "Starr County", value: "Starr County" },
-  { label: "Willacy County", value: "Willacy County" },
 ] as const;
 
 const ANNUAL = [
@@ -80,7 +72,6 @@ type SearchParams = Promise<{
   ebitda?: string;
   years?: string;
   emp?: string;
-  county?: string;
   sort?: "date" | "revenue" | "ebitda";
   page?: string;
 }>;
@@ -111,9 +102,6 @@ export default async function Businesses({
     : "";
   const years = YEARS.some((y) => y.value === sp.years) ? sp.years || "" : "";
   const emp = EMP.some((e) => e.value === sp.emp) ? sp.emp || "" : "";
-  const county = COUNTIES.some((c) => c.value === sp.county)
-    ? sp.county || ""
-    : "";
 
   const page = Math.max(1, Number(sp.page || "1") || 1);
   const from = (page - 1) * PAGE_SIZE;
@@ -127,8 +115,8 @@ export default async function Businesses({
       title,
       industry,
       secondary_industry,
-      county,
       city,
+      state_code,
       annual_revenue_range,
       ebitda_range,
       years_in_business,
@@ -152,7 +140,6 @@ export default async function Businesses({
   if (ebitda) query = query.eq("ebitda_range", ebitda);
   if (years) query = query.eq("years_in_business", years);
   if (emp) query = query.eq("employee_count_range", emp);
-  if (county) query = query.eq("county", county);
 
   query = query
     .order("is_promoted_effective", { ascending: false, nullsFirst: false })
@@ -176,6 +163,26 @@ export default async function Businesses({
   const total = count ?? 0;
   const startIdx = total ? from + 1 : 0;
   const endIdx = rows ? from + rows.length : 0;
+
+  const nextQuery = {
+    industry,
+    annual,
+    ebitda,
+    years,
+    emp,
+    sort: sp.sort || "date",
+    page: String(page + 1),
+  };
+
+  const prevQuery = {
+    industry,
+    annual,
+    ebitda,
+    years,
+    emp,
+    sort: sp.sort || "date",
+    page: String(page - 1),
+  };
 
   const sel = (a: string | undefined, b: string) =>
     a === b ? true : undefined;
@@ -286,24 +293,7 @@ export default async function Businesses({
                   ))}
                 </select>
               </div>
-
-              <div className="mb-4">
-                <label className="block mb-1 text-md">
-                  County Business is Located In
-                </label>
-                <select
-                  name="county"
-                  className="w-full border rounded px-2 py-1 text-md"
-                  defaultValue={county}
-                >
-                  {COUNTIES.map((opt) => (
-                    <option key={opt.value || "none"} value={opt.value}>
-                      {opt.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
+              <input type="hidden" name="page" value="1" />
               <Button className="mt-3 w-full">Filter</Button>
             </form>
           </div>
@@ -438,7 +428,7 @@ export default async function Businesses({
                           width={16}
                           height={16}
                         />
-                        <p>{r.county || "—"}</p>
+                        <p>{[r.city, r.state_code].filter(Boolean).join(", ") || "—"}</p>
                       </div>
                     </div>
 
@@ -455,8 +445,8 @@ export default async function Businesses({
                 {page > 1 && (
                   <Link
                     href={{
-                      pathname: "/business-listings",
-                      query: { ...sp, page: String(page - 1) },
+                      pathname: "/business-listing",
+                      query: prevQuery,
                     }}
                     className="underline"
                   >
@@ -466,8 +456,8 @@ export default async function Businesses({
                 {endIdx < total && (
                   <Link
                     href={{
-                      pathname: "/business-listings",
-                      query: { ...sp, page: String(page + 1) },
+                      pathname: "/business-listing",
+                      query: nextQuery,
                     }}
                     className="underline"
                   >
