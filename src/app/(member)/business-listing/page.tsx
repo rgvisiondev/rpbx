@@ -20,11 +20,26 @@ import {
   EMPLOYEE_COUNT_BUCKETS,
   labelForKey,
 } from "@/lib/ranges";
+import BusinessLocationAutocompleteFilter from "@/app/components/BusinessLocationAutocompleteFilter";
 
 export const metadata: Metadata = {
   title: "Business Listings | RioPlex Business Exchange",
   description: "Connecting Local Business Owners With Investors",
 };
+
+function cleanQuery(params: Record<string, string | undefined | null>){
+  return Object.fromEntries(
+    Object.entries(params).filter(([, value]) => value != null && value !== ""),
+  );
+}
+
+function cleanString(value: string | undefined){
+  return value?.trim() || "";
+}
+
+function cleanStateCode(value: string | undefined){
+  return cleanString(value).toUpperCase();
+}
 
 const INDUSTRIES = [
   { label: "All Categories", value: "" },
@@ -66,13 +81,17 @@ const EMP = [
   })),
 ] as const;
 
+
 type SearchParams = Promise<{
   industry?: string;
   annual?: string;
   ebitda?: string;
   years?: string;
   emp?: string;
-  sort?: "date" | "revenue" | "ebitda";
+  locationLabel?: string;
+  city?: string;
+  state_code?: string;
+  postal_code?: string;
   page?: string;
 }>;
 
@@ -102,6 +121,10 @@ export default async function Businesses({
     : "";
   const years = YEARS.some((y) => y.value === sp.years) ? sp.years || "" : "";
   const emp = EMP.some((e) => e.value === sp.emp) ? sp.emp || "" : "";
+  const locationLabel = cleanString(sp.locationLabel);
+  const city = cleanString(sp.city);
+  const stateCode = cleanStateCode(sp.state_code);
+  const postalCode = cleanString(sp.postal_code);
 
   const page = Math.max(1, Number(sp.page || "1") || 1);
   const from = (page - 1) * PAGE_SIZE;
@@ -117,6 +140,7 @@ export default async function Businesses({
       secondary_industry,
       city,
       state_code,
+      postal_code,
       annual_revenue_range,
       ebitda_range,
       years_in_business,
@@ -140,6 +164,9 @@ export default async function Businesses({
   if (ebitda) query = query.eq("ebitda_range", ebitda);
   if (years) query = query.eq("years_in_business", years);
   if (emp) query = query.eq("employee_count_range", emp);
+  if (city) query = query.ilike("city", city);
+  if (stateCode) query = query.eq("state_code", stateCode);
+  if (postalCode) query = query.eq("postal_code", postalCode);
 
   query = query
     .order("is_promoted_effective", { ascending: false, nullsFirst: false })
@@ -164,25 +191,27 @@ export default async function Businesses({
   const startIdx = total ? from + 1 : 0;
   const endIdx = rows ? from + rows.length : 0;
 
-  const nextQuery = {
+  const baseQuery = {
     industry,
     annual,
     ebitda,
     years,
     emp,
-    sort: sp.sort || "date",
-    page: String(page + 1),
+    locationLabel,
+    city,
+    state_code: stateCode,
+    postal_code: postalCode
   };
 
-  const prevQuery = {
-    industry,
-    annual,
-    ebitda,
-    years,
-    emp,
-    sort: sp.sort || "date",
+  const nextQuery = cleanQuery({
+    ...baseQuery,
+    page: String(page + 1),
+  });
+
+  const prevQuery = cleanQuery({
+    ...baseQuery,
     page: String(page - 1),
-  };
+  });
 
   const sel = (a: string | undefined, b: string) =>
     a === b ? true : undefined;
@@ -293,6 +322,15 @@ export default async function Businesses({
                   ))}
                 </select>
               </div>
+
+              <BusinessLocationAutocompleteFilter
+                defaultValue={{
+                  label: locationLabel,
+                  city,
+                  stateCode,
+                  postalCode
+                }}
+                />
               <input type="hidden" name="page" value="1" />
               <Button className="mt-3 w-full">Filter</Button>
             </form>
@@ -305,25 +343,11 @@ export default async function Businesses({
                   ? `Showing ${startIdx}-${endIdx} of ${total} results`
                   : "No results"}
               </p>
-              <div className="flex items-center">
-                <label className="text-md mr-2 hidden sm:block">Sort by</label>
-                <select
-                  name="sort"
-                  className="border rounded px-2 py-1 text-md bg-white"
-                  defaultValue={sp.sort || "date"}
-                  form="filters"
-                >
-                  <option value="date">Date</option>
-                  <option value="revenue" disabled>
-                    Revenue
-                  </option>
-                  <option value="ebitda" disabled>
-                    EBITDA
-                  </option>
-                </select>
-              </div>
-            </div>
 
+              <p className="hidden sm:block text-sm text-gray-500">
+                Boosted first · Recently updated
+              </p>
+            </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               {(rows || []).map((r) => (
                 <div
@@ -428,7 +452,10 @@ export default async function Businesses({
                           width={16}
                           height={16}
                         />
-                        <p>{[r.city, r.state_code].filter(Boolean).join(", ") || "—"}</p>
+                        <p>
+                          {[r.city, r.state_code].filter(Boolean).join(", ") ||
+                            "—"}
+                        </p>
                       </div>
                     </div>
 
