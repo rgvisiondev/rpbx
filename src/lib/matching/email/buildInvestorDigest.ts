@@ -5,7 +5,7 @@ import {
   scoreBusinessForInvestor,
   type InvestorForScoring,
   type ListingForScoring,
-} from "@/lib/matching/email/scoreBusinessForInvestor";
+} from "@/lib/matching/scoreBusinessForInvestor";
 import {
   selectDigestMatches,
   type DigestSelectionResult,
@@ -177,7 +177,7 @@ export async function buildInvestorDigest(
   }
 ): Promise<InvestorDigestPayload> {
   const appBaseUrl = options?.appBaseUrl ?? process.env.NEXT_PUBLIC_SITE_URL ?? "";
-  const reviewMatchesHref = `${appBaseUrl}/member/match-digest`;
+  const reviewMatchesHref = `${appBaseUrl}/dashboard/matches`;
 
   // 1) Load investor profile
   const { data: investor, error: investorErr } = await supabase

@@ -1,72 +1,97 @@
-// app/(member)/dashboard/_components/MatchedBusinesses.tsx
+// app/dashboard/_components/MatchedBusinesses.tsx
+
 import Image from "next/image";
 import Link from "next/link";
 import Button from "@/app/components/Button";
 import { imageUrl } from "@/lib/industryImages";
-import type { BusinessMatch } from "@/lib/matching/matchListings";
+import type { InvestorDashboardBusinessMatch } from "@/lib/matching/dashboard/getInvestorDashboardMatches";
+import MatchPreviewScoreBadge from "./MatchPreviewScoreBadge";
 
 export default function MatchedBusinesses({
   matches,
 }: {
-  matches: BusinessMatch[];
+  matches: InvestorDashboardBusinessMatch[];
 }) {
   if (!matches?.length) {
-    return <p>No matches yet — check back soon.</p>;
+    return (
+      <div className="col-span-full rounded-2xl bg-[#f8fbfa] p-5 text-sm text-gray-600 ring-1 ring-[#d8eee6]">
+        No strong matches yet — check back soon.
+      </div>
+    );
   }
-
-  const isFallback =
-    matches.length > 0 && matches.every((m) => m._source === "newest");
 
   return (
     <>
-      {isFallback && (
-        <div className="col-span-full mb-2 text-sm text-neutral-700">
-          There are no direct matches yet, but check out these businesses:
-        </div>
-      )}
+      {matches.map((match) => {
+        const listing = match.listing;
 
-      {matches.map((l) => {
         const imgSrc =
-          (l.listing_image_choice && imageUrl(l.listing_image_choice)) ||
+          (listing.listingImageChoice && imageUrl(listing.listingImageChoice)) ||
           "/images/businesses/home-services.jpg";
 
         const alt =
-          l.listing_image_alt ||
-          l.title ||
+          listing.listingImageAlt ||
+          listing.title ||
           "Business listing thumbnail";
 
-        const location = [l.city, l.county]
+        const location = [listing.city, listing.stateCode]
           .filter(Boolean)
           .join(", ");
 
+        const title = listing.industry
+          ? `${listing.industry} Business`
+          : "Business Opportunity";
+
         return (
-          <div key={l.id} className="flex-1">
-            <Image
-              src={imgSrc}
-              alt={alt}
-              className="rounded-t-lg w-full shadow-lg border-x-2 border-t-2 border-gray-200 object-cover h-[220px]"
-              width={400}
-              height={220}
-              loading="lazy"
-              sizes="(min-width: 1024px) 25vw, (min-width: 768px) 33vw, 100vw"
-            />
-            <div className="bg-white p-5 rounded-b-lg shadow-lg border-x-2 border-b-2 border-gray-200">
+          <article
+            key={listing.id}
+            className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-lg transition hover:-translate-y-0.5 hover:shadow-xl"
+          >
+            <div className="relative">
+              <Image
+                src={imgSrc}
+                alt={alt}
+                className="h-[210px] w-full object-cover"
+                width={400}
+                height={210}
+                loading="lazy"
+                sizes="(min-width: 1024px) 25vw, (min-width: 768px) 50vw, 100vw"
+              />
 
-              <p className="font-semibold">
-                {l.industry ?? "—"} Business
-              </p>
-
-              {location && (
-                <p className="mt-1 text-xs text-neutral-600">
-                  {location}
-                </p>
-              )}
-
-              <Link href={`/business-listing/${l.id}`}>
-                <Button className="mt-4 w-full">View Listing</Button>
-              </Link>
+              <div className="absolute left-3 top-3">
+                <MatchPreviewScoreBadge
+                  score={match.score}
+                  tier={match.tier}
+                />
+              </div>
             </div>
-          </div>
+
+            <div className="flex min-h-[195px] flex-col p-5">
+              <div>
+                <h4 className="font-semibold leading-snug text-gray-950">
+                  {title}
+                </h4>
+
+                {location && (
+                  <p className="mt-1 text-xs font-medium text-gray-600">
+                    {location}
+                  </p>
+                )}
+
+                {match.reasons[0] && (
+                  <p className="mt-3 text-sm leading-5 text-gray-600">
+                    {match.reasons[0]}
+                  </p>
+                )}
+              </div>
+
+              <div className="mt-auto pt-4">
+                <Link href={`/business-listing/${listing.id}`}>
+                  <Button className="w-full">View Listing</Button>
+                </Link>
+              </div>
+            </div>
+          </article>
         );
       })}
     </>
