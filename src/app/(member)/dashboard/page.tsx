@@ -260,11 +260,29 @@ export default async function Dashboard() {
         <div className="flex flex-col items-center bg-[url('/images/backgrounds/black-mint-bg.png')] bg-cover bg-center md:bg-fixed py-10 px-5 lg:px-2">
           <div className="relative -mt-120 md:-mt-82 -mb-18 z-10 w-full">
             <div className="bg-white flex flex-col w-full lg:max-w-[1140px] mx-auto rounded-2xl p-5 shadow-xl">
-              <h2 className="pb-5">
-                {dashboardData.kind === "business"
-                  ? "Investor Matches"
-                  : "Business Matches"}
-              </h2>
+              <div className="flex flex-col gap-3 pb-5 sm:flex-row sm:items-end sm:justify-between">
+                <div>
+                  <h2>
+                    {dashboardData.kind === "business"
+                      ? "Investor Matches"
+                      : "Business Matches"}
+                  </h2>
+
+                  <p className="mt-1 text-sm text-gray-600">
+                    {dashboardData.kind === "business"
+                      ? "Your highest-fit investors based on your active business listings."
+                      : "Your highest-fit business opportunities based on your investor profile."}
+                  </p>
+                </div>
+
+                <Link
+                  href="/dashboard/matches"
+                  className="inline-flex w-fit items-center justify-center rounded-full border border-[#d8eee6] bg-[#f8fbfa] px-4 py-2 text-sm font-semibold text-gray-800 shadow-sm transition hover:bg-[#60BC9B] hover:text-white"
+                >
+                  Review all matches
+                </Link>
+              </div>
+
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 pb-5">
                 {dashboardData.kind === "business" ? (
                   <MatchedInvestors matches={dashboardData.matches} />

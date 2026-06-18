@@ -1,11 +1,12 @@
 // lib/dashboard/getInvestorDashboardData.ts
+
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/types/database.types";
 
 import {
-  matchListingsToInvestor,
-  type BusinessMatch,
-} from "@/lib/matching/matchListings";
+  getInvestorDashboardMatches,
+  type InvestorDashboardBusinessMatch,
+} from "@/lib/matching/dashboard/getInvestorDashboardMatches";
 
 import { getRecentActivity } from "@/lib/analytics/getRecentActivity";
 import { getUpcomingEvents } from "@/lib/sanity/getUpcomingEvents";
@@ -15,21 +16,28 @@ import type { EventItem } from "@/lib/sanity/getUpcomingEvents";
 
 export type InvestorDashboardData = {
   kind: "investor";
-  matches: BusinessMatch[];
+  matches: InvestorDashboardBusinessMatch[];
   activities: Activity[];
   events: EventItem[];
 };
 
 export async function getInvestorDashboardData(
   supabase: SupabaseClient<Database>,
-  userId: string
+  userId: string,
 ): Promise<InvestorDashboardData> {
-  const matches = await matchListingsToInvestor(supabase, userId);
-
-  const [activities, events] = await Promise.all([
+  const [matches, activities, events] = await Promise.all([
+    getInvestorDashboardMatches(supabase, userId, {
+      limit: 4,
+      includeWeak: false,
+    }),
     getRecentActivity(supabase, userId),
     getUpcomingEvents(),
   ]);
 
-  return { kind: "investor" as const, matches, activities, events };
+  return {
+    kind: "investor",
+    matches,
+    activities,
+    events,
+  };
 }

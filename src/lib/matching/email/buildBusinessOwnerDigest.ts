@@ -5,7 +5,7 @@ import {
   scoreInvestorForBusiness,
   type ListingForInvestorScoring,
   type InvestorForBusinessScoring,
-} from "@/lib/matching/email/scoreInvestorForBusiness";
+} from "@/lib/matching/scoreInvestorForBusiness";
 import {
   selectDigestMatches,
   type DigestSelectionResult,
@@ -201,7 +201,7 @@ export async function buildBusinessOwnerDigest(
 ): Promise<BusinessOwnerDigestPayload> {
   const appBaseUrl =
     options?.appBaseUrl ?? process.env.NEXT_PUBLIC_SITE_URL ?? "";
-  const reviewMatchesHref = `${appBaseUrl}/member/match-digest`;
+  const reviewMatchesHref = `${appBaseUrl}/dashboard/matches`;
 
   // 1) Load owner profile
   const { data: ownerProfile, error: ownerProfileErr } = await supabase
