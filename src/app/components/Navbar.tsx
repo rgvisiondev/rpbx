@@ -10,7 +10,7 @@ import {
   BIZEQUITY_VALUATION_LINK,
 } from "@/lib/valuation-config";
 
-export default function Navbar() {
+export default function Navbar({ isValuationEnabled = true }: { isValuationEnabled?: boolean }) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
 
@@ -113,7 +113,7 @@ export default function Navbar() {
             </li>
           ))}
 
-          {VALUATION_MODE === "free" && (
+          {VALUATION_MODE === "free" && isValuationEnabled && (
             <li>
               <a
                 href={BIZEQUITY_VALUATION_LINK}
@@ -199,7 +199,7 @@ export default function Navbar() {
                 </li>
               ))}
 
-              {VALUATION_MODE === "free" && (
+              {VALUATION_MODE === "free" && isValuationEnabled && (
                 <li>
                   <a
                     href={BIZEQUITY_VALUATION_LINK}

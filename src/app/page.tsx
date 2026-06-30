@@ -1,5 +1,6 @@
 import Link from "next/link";
 import Navbar from "./components/Navbar";
+import { isValuationFeatureEnabled } from "@/lib/valuation/valuationAvailability";
 import Button from "./components/Button";
 import Modal from "./components/Modal";
 import AuthForm from "@/components/AuthForm";
@@ -60,13 +61,14 @@ export default async function Home() {
   }
 
   const dark = false;
+  const isValuationEnabled = isValuationFeatureEnabled();
 
   return (
     <div>
       {/* Div 1: 2 rows */}
       <div className="flex flex-col bg-[url('/images/backgrounds/white-bg.png')] bg-repeat bg-center">
         <div>
-          <Navbar />
+          <Navbar isValuationEnabled={isValuationEnabled} />
         </div>
 
         {/* row becomes column on tablet/mobile */}
@@ -153,17 +155,19 @@ export default async function Home() {
           </div>
         </div>
 
-        <div className="max-w-[1140px] mx-auto flex flex-col md:flex-row items-center">
-          <div className="w-full md:w-1/2 lg:w-2/3">
-            <ValuateCta sourcePage="home"/>
+        {isValuationEnabled && (
+          <div className="max-w-[1140px] mx-auto flex flex-col md:flex-row items-center">
+            <div className="w-full md:w-1/2 lg:w-2/3">
+              <ValuateCta sourcePage="home"/>
+            </div>
+            <div className="w-full md:w-1/2 lg:w-1/3 overflow-hidden xl:overflow-visible">
+              <CardCarousel />
+              <p className="small text-grey text-center pt-2">
+                Swipe left to explore
+              </p>
+            </div>
           </div>
-          <div className="w-full md:w-1/2 lg:w-1/3 overflow-hidden xl:overflow-visible">
-            <CardCarousel />
-            <p className="small text-grey text-center pt-2">
-              Swipe left to explore
-            </p>
-          </div>
-        </div>
+        )}
 
         {/* Row 3 */}
         <div className="w-full lg:max-w-[1140px] px-4 lg:px-0 flex flex-col items-center py-10">
@@ -172,25 +176,27 @@ export default async function Home() {
             Connect with Our Trusted Advisors for Tailored Business Solutions
           </p>
 
-          {/* four cols on desktop, two on tablet/mobile */}
-          <div className="mt-4 lg:px-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10 lg:gap-0 w-full">
+          {/* four cols on desktop when valuation enabled, three cols centered when disabled */}
+          <div className={`mt-4 lg:px-10 grid grid-cols-1 gap-10 lg:gap-0 w-full ${isValuationEnabled ? "md:grid-cols-2 lg:grid-cols-4" : "md:grid-cols-3 max-w-3xl mx-auto"}`}>
             {/* 1 */}
-            <div className="flex flex-col items-center">
-              <Modal
-                trigger={
-                  <HoverGif
-                    staticSrc="/images/icons/evaluation.png"
-                    gifSrc="/images/gifs/evaluation.gif"
-                    alt="solution-icon-1"
-                    width={250}
-                    height={250}
-                  />
-                }
-              >
-                <Eval />
-              </Modal>
-              <h4 className="text-center mt-2">Business Valuation</h4>
-            </div>
+            {isValuationEnabled && (
+              <div className="flex flex-col items-center">
+                <Modal
+                  trigger={
+                    <HoverGif
+                      staticSrc="/images/icons/evaluation.png"
+                      gifSrc="/images/gifs/evaluation.gif"
+                      alt="solution-icon-1"
+                      width={250}
+                      height={250}
+                    />
+                  }
+                >
+                  <Eval />
+                </Modal>
+                <h4 className="text-center mt-2">Business Valuation</h4>
+              </div>
+            )}
 
             {/* 2 */}
             <div className="flex flex-col items-center">

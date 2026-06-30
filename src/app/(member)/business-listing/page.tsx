@@ -1,5 +1,6 @@
 // app/business-listing/page.tsx
 import NavGate from "@/app/components/NavGate";
+import { isValuationFeatureEnabled } from "@/lib/valuation/valuationAvailability";
 import Button from "@/app/components/Button";
 import Link from "next/link";
 import Image from "next/image";
@@ -172,6 +173,8 @@ export default async function Businesses({
     .order("is_promoted_effective", { ascending: false, nullsFirst: false })
     .order("updated_at", { ascending: false })
     .range(from, to);
+
+  const isValuationEnabled = isValuationFeatureEnabled();
 
   const { data: rows, count, error } = await query;
   if (error) {
@@ -408,7 +411,7 @@ export default async function Businesses({
                           </Tooltip>
                         )}
 
-                        {r.has_purchased_valuation && (
+                        {r.has_purchased_valuation && isValuationEnabled && (
                           <Tooltip>
                             <TooltipTrigger>
                               <div className="text-black flex rounded-full items-center justify-center min-w-[25px] min-h-[25px]">

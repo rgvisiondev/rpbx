@@ -9,7 +9,7 @@ import { BIZEQUITY_VALUATION_LINK, VALUATION_MODE } from "@/lib/valuation-config
 
 type UserType = "business" | "investor" | "admin" | null;
 
-export default function Navbar({ userType }: { userType: UserType }) {
+export default function Navbar({ userType, isValuationEnabled = true }: { userType: UserType; isValuationEnabled?: boolean }) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
 
@@ -41,7 +41,7 @@ export default function Navbar({ userType }: { userType: UserType }) {
     {
       name: "Free Valuation",
       href: BIZEQUITY_VALUATION_LINK,
-      show: isBusiness && VALUATION_MODE === "free",
+      show: isBusiness && VALUATION_MODE === "free" && isValuationEnabled,
       external: true,
     },
   ].filter((i) => i.show !== false);

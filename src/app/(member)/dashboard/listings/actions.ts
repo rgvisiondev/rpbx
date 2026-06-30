@@ -10,6 +10,7 @@ import {
   BIZEQUITY_VALUATION_LINK,
   VALUATION_CALENDLY_LINK,
 } from "@/lib/valuation-config";
+import { isValuationFeatureDisabled } from "@/lib/valuation/valuationAvailability";
 import { getResendClient, getEmailFrom } from "@/lib/resend";
 import ValuationEmail from "../../../../../emails/ValuationEmail";
 
@@ -105,6 +106,10 @@ export async function startListingPriceCheckout(priceId: string) {
 
 export async function startEvaluation(listingId: string) {
   "use server";
+
+  if (isValuationFeatureDisabled()) {
+    redirect("/dashboard/listings?err=valuation_unavailable");
+  }
 
   const supabase = await createClientRSC();
   const {

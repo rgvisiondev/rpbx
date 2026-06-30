@@ -8,6 +8,7 @@ import { createClientRSC } from "@/../utils/supabase/server";
 import { getListingBadges } from "@/lib/listings/badges";
 import { imageUrl } from "@/lib/industryImages";
 import { VALUATION_MODE } from "@/lib/valuation-config";
+import { isValuationFeatureEnabled } from "@/lib/valuation/valuationAvailability";
 import NavGate from "@/app/components/NavGate";
 import { VisibilityToggle } from "../_components/VisibilityToggle";
 import Modal from "@/app/components/Modal";
@@ -63,6 +64,7 @@ function canContinueOnboarding(subscription: SubscriptionLite | null) {
 }
 
 export default async function OwnerListings() {
+  const isValuationEnabled = isValuationFeatureEnabled();
   const supabase = await createClientRSC();
   const {
     data: { user },
@@ -293,7 +295,7 @@ export default async function OwnerListings() {
                               </button>
                             </form>
 
-                            {!evalState && (
+                            {!evalState && isValuationEnabled && (
                               <form action={startEvaluation.bind(null, l.id)}>
                                 <button
                                   type="submit"
@@ -500,26 +502,28 @@ export default async function OwnerListings() {
                 </p>
               </div>
 
-              <div className="mt-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-                <div className="flex flex-col items-center">
-                  <Modal
-                    trigger={
-                      <HoverGif
-                        staticSrc="/images/icons/evaluation.png"
-                        gifSrc="/images/gifs/evaluation.gif"
-                        alt="Business Valuation"
-                        width={170}
-                        height={170}
-                      />
-                    }
-                  >
-                    <Eval />
-                  </Modal>
+              <div className={`mt-10 grid grid-cols-1 gap-8 ${isValuationEnabled ? "sm:grid-cols-2 lg:grid-cols-4" : "sm:grid-cols-3 lg:grid-cols-3 max-w-3xl mx-auto"}`}>
+                {isValuationEnabled && (
+                  <div className="flex flex-col items-center">
+                    <Modal
+                      trigger={
+                        <HoverGif
+                          staticSrc="/images/icons/evaluation.png"
+                          gifSrc="/images/gifs/evaluation.gif"
+                          alt="Business Valuation"
+                          width={170}
+                          height={170}
+                        />
+                      }
+                    >
+                      <Eval />
+                    </Modal>
 
-                  <h4 className="mt-4 text-white font-medium text-center">
-                    Business Valuation
-                  </h4>
-                </div>
+                    <h4 className="mt-4 text-white font-medium text-center">
+                      Business Valuation
+                    </h4>
+                  </div>
+                )}
 
                 <div className="flex flex-col items-center">
                   <Modal

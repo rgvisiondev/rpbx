@@ -3,8 +3,16 @@ export const runtime = "nodejs";
 
 import { getStripe } from "@/lib/stripe";
 import { NextResponse } from "next/server";
+import { isValuationFeatureDisabled } from "@/lib/valuation/valuationAvailability";
 
 export async function POST(req: Request) {
+  if (isValuationFeatureDisabled()) {
+    return NextResponse.json(
+      { error: "Business valuations are not currently available." },
+      { status: 503 }
+    );
+  }
+
   try {
     const origin =
       req.headers.get("origin") ??

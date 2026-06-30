@@ -1,4 +1,5 @@
 import NavGate from "@/app/components/NavGate";
+import { isValuationFeatureEnabled } from "@/lib/valuation/valuationAvailability";
 import Button from "@/app/components/Button";
 import Image from "next/image";
 import Link from "next/link";
@@ -118,6 +119,8 @@ export default async function ListingPage({
 
   if (!listing) notFound();
 
+  const isValuationEnabled = isValuationFeatureEnabled();
+
   const isPublished =
     listing.status === "published" && listing.is_active === true;
   const isOwner = listing.owner_id === user.id;
@@ -219,7 +222,7 @@ export default async function ListingPage({
                   </Tooltip>
                 )}
 
-                {listing.has_purchased_valuation && (
+                {listing.has_purchased_valuation && isValuationEnabled && (
                   <Tooltip>
                     <TooltipTrigger>
                       <div className="flex min-w-[130px] items-center justify-center gap-3 rounded-full bg-[var(--color-primary)] px-3 py-1 text-black hover:bg-[var(--color-primary-hover)]">
