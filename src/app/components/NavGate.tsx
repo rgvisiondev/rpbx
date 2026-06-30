@@ -2,6 +2,7 @@
 import Navbar from "./Navbar";
 import Navbar2 from "./Navbar-2";
 import { createClientRSC } from "@/../utils/supabase/server";
+import { isValuationFeatureEnabled } from "@/lib/valuation/valuationAvailability";
 
 type UserType = "business" | "investor" | "admin" | null;
 
@@ -9,7 +10,9 @@ export default async function NavGate() {
   const supabase = await createClientRSC();
   const { data: { user } } = await supabase.auth.getUser();
 
-  if (!user) return <Navbar />;
+  const isValuationEnabled = isValuationFeatureEnabled();
+
+  if (!user) return <Navbar isValuationEnabled={isValuationEnabled} />;
 
   const { data: profile } = await supabase
     .from("profiles")
@@ -19,5 +22,5 @@ export default async function NavGate() {
 
   const userType = (profile?.user_type as UserType) ?? null;
 
-  return <Navbar2 userType={userType} />;
+  return <Navbar2 userType={userType} isValuationEnabled={isValuationEnabled} />;
 }

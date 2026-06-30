@@ -11,6 +11,7 @@ import {
   BIZEQUITY_VALUATION_LINK,
   VALUATION_CALENDLY_LINK,
 } from "@/lib/valuation-config";
+import { isValuationFeatureDisabled } from "@/lib/valuation/valuationAvailability";
 import ValuationEmail from "../../../../../emails/ValuationEmail";
 import { getResendClient, getEmailFrom } from "@/lib/resend";
 
@@ -32,6 +33,13 @@ type EvalRow = {
 type EvalRequestBody = { listingId?: string };
 
 export async function POST(req: Request) {
+  if (isValuationFeatureDisabled()) {
+    return Response.json(
+      { error: "Business valuations are not currently available." },
+      { status: 503 }
+    );
+  }
+
   try {
     const { createClientRSC } = await import("@/../utils/supabase/server");
     const supabase = (await createClientRSC()) as SupabaseClient<Database>;

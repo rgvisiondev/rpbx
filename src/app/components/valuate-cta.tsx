@@ -2,12 +2,15 @@
 import Link from "next/link";
 import EvaluationCheckoutButton from "./EvaluationCheckoutButton";
 import { VALUATION_MODE, BIZEQUITY_VALUATION_LINK } from "@/lib/valuation-config";
+import { isValuationFeatureEnabled } from "@/lib/valuation/valuationAvailability";
 
 type Props = {
   sourcePage?: string;
 };
 
 export default function ValuateCta({ sourcePage = "unknown" }: Props) {
+  if (!isValuationFeatureEnabled()) return null;
+
   const isFree = VALUATION_MODE === "free";
 
   return (

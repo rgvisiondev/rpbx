@@ -6,6 +6,7 @@ import {
   BIZEQUITY_VALUATION_LINK,
   VALUATION_CALENDLY_LINK,
 } from "@/lib/valuation-config";
+import { isValuationFeatureDisabled } from "@/lib/valuation/valuationAvailability";
 import { getResendClient, getEmailFrom } from "@/lib/resend";
 
 type RequestBody = {
@@ -47,6 +48,13 @@ async function verifyTurnstileToken(token: string, ip?: string | null) {
 }
 
 export async function POST(request: Request) {
+  if (isValuationFeatureDisabled()) {
+    return NextResponse.json(
+      { error: "Business valuations are not currently available." },
+      { status: 503 }
+    );
+  }
+
   try {
     const body = (await request.json()) as RequestBody;
 
