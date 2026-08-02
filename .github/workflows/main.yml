@@ -1,0 +1,142 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  NODE_ENV: test
+  NEXT_TELEMETRY_DISABLED: 1
+
+jobs:
+  build-and-test:
+    name: Lint • Typecheck • Unit Tests • Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install deps
+        run: npm ci
+
+      # ---- Static checks (fast fail) ----
+      - name: Lint
+        run: npm run lint --if-present
+
+      - name: Typecheck
+        run: npm run typecheck --if-present
+
+      - name: Unit tests
+        run: npm run test --if-present -- --ci
+
+      # ---- Build (no prod secrets required at build time) ----
+      - name: Build Next.js
+        env:
+          # Prefer not to inject sensitive keys at build time; Next.js routes should read them at runtime.
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+        run: npm run build
+
+      - name: Upload production build (artifact)
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: next-build
+          path: |
+            .next
+            next.config.* 
+            package.json
+            package-lock.json
+            public
+            prisma
+            supabase
+          if-no-files-found: ignore
+
+
+  # ---------- OPTIONAL: Playwright E2E (uncomment to enable) ----------
+  # Requires: scripts "start": "next start" and Playwright set up.
+  # Will build once more for a hermetic E2E job.
+  #e2e:
+  #  name: Playwright E2E
+  #  runs-on: ubuntu-latest
+  #  needs: build-and-test
+  #  steps:
+  #    - name: Checkout
+  #      uses: actions/checkout@v4
+  #
+  #    - name: Setup Node
+  #      uses: actions/setup-node@v4
+  #      with:
+  #        node-version: 20
+  #        cache: 'npm'
+  #
+  #    - name: Install deps
+  #      run: npm ci
+  #
+  #    - name: Build app
+  #      env:
+  #        NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+  #        NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+  #      run: npm run build
+  #
+  #    - name: Install Playwright
+  #      run: npx playwright install --with-deps
+  #
+  #    - name: Start app
+  #      run: |
+  #        nohup npm run start -- -p 3000 >/dev/null 2>&1 &
+  #    - name: Wait for app
+  #      run: npx wait-on http://localhost:3000
+  #
+  #    - name: Run E2E
+  #      env:
+  #        BASE_URL: http://localhost:3000
+  #      run: npx playwright test
+
+  # ---------- OPTIONAL: Supabase types drift check ----------
+  # Fails CI if generated types differ from committed file.
+  # Requires you to add SUPABASE_ACCESS_TOKEN and SUPABASE_PROJECT_ID secrets,
+  # and a script that writes to e.g. src/types/database.types.ts
+  #supabase-types:
+  #  name: Supabase types check
+  #  runs-on: ubuntu-latest
+  #  if: ${{ hashFiles('supabase/config.toml') != '' }}
+  #  steps:
+  #    - name: Checkout
+  #      uses: actions/checkout@v4
+  #
+  #    - name: Setup Node
+  #      uses: actions/setup-node@v4
+  #      with:
+  #        node-version: 20
+  #
+  #    - name: Setup Supabase CLI
+  #      uses: supabase/setup-cli@v1
+  #
+  #    - name: Generate types
+  #      env:
+  #        SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+  #        SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
+  #      run: |
+  #        supabase gen types typescript --project-id $SUPABASE_PROJECT_ID > src/types/database.types.ts
+  #        git diff --exit-code || (echo "Supabase types changed. Commit the updated file." && exit 1)
+
+
+
+
+
+
+          
